@@ -1,0 +1,201 @@
+<?php
+// FILE: app/Http/Controllers/Api/AuthController.php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
+use App\Models\ActivityLog;
+
+
+class AuthController extends Controller
+{
+    /**
+     * Handle user registration.
+     */
+    public function register(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => 'required|string|min:8|confirmed',
+                'id_karyawan' => 'required|string|max:255|unique:users',
+                'departemen' => 'required|string|max:255',
+                'employment_type' => 'required|in:organik,freelance',
+                'work_location' => 'required|in:office,produksi',
+            ]);
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'id_karyawan' => $request->id_karyawan,
+                'departemen' => $request->departemen,
+                'employment_type' => $request->employment_type,
+                'work_location' => $request->work_location,
+            ]);
+
+            $token = $user->createToken('authToken')->plainTextToken;
+            ActivityLog::log('Register User', "User: {$user->name}", "User baru mendaftar via API.");
+
+            return response()->json([
+
+                'message' => 'Registration successful',
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ], 201);
+
+        } catch (ValidationException $e) {
+            // JARING 1: Kucing (Validasi) - Udah bener
+            return response()->json([
+                'message' => 'Data yang dimasukkan tidak valid.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            // JARING 2: Kulkas (Semua Error Lainnya)
+            return response()->json([
+                'message' => 'Registrasi gagal, terjadi kesalahan server.',
+                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle user login.
+     */
+    public function login(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|string|email',
+                'password' => 'required|string',
+            ]);
+
+            if (!Auth::attempt($request->only('email', 'password'))) {
+                // JAWABAN SOPAN kalo email/pw salah
+                return response()->json([
+                    'message' => 'Email atau Password yang Anda masukkan salah.'
+                ], 401);
+            }
+
+            $user = User::where('email', $request->email)->firstOrFail();
+            $token = $user->createToken('authToken')->plainTextToken;
+            ActivityLog::log('Login User', "User: {$user->name}", "User login via API.");
+
+            return response()->json([
+
+                'message' => 'Login successful',
+                'user' => $user,
+                'access_token' => $token,
+                'token_type' => 'Bearer',
+            ]);
+
+        } catch (ValidationException $e) {
+            // JARING 1: Kucing (Error Validasi)
+            return response()->json([
+                'message' => 'Data yang dimasukkan tidak valid.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            // JARING 2: Kulkas (Semua Error Lainnya)
+            return response()->json([
+                'message' => 'Terjadi kesalahan pada server.',
+                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle user logout.
+     */
+    public function logout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'message' => 'Successfully logged out'
+        ]);
+    }
+
+    /**
+     * Get the authenticated user.
+     */
+   public function user(Request $request)
+{
+    $user = $request->user();
+
+    // Reset cuti kalau tahun baru (khusus organik)
+    if ($user->employment_type === 'organik') {
+        $user->resetCutiTahunan();
+        $user->refresh();
+    }
+
+    return response()->json([
+        'id' => $user->id,
+        'name' => $user->name,
+        'email' => $user->email,
+        'employment_type' => $user->employment_type,
+        'work_location' => $user->work_location,
+        'id_karyawan' => $user->id_karyawan,
+        'departemen' => $user->departemen,
+        'role' => $user->role,
+        'profile_photo_path' => $user->profile_photo_path,
+        'profile_photo_url' => $user->profile_photo_url ?? null,
+        'is_admin' => $user->is_admin,
+        // ✅ Data cuti (hanya organik, freelance null)
+        'sisa_cuti' => $user->employment_type === 'organik' ? ($user->sisa_cuti ?? 12) : null,
+        'total_cuti_diambil' => $user->employment_type === 'organik' ? ($user->total_cuti_diambil ?? 0) : null,
+        'tahun_cuti' => $user->tahun_cuti ?? date('Y'),
+    ]);
+}
+
+    /**
+     * Update the user's employment type (organik/freelance).
+     */
+    public function updateEmploymentStatus(Request $request)
+    {
+        return $this->updateEmploymentType($request);
+    }
+
+    /**
+     * Update the user's employment type (organik/freelance).
+     */
+    public function updateEmploymentType(Request $request)
+    {
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated.'], 401);
+        }
+
+        try {
+            $request->validate([
+                'employment_type' => 'required|in:organik,freelance',
+            ]);
+
+            $user = $request->user();
+            $user->employment_type = $request->employment_type;
+            $user->save();
+
+            return response()->json([
+                'message' => 'Employment type updated successfully',
+                'user' => $user,
+            ], 200);
+
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to update employment type.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+            ], 500);
+        }
+    }
+}
