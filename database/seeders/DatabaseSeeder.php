@@ -5,7 +5,6 @@ namespace Database\Seeders;
 use App\Models\User;
 use App\Models\Absensi;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
 use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
@@ -15,24 +14,14 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        // Jangan membuat user dummy tanpa id_karyawan karyawan yang valid.
 
-        // 2. Buat user biasa (Test User) (jika belum ada)
-        $testUser = User::firstOrCreate(
-            ['email' => 'test@example.com'],
-            [
-                'name' => 'Test User',
-                'password' => Hash::make('password'),
-                'role' => 'user',
-                'email_verified_at' => Carbon::now(),
-            ]
-        );
-
-        // 3. Buat beberapa user dummy tambahan (opsional)
+        // 2. Buat beberapa user dummy tambahan (opsional)
         // User::factory(5)->create();
 
-        // 4. Buat data absensi untuk user yang sudah ada
+        // 3. Buat data absensi hanya sekali agar db:seed aman diulang.
         $users = User::all();
-        if ($users->isNotEmpty()) {
+        if ($users->isNotEmpty() && Absensi::doesntExist()) {
             for ($i = 0; $i < 30; $i++) {
                 $randomUser = $users->random();
                 $status = ['hadir', 'izin', 'sakit'][$i % 3];
@@ -43,7 +32,7 @@ class DatabaseSeeder extends Seeder
 
                 Absensi::create([
                     'user_id' => $randomUser->id,
-                    'waktu' => Carbon::now()->subDays(rand(0, 60))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
+                    'check_in_at' => Carbon::now()->subDays(rand(0, 60))->subHours(rand(0, 23))->subMinutes(rand(0, 59)),
                     'status' => $status,
                     'tipe' => $tipe,
                     // 'keterangan' => ($status !== 'hadir' && rand(0,1) == 1) ? 'Keterangan ' . $status : null, // <-- BARIS INI DIHAPUS ATAU DIKOMENTARI

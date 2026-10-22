@@ -66,10 +66,10 @@ class ScheduledLemburController extends Controller
     public function updateStatus(Request $request, $id)
     {
         // ✅ FIX SECURITY: Hanya Admin/HR yang boleh update status
-        if (!Auth::user() || !Auth::user()->isAnyAdmin()) {
+        if (!Auth::user() || !in_array(Auth::user()->role, ['hrd', 'hrga'], true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Hanya admin atau HR yang dapat menyetujui lembur.'
+                'message' => 'Unauthorized. Hanya HRD yang dapat menyetujui lembur.'
             ], 403);
         }
 

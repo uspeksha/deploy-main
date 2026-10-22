@@ -20,68 +20,18 @@ use App\Http\Resources\AbsensiResource;
 class AbsensiController extends Controller
 {
     private $workflowTemplates = [
-    'produksi' => [
-        'supervisor' => 'pending',
-        'manager'    => 'pending',
-        'hrga'       => 'pending',
-    ],
-    'office' => [
-        'manager' => 'pending',
-        'hrga'    => 'pending',
-    ],
+        'produksi' => ['hrd' => 'pending'],
+        'office' => ['hrd' => 'pending'],
 ];
 
     private function determineResubmitLevel($rejectedBy, $workflowStatus)
     {
-        if (!$rejectedBy || !$workflowStatus) {
-            return 1;
-        }
-
-        $levelMap = [
-            'yuli' => 1, 'supervisor' => 1, 'mas_yuli' => 1,
-            'nu' => 2, 'manager' => 2, 'mas_nu' => 2,
-            'nadya' => 3, 'hrga' => 3, 'mba_nadya' => 3,
-        ];
-
-        $rejectorLower = strtolower(trim($rejectedBy));
-        $rejectorLower = str_replace([' ', '_', '-'], '', $rejectorLower);
-
-        foreach ($levelMap as $key => $level) {
-            if (strpos($rejectorLower, $key) !== false) {
-                return $level;
-            }
-        }
-
         return 1;
     }
 
     private function resetWorkflowFromLevel($workflow, $startLevel, $employment)
     {
-        $employment = strtolower($employment);
-
-        if ($employment === 'freelance') {
-            $roleToLevel = [
-                'supervisor' => 1,
-                'manager' => 2,
-                'hrga' => 3,
-            ];
-        } else {
-            $roleToLevel = [
-                'manager' => 1,
-                'hrga' => 2,
-            ];
-        }
-
-        $resetWorkflow = [];
-        foreach ($roleToLevel as $role => $level) {
-            if ($level >= $startLevel) {
-                $resetWorkflow[$role] = 'pending';
-            } else {
-                $resetWorkflow[$role] = $workflow[$role] ?? 'approved';
-            }
-        }
-
-        return $resetWorkflow;
+        return ['hrd' => 'pending'];
     }
 
     private function calculateLateMinutes($checkInTime, bool $isWeekend = false): int
@@ -434,7 +384,8 @@ class AbsensiController extends Controller
                 $isWeekend,
                 $absensi->check_in_at,
                 $checkOutTime,
-                $kategori
+                $kategori,
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
             );
 
             if ($request->tipe === 'lembur') {
@@ -951,7 +902,7 @@ public function meAbsensi(Request $request)
             $lemburEnd = Carbon::parse($today->format('Y-m-d') . ' ' . $request->jam_selesai);
 
             
-            $isWeekendOvertime = $request->boolean('is_weekend', Absensi::isWeekend($lemburStart));
+            $isWeekendOvertime = Absensi::isWeekend($lemburStart);
 
             
             $overtimeData = Absensi::calculateOvertimeFromInput(
@@ -971,7 +922,8 @@ public function meAbsensi(Request $request)
                 $isWeekendOvertime,
                 $absensi->check_in_at,
                 now(),
-                $kategori
+                $kategori,
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
             );
 
             $employment = strtolower($user->work_location ?? 'office');
@@ -981,7 +933,7 @@ public function meAbsensi(Request $request)
             if (!$absensi->check_out_at) {
                 $absensi->update([
                     'check_out_at' => $lemburEnd,
-                    'foto_pulang'  => $fotoBukti, 
+                    'foto_pulang'  => $fotoPath,
                 ]);
             }
 
@@ -989,6 +941,7 @@ public function meAbsensi(Request $request)
             $childLembur = Absensi::create([
                 'user_id'               => $user->id,
                 'parent_id'             => $absensi->id,
+                'status'                => $absensi->status,
                 'check_in_at'           => $lemburStart,
                 'check_out_at'          => $lemburEnd,
                 'foto_pulang'           => $fotoPath,
@@ -1112,7 +1065,7 @@ public function meAbsensi(Request $request)
             $lemburStart = Carbon::parse($today->format('Y-m-d') . ' ' . $request->jam_mulai);
             $lemburEnd = Carbon::parse($today->format('Y-m-d') . ' ' . $request->jam_selesai);
 
-            $isWeekendOvertime = $request->boolean('is_weekend', Absensi::isWeekend($lemburStart));
+            $isWeekendOvertime = Absensi::isWeekend($lemburStart);
 
             $overtimeData = Absensi::calculateOvertimeFromInput(
                 $lemburStart,
@@ -1130,7 +1083,8 @@ public function meAbsensi(Request $request)
                 $isWeekendOvertime,
                 $absensi->check_in_at,
                 now(),
-                $kategori
+                $kategori,
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
             );
 
             $employment = strtolower($user->work_location ?? 'office');
@@ -1148,6 +1102,7 @@ public function meAbsensi(Request $request)
             $childLembur = Absensi::create([
                 'user_id'               => $user->id,
                 'parent_id'             => $absensi->id,
+                'status'                => $absensi->status,
                 'check_in_at'           => $lemburStart,
                 'check_out_at'          => $lemburEnd,
                 'foto_pulang'           => $fotoBukti ?? null,
@@ -1519,7 +1474,7 @@ public function meAbsensi(Request $request)
             $baseDate = $absensi->check_in_at ? Carbon::parse($absensi->check_in_at)->format('Y-m-d') : Carbon::today()->format('Y-m-d');
             $lemburStart = Carbon::parse($baseDate . ' ' . $request->jam_mulai);
             $lemburEnd = Carbon::parse($baseDate . ' ' . $request->jam_selesai);
-            $isWeekendOvertime = $request->boolean('is_weekend', Absensi::isWeekend($lemburStart));
+            $isWeekendOvertime = Absensi::isWeekend($lemburStart);
 
             $employment = strtolower($absensi->user->work_location ?? 'office');
             $startLevel = $this->determineResubmitLevel($absensi->rejected_by, $absensi->workflow_status);
@@ -1536,7 +1491,8 @@ public function meAbsensi(Request $request)
                 $isWeekendOvertime,
                 $absensi->check_in_at,
                 $absensi->check_out_at ?? now(),
-                $kategori
+                $kategori,
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
             );
 
             $absensi->update(array_merge($newPaths, [
@@ -1717,16 +1673,9 @@ public function pengajuanTelat(Request $request)
         $employment = strtolower($user->work_location ?? 'office');
 
         if ($employment === 'freelance') {
-            $workflow = [
-                'supervisor' => 'pending',
-                'manager'    => 'pending',
-                'hrga'       => 'pending',
-            ];
+            $workflow = ['hrd' => 'pending'];
         } else {
-            $workflow = [
-                'manager' => 'pending',
-                'hrga'    => 'pending',
-            ];
+            $workflow = ['hrd' => 'pending'];
         }
 
         

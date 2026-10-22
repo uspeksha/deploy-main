@@ -90,12 +90,12 @@
 
     @push('styles')
         <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet"
-              integrity="sha512-1cK78a1o+hpVvTgaWw28SrjkAt+vA1mWxeE695jp9EHuxeyru473uFB6iCha7awqmsuyFutfnMbcTCm9txot6Q=="
+              integrity="sha512-1cK78a1o+ht2JcaW6g8OXYwqpev9+6GqOkz9xmBN9iUUhIndKtxwILGWYOSibOKjLsEdjyjZvYDq/cZwNeak0w=="
               crossorigin="anonymous"
               referrerpolicy="no-referrer"
               nonce="{{ config('app.csp_nonce') }}">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-              integrity="sha512-c42qTSw/wPZ3/5LBzD+Bw5f7bSF2oxou6wEb+I/lqADuhyWpId36goLJtfsZX61B851m1UV6L3PdwGNo6iGq7A=="
+              integrity="sha512-c42qTSw/wPZ3/5LBzD+Bw5f7bSF2oxou6wEb+I/lqeaKV5FDIfMvvRp772y4jcJLKuGUOpbJMdg/BTl50fJYAw=="
               crossorigin="anonymous"
               referrerpolicy="no-referrer"
               nonce="{{ config('app.csp_nonce') }}"/>
@@ -125,7 +125,7 @@
 
     @push('scripts')
         <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"
-                integrity="sha512-A7AYk1fGKX6S2HuqX7WZOKzLPfhUp7uZG0PUtzhGuK8pqUqhhuplqADutJ0iJyq8VJS0M67gz6S0lX4vkpkvuw=="
+                integrity="sha512-A7AYk1fGKX6S2SsHywmPkrnzTZHrgiVT7GcQkLGDe2ev0aWb8zejytzS8wjo7PGEXKqJOrjQ4oORtnimIRZBtw=="
                 crossorigin="anonymous"
                 referrerpolicy="no-referrer"
                 nonce="{{ config('app.csp_nonce') }}"></script>

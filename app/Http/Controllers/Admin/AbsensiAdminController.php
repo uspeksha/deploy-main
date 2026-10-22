@@ -24,197 +24,9 @@ use Illuminate\Support\Facades\Auth;
 
 class AbsensiAdminController extends Controller
 {
-    public function storeLemburManual(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'tanggal' => 'required|date',
-            'lembur_start' => 'required|date_format:H:i',
-            'lembur_end' => 'required|date_format:H:i',
-            'istirahat' => 'nullable|boolean',
-            'file_bukti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048',
-            'keterangan' => 'required|string|max:500',
-        ]);
-
-        $user = User::findOrFail($request->user_id);
-        $tanggal = Carbon::parse($request->tanggal)->toDateString();
-        $startTime = Carbon::parse($tanggal . ' ' . $request->lembur_start);
-        $endTime = Carbon::parse($tanggal . ' ' . $request->lembur_end);
-
-        // Cari absensi di tanggal tersebut yang statusnya approved
-        $absensi = Absensi::where('user_id', $user->id)
-            ->whereDate('check_in_at', $tanggal)
-            ->where('status_approval', 'approved')
-            ->first();
-
-        if (!$absensi) {
-            return back()->with('error', 'Tidak ada data absensi approved untuk tanggal tersebut.');
-        }
-
-        // Logic Lembur: Rate 1x (fix), istirahat 30m jika dipilih
-        $hasRest = $request->boolean('istirahat');
-        $minutes = abs($endTime->diffInMinutes($startTime));
-        $finalMinutes = $hasRest ? max(0, $minutes - 30) : $minutes;
-        
-        // Asumsi HOURLY_SALARY adalah 1x rate
-        $overtimePay = ($finalMinutes / 60) * Absensi::HOURLY_SALARY;
-
-        $updateData = [
-            'tipe' => 'lembur',
-            'lembur_start' => $startTime,
-            'lembur_end' => $endTime,
-            'lembur_rest' => $hasRest ? 1 : 0,
-            'lembur_keterangan' => $request->keterangan,
-            'overtime_minutes' => $finalMinutes,
-            'overtime_pay' => $overtimePay,
-            'final_salary' => ($absensi->final_salary ?? 0) + $overtimePay,
-        ];
-
-        if ($request->hasFile('file_bukti')) {
-            $path = $request->file('file_bukti')->store('absensi/bukti', 'public');
-            $updateData['file_bukti'] = $path;
-        }
-
-        $absensi->update($updateData);
-
-        ActivityLog::log('Manual Overtime', "Admin: " . Auth::user()->name, "Input lembur manual untuk User: {$user->name} tanggal: {$tanggal}. Durasi: {$finalMinutes}m");
-
-        return back()->with('success', 'Lembur manual berhasil ditambahkan.');
-    }
-
-    public function showManualEntryPage()
-    {
-        $users = User::whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'pkl'])->get();
-        return view('admin.absensi.koreksi', compact('users'));
-    }
-
-    public function storeIzinSakitManual(Request $request)
-    {
-        $request->validate([
-            'user_id' => 'required|exists:users,id',
-            'tanggal' => 'required|date',
-            'tipe_izin' => 'required|string', // e.g., 'sakit', 'cuti_tahunan', 'izin_biasa'
-            'file_bukti' => 'nullable|file|mimes:jpeg,png,jpg,pdf|max:2048',
-            'keterangan' => 'required|string|max:500',
-        ]);
-
-        $user = User::findOrFail($request->user_id);
-        $tanggal = Carbon::parse($request->tanggal);
-        
-        // Tentukan status berdasarkan tipe izin
-        $status = ($request->tipe_izin === 'sakit') ? 'sakit' : 'izin';
-
-        DB::beginTransaction();
-        try {
-            // Potong cuti jika tipe izin termasuk dalam kategori yang memotong
-            if (in_array($request->tipe_izin, User::cutiYangMemotong())) {
-                if ($user->sisa_cuti <= 0) {
-                    return back()->with('error', 'Sisa cuti karyawan tidak mencukupi.');
-                }
-                $user->decrement('sisa_cuti');
-                $user->increment('total_cuti_diambil');
-            }
-
-            $createData = [
-                'user_id' => $user->id,
-                'check_in_at' => $tanggal->startOfDay(),
-                'check_out_at' => $tanggal->endOfDay(),
-                'status' => $status,
-                'submission_type' => $request->tipe_izin,
-                'status_approval' => 'approved',
-                'approved_at' => now(),
-                'keterangan_izin_sakit' => 'Manual Entry: ' . $request->keterangan,
-                'final_salary' => 0, // Izin/Sakit manual biasanya tidak dibayar
-                'is_mocked' => false,
-            ];
-
-            if ($request->hasFile('file_bukti')) {
-                $path = $request->file('file_bukti')->store('absensi/bukti', 'public');
-                $createData['file_bukti'] = $path;
-            }
-
-            Absensi::create($createData);
-
-            ActivityLog::log('Manual Izin/Sakit', "Admin: " . Auth::user()->name, "Input manual untuk User: {$user->name} tanggal: {$tanggal->toDateString()}. Tipe: {$request->tipe_izin}");
-
-            DB::commit();
-            return back()->with('success', 'Izin/Sakit manual berhasil ditambahkan.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return back()->with('error', 'Gagal menambahkan data: ' . $e->getMessage());
-        }
-    }
-
-    public function storeManual(Request $request)
-    {
-        $request->validate([
-            'user_id'    => 'required|exists:users,id',
-            'tanggal'    => 'required|date',
-            'jam_masuk'  => 'required|date_format:H:i',
-            'jam_pulang' => 'required|date_format:H:i',
-            'foto_masuk' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'foto_pulang' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
-            'keterangan' => 'required|string|max:500',
-        ]);
-
-        $user = User::findOrFail($request->user_id);
-        $tanggal = Carbon::parse($request->tanggal);
-        $checkIn = Carbon::parse($tanggal->format('Y-m-d') . ' ' . $request->jam_masuk);
-        $checkOut = Carbon::parse($tanggal->format('Y-m-d') . ' ' . $request->jam_pulang);
-
-        // Hitung Gaji
-        $lateMinutes = 0; // Admin yang input, asumsikan telat 0 atau bisa ditambah logic lain
-        $isWeekend = Absensi::isWeekend($checkIn);
-        
-        $salaryData = Absensi::calculateSalary(
-            $lateMinutes,
-            'hadir',
-            'normal',
-            $isWeekend,
-            $checkIn,
-            $checkOut,
-            $user->getKategoriAbsensiAttribute()
-        );
-
-        $createData = [
-            'user_id' => $user->id,
-            'check_in_at' => $checkIn,
-            'check_out_at' => $checkOut,
-            'status' => 'hadir',
-            'tipe' => 'normal',
-            'status_approval' => 'approved',
-            'approved_at' => now(),
-            'keterangan_izin_sakit' => 'Manual Entry: ' . $request->keterangan,
-            'base_salary' => $salaryData['base_salary'],
-            'late_penalty' => $salaryData['late_penalty'],
-            'final_salary' => $salaryData['final_salary'],
-            'is_mocked' => false,
-        ];
-
-        if ($request->hasFile('foto_masuk')) {
-            $path = $request->file('foto_masuk')->store('absensi/foto', 'public');
-            $createData['foto_masuk'] = $path;
-        }
-        
-        if ($request->hasFile('foto_pulang')) {
-            $path = $request->file('foto_pulang')->store('absensi/foto', 'public');
-            $createData['foto_pulang'] = $path;
-        }
-
-        $absensi = Absensi::create($createData);
-
-        ActivityLog::log('Manual Entry', "Admin: " . Auth::user()->name, "Input manual untuk User: {$user->name} tanggal: {$tanggal->toDateString()}");
-
-        return back()->with('success', 'Absensi manual berhasil ditambahkan.');
-    }
     public function index(Request $request)
     {
         return $this->indexByEmploymentType($request, null);
-    }
-
-    public function indexOrganik(Request $request)
-    {
-        return $this->indexByEmploymentType($request, 'organik');
     }
 
     public function indexFreelance(Request $request)
@@ -688,21 +500,24 @@ class AbsensiAdminController extends Controller
             $tempDate->addDay();
         }
 
-        // ✅ HITUNG GAJI (Semua yang punya final_salary)
-        $totalGaji = $absensiUser->sum('final_salary') ?? 0;
-        $totalGajiLembur = $absensiUser->where('status_approval', 'approved')->where('tipe', 'lembur')->sum('overtime_pay') ?? 0;
-        $totalMenitLembur = $absensiUser->where('status_approval', 'approved')->where('tipe', 'lembur')->sum('overtime_minutes');
-        $totalPotongan = $absensiUser->sum('late_penalty') ?? 0;
+        // Payroll totals use approved parent rows only. Approved overtime children
+        // are displayed separately; their pay is already rolled into the parent net.
+        $approvedAbsensi = $absensiUser->where('status_approval', 'approved');
+        $totalGaji = $approvedAbsensi->sum('final_salary') ?? 0;
+        $totalGajiPokok = $approvedAbsensi->sum('base_salary') ?? 0;
+        $totalGajiLembur = $lemburUser->sum('overtime_pay') ?? 0;
+        $totalMenitLembur = $lemburUser->sum('overtime_minutes');
+        $totalPotongan = $approvedAbsensi->sum('late_penalty') ?? 0;
         $kategori = $this->detectKategori($user);
 
         $izinKeluarUser = \App\Models\IzinKeluar::where('user_id', $user->id)
             ->whereBetween('waktu_keluar', [$izinKeluarMonthStart, $izinKeluarMonthEnd])
             ->get();
 
-        $totalHadir = $absensiUser->where('status', 'hadir')->count();
-        $totalIzin = $absensiUser->where('status', 'izin')->where('status_approval', 'approved')->count();
-        $totalSakit = $absensiUser->where('status', 'sakit')->where('status_approval', 'approved')->count();
-        $totalKurang8Jam = $absensiUser->where('is_kurang_8_jam', true)->count(); // 🆕 TAMBAH INI
+        $totalHadir = $approvedAbsensi->where('status', 'hadir')->count();
+        $totalIzin = $approvedAbsensi->where('status', 'izin')->count();
+        $totalSakit = $approvedAbsensi->where('status', 'sakit')->count();
+        $totalKurang8Jam = $approvedAbsensi->where('is_kurang_8_jam', true)->count(); // 🆕 TAMBAH INI
         
         // Alfa = Total Hari Kerja - (Hadir + Izin + Sakit)
         $totalAlfa = max(0, $totalHariKerja - ($totalHadir + $totalIzin + $totalSakit));
@@ -720,12 +535,16 @@ class AbsensiAdminController extends Controller
             'total_sakit' => $totalSakit,
             'total_cuti' => $absensiUser->where('status', 'izin')->filter(fn($item) => str_starts_with($item->submission_type ?? '', 'cuti'))->where('status_approval', 'approved')->count(),
             'total_lembur' => $lemburUser->count(),
-            'total_telat' => $absensiUser->where('late_minutes', '>', 0)->where('late_penalty', '>', 0)->count(),
-            'total_menit_telat' => $absensiUser->sum('late_minutes'),
+            'total_lembur_pending' => Absensi::where('user_id', $user->id)->whereBetween('check_in_at', [$startDate, $endDate])->where('tipe', 'lembur')->where('status_approval', 'pending')->count(),
+            'total_lembur_ditolak' => Absensi::where('user_id', $user->id)->whereBetween('check_in_at', [$startDate, $endDate])->where('tipe', 'lembur')->where('status_approval', 'rejected')->count(),
+            'total_telat' => $approvedAbsensi->where('late_minutes', '>', 0)->where('late_penalty', '>', 0)->count(),
+            'total_menit_telat' => $approvedAbsensi->sum('late_minutes'),
             'total_menit_lembur' => $totalMenitLembur,
             'total_gaji_lembur' => $totalGajiLembur,
+            'total_gaji_pokok' => $totalGajiPokok,
             'total_gaji' => $totalGaji,
             'total_potongan' => $totalPotongan,
+            'keterangan_adj' => $approvedAbsensi->pluck('adjustment_reason')->filter()->unique()->implode('; '),
             'total_izin_keluar' => $izinKeluarUser->count(),
             'total_izin_keluar_ditolak' => $izinKeluarUser->where('status_approval', 'rejected')->count(),
         ];
@@ -774,19 +593,38 @@ class AbsensiAdminController extends Controller
         $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
 
         foreach ($users as $user) {
-            // 🔥 QUERY DENGAN PENDING
+            // Main payroll totals are based on parent attendance records only.
             $absensiUser = Absensi::where('user_id', $user->id)
                 ->whereBetween('check_in_at', [$startDate, $endDate])
                 ->whereIn('status_approval', ['approved', 'rejected', 'pending'])
+                ->whereNull('parent_id')
                 ->get();
 
-            // 🔥 HITUNG GAJI HANYA YANG APPROVED
-            $totalGaji = $absensiUser->where('status_approval', 'approved')->sum('final_salary') ?? 0;
-            $totalGajiLembur = $absensiUser->where('status_approval', 'approved')->where('tipe', 'lembur')->sum('overtime_pay') ?? 0;
-            $totalMenitLembur = $absensiUser->where('status_approval', 'approved')->where('tipe', 'lembur')->sum('overtime_minutes');
-            
-            // 🔥 TOTAL POTONGAN TETAP HITUNG SEMUA (KARNA SUDAH FINAL)
-            $totalPotongan = $absensiUser->sum('late_penalty') ?? 0;
+            $approvedAbsensi = $absensiUser->where('status_approval', 'approved');
+            $lemburUser = Absensi::where('user_id', $user->id)
+                ->whereBetween('check_in_at', [$startDate, $endDate])
+                ->where('tipe', 'lembur')
+                ->where('status_approval', 'approved')
+                ->whereNotNull('parent_id')
+                ->get();
+            $pendingLembur = Absensi::where('user_id', $user->id)
+                ->whereBetween('check_in_at', [$startDate, $endDate])
+                ->where('tipe', 'lembur')
+                ->where('status_approval', 'pending')
+                ->whereNotNull('parent_id')
+                ->count();
+            $rejectedLembur = Absensi::where('user_id', $user->id)
+                ->whereBetween('check_in_at', [$startDate, $endDate])
+                ->where('tipe', 'lembur')
+                ->where('status_approval', 'rejected')
+                ->whereNotNull('parent_id')
+                ->count();
+
+            $totalGaji = $approvedAbsensi->sum('final_salary') ?? 0;
+            $totalGajiPokok = $approvedAbsensi->sum('base_salary') ?? 0;
+            $totalGajiLembur = $lemburUser->sum('overtime_pay') ?? 0;
+            $totalMenitLembur = $lemburUser->sum('overtime_minutes');
+            $totalPotongan = $approvedAbsensi->sum('late_penalty') ?? 0;
             
             $kategori = $this->detectKategori($user);
 
@@ -797,20 +635,23 @@ class AbsensiAdminController extends Controller
             $recapData[] = [
                 'user' => $user,
                 'kategori' => $kategori,
-                'total_hadir' => $absensiUser->where('status', 'hadir')->where('status_approval', 'approved')->count(),
-                'total_izin' => $absensiUser->where('status', 'izin')->where('status_approval', 'approved')->count(),
-                'total_cuti_tahunan' => $absensiUser->where('status', 'izin')->where('status_approval', 'approved')->where('submission_type', 'cuti_tahunan')->count(),
-                'total_cuti_spesial' => $absensiUser->where('status', 'izin')->where('status_approval', 'approved')->filter(fn($item) => !empty($item->submission_type) && $item->submission_type !== 'cuti_tahunan')->count(),
-                'total_sakit' => $absensiUser->where('status', 'sakit')->where('status_approval', 'approved')->count(),
+                'total_hadir' => $approvedAbsensi->where('status', 'hadir')->count(),
+                'total_izin' => $approvedAbsensi->where('status', 'izin')->count(),
+                'total_cuti_tahunan' => $approvedAbsensi->where('status', 'izin')->where('submission_type', 'cuti_tahunan')->count(),
+                'total_cuti_spesial' => $approvedAbsensi->where('status', 'izin')->filter(fn($item) => !empty($item->submission_type) && $item->submission_type !== 'cuti_tahunan')->count(),
+                'total_sakit' => $approvedAbsensi->where('status', 'sakit')->count(),
                 'total_lembur' => $lemburUser->count(),
-                'total_lembur_pending' => $absensiUser->where('tipe', 'lembur')->where('status_approval', 'pending')->count(),
-                'total_lembur_ditolak' => $absensiUser->where('tipe', 'lembur')->where('status_approval', 'rejected')->count(),
-                'total_telat' => $absensiUser->where('late_minutes', '>', 0)->count(),
+                'total_lembur_pending' => $pendingLembur,
+                'total_lembur_ditolak' => $rejectedLembur,
+                'total_kurang_8_jam' => $approvedAbsensi->where('is_kurang_8_jam', true)->count(),
+                'total_telat' => $approvedAbsensi->where('late_minutes', '>', 0)->count(),
                 'total_menit_lembur' => $totalMenitLembur,
                 'total_gaji_lembur' => $totalGajiLembur,
-                'total_menit_telat' => $absensiUser->sum('late_minutes'),
+                'total_menit_telat' => $approvedAbsensi->sum('late_minutes'),
+                'total_gaji_pokok' => $totalGajiPokok,
                 'total_gaji' => $totalGaji,
                 'total_potongan' => $totalPotongan,
+                'keterangan_adj' => $approvedAbsensi->pluck('adjustment_reason')->filter()->unique()->implode('; '),
                 'total_izin_keluar' => $izinKeluarUser->count(),
                 'total_izin_keluar_ditolak' => $izinKeluarUser->where('status_approval', 'rejected')->count(),
                 'total_absensi' => $absensiUser->count(),
@@ -929,8 +770,8 @@ class AbsensiAdminController extends Controller
         }
     }
 
-    // Ambil data yang DI-APPROVE AJA
-    $approvedAbsensi = $query->whereIn('status_approval', ['approved', 'rejected'])
+    // Hanya attendance yang disetujui masuk ke slip payroll.
+    $approvedAbsensi = $query->where('status_approval', 'approved')
         ->whereNull('parent_id')
         ->get();
 
@@ -1011,7 +852,7 @@ public function exportSlipGajiPdf(Request $request, $id)
         }
     }
 
-   $approvedAbsensi = $query->whereIn('status_approval', ['approved', 'rejected'])
+    $approvedAbsensi = $query->where('status_approval', 'approved')
        ->whereNull('parent_id')
        ->get();
 

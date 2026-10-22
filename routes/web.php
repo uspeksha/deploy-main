@@ -48,7 +48,6 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
 
         // 🔒 Khusus Super Admin
         Route::middleware('super_admin')->group(function () {
-            Route::get('/organik', [AbsensiAdminController::class, 'indexOrganik'])->name('admin.absensi.organik');
             Route::get('/user/{user}/export-slip', [AbsensiAdminController::class, 'exportSlipGaji'])->name('admin.absensi.user.export-slip')->middleware('block.pkl');
             Route::get('/user/{id}/export-slip-pdf', [AbsensiAdminController::class, 'exportSlipGajiPdf'])->name('admin.absensi.user.export-slip-pdf')->middleware('block.pkl');
             Route::post('/bulk-export-pdf', [AbsensiAdminController::class, 'bulkExportPdf'])->name('admin.absensi.bulk-export-pdf')->middleware('block.pkl');
@@ -72,9 +71,10 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
 
     // APPROVAL ABSENSI
     Route::prefix('approval')->group(function () {
-        Route::get('/supervisor', [ApprovalController::class, 'supervisor'])->name('admin.absensi.approval.supervisor');
-        Route::get('/manager', [ApprovalController::class, 'manager'])->name('admin.absensi.approval.manager');
-        Route::get('/hrga', [ApprovalController::class, 'hrga'])->name('admin.absensi.approval.hrga');
+        Route::get('/hrd', [ApprovalController::class, 'hrd'])->name('admin.absensi.approval.hrd');
+        Route::redirect('/supervisor', '/admin/approval/hrd');
+        Route::redirect('/manager', '/admin/approval/hrd');
+        Route::redirect('/hrga', '/admin/approval/hrd');
 
         Route::post('/{absensi}/{action}', [ApprovalController::class, 'handleAction'])
             ->name('admin.absensi.approval.action')
@@ -94,17 +94,6 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
     Route::post('/absensi/{absensi}/adjustment', [AbsensiAdminController::class, 'updateAdjustment'])
         ->name('admin.absensi.update-adjustment');
         
-    Route::post('/absensi/manual-entry', [AbsensiAdminController::class, 'storeManual'])
-        ->name('admin.absensi.store-manual');
-
-    Route::post('/absensi/manual-izin-sakit', [AbsensiAdminController::class, 'storeIzinSakitManual'])
-        ->name('admin.absensi.store-izin-sakit-manual');
-
-    Route::post('/absensi/manual-overtime', [AbsensiAdminController::class, 'storeLemburManual'])
-        ->name('admin.absensi.store-lembur-manual');
-
-    Route::get('/absensi/koreksi', [AbsensiAdminController::class, 'showManualEntryPage'])
-        ->name('admin.absensi.koreksi');
 });
 
 require __DIR__ . '/auth.php';

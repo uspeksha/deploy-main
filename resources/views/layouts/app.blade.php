@@ -80,13 +80,6 @@
                     <span>Semua</span>
                 </a>
 
-                <a href="{{ route('admin.absensi.organik') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.organik') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-circle text-[8px] w-4"></i>
-                    <span>Organik</span>
-                </a>
-
                 <a href="{{ route('admin.absensi.freelance') }}"
                    class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
                    {{ request()->routeIs('admin.absensi.freelance') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
@@ -94,42 +87,22 @@
                     <span>Freelance</span>
                 </a>
 
-                <a href="{{ route('admin.absensi.koreksi') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.koreksi') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-pen-nib text-[8px] w-4"></i>
-                    <span>Input Manual</span>
-                </a>
             </div>
 
             <!-- APPROVAL SECTION -->
             @auth
-            @if (Auth::user()->isAnyAdmin())
+            @if (in_array(Auth::user()->role, ['hrd', 'hrga'], true))
             <div class="pt-2 space-y-0.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
                 <div class="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     <i class="fas fa-user-shield w-4"></i>
                     <span>Approval</span>
                 </div>
 
-                <a href="{{ route('admin.absensi.approval.supervisor') }}"
+                <a href="{{ route('admin.absensi.approval.hrd') }}"
                    class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.approval.supervisor') ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border-l-4 border-green-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-user-tie text-[10px] w-4"></i>
-                    <span class="truncate">Supervisor (Freelance)</span>
-                </a>
-
-                <a href="{{ route('admin.absensi.approval.manager') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.approval.manager') ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-700 dark:text-yellow-400 border-l-4 border-yellow-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-user-gear text-[10px] w-4"></i>
-                    <span class="truncate">Manager (Freelance/Org)</span>
-                </a>
-
-                <a href="{{ route('admin.absensi.approval.hrga') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.approval.hrga') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-l-4 border-blue-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                   {{ request()->routeIs('admin.absensi.approval.hrd') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-l-4 border-blue-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                     <i class="fas fa-user-check text-[10px] w-4"></i>
-                    <span class="truncate">HRGA (Final)</span>
+                    <span class="truncate">HRD</span>
                 </a>
             </div>
             @endif

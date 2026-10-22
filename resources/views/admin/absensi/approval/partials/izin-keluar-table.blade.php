@@ -126,7 +126,7 @@
                         <td class="px-6 py-4 whitespace-nowrap">
                             <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-yellow-500/10 text-yellow-400 border-yellow-500/20">
                                 <span class="mr-1">⏱️</span>
-                                Menunggu (Level {{ $item->current_approval_level }})
+                                Menunggu HRD
                             </span>
                         </td>
 

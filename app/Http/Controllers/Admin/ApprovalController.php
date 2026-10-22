@@ -14,207 +14,79 @@ use Illuminate\Support\Facades\DB;
 class ApprovalController extends Controller
 {
     protected $workflowMap = [
-    'produksi' => [1 => 'Supervisor', 2 => 'Manager', 3 => 'HRGA'],
-    'office'   => [1 => 'Manager', 2 => 'HRGA'],
-];
+        'produksi' => [1 => 'HRD'],
+        'office' => [1 => 'HRD'],
+    ];
+
+    private $workflowTemplates = [
+        'produksi' => ['hrd' => 'pending'],
+        'office' => ['hrd' => 'pending'],
+    ];
+
+    private function ensureHrdApprover(): void
+    {
+        abort_unless(in_array(auth()->user()->role, ['hrd', 'hrga'], true), 403);
+    }
 
     public function index()
     {
-        return redirect()->route('admin.absensi.approval.supervisor');
+        return redirect()->route('admin.absensi.approval.hrd');
     }
 
-    private $workflowTemplates = [
-    'produksi' => [
-        'supervisor' => 'pending',
-        'manager'    => 'pending',
-        'hrga'       => 'pending',
-    ],
-    'office' => [
-        'manager' => 'pending',
-        'hrga'    => 'pending',
-    ],
-];
-
-
-    private function getSubmissions(Request $request, $type, $level, $status = 'pending')
+    private function getSubmissions(Request $request, string $status = 'pending')
     {
-        $search = $request->input('search');
+        $query = Absensi::with('user')->whereIn('status_approval', ['pending', 'approved', 'rejected']);
 
-        // Query: Fetch all submissions (standard absensi AND koreksi)
-        $query = Absensi::with('user')
-            ->where('current_approval_level', $level);
-
-        if ($type === 'produksi') {
-            $query->whereHas('user', fn($q) => $q->whereRaw('LOWER(work_location) = ?', ['produksi']));
-        } else {
-            $query->whereHas('user', fn($q) => $q->where(function($sq) {
-                $sq->whereRaw('LOWER(work_location) != ?', ['produksi'])
-                   ->orWhereNull('work_location');
-            }));
-        }
-
-        if (is_array($status)) {
-            $query->whereIn('status_approval', $status);
-        } else {
+        if (in_array($status, ['pending', 'approved', 'rejected'], true)) {
             $query->where('status_approval', $status);
         }
 
-        if ($search) {
+        if ($search = $request->input('search')) {
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('id_karyawan', 'like', "%{$search}%");
+                    ->orWhere('id_karyawan', 'like', "%{$search}%");
             });
         }
 
-        return $query->join('users', 'absensis.user_id', '=', 'users.id')
+        return $query->whereNull('parent_id')
+            ->join('users', 'absensis.user_id', '=', 'users.id')
             ->select('absensis.*')
-            ->orderBy('users.name', 'asc')
-            ->orderBy('absensis.check_in_at', 'desc')
+            ->orderBy('users.name')
+            ->orderByDesc('absensis.check_in_at')
             ->get();
+    }
+
+    public function hrd(Request $request)
+    {
+        $this->ensureHrdApprover();
+        $status = $request->input('status', 'pending');
+        $submissions = $this->getSubmissions($request, $status);
+        $scheduledLembur = ScheduledLembur::where('status', 'pending')->with('user')->orderBy('tanggal_lembur')->get();
+        $izinKeluar = IzinKeluar::where('status_izin', 'selesai')->where('status_approval', 'pending')
+            ->with('user')->orderBy('waktu_keluar')->get();
+
+        return view('admin.absensi.approval.hrd', compact('submissions', 'scheduledLembur', 'izinKeluar', 'status'));
     }
 
     public function supervisor(Request $request)
     {
-        $status = $request->input('status', 'pending');
-        $produksiSupervisor = $this->getSubmissions($request, 'produksi', 1, $status);
-        $scheduledLembur = ScheduledLembur::whereHas('user', function($q) {
-                $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-            })
-            ->where('status', 'pending')
-            ->where('current_approval_level', 1)
-            ->with('user')
-            ->orderBy('tanggal_lembur', 'asc')
-            ->get();
-
-        $izinKeluar = IzinKeluar::whereHas('user', function($q) {
-                $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-            })
-            ->where('status_izin', 'selesai')
-            ->where('status_approval', 'pending')
-            ->where('current_approval_level', 1)
-            ->with('user')
-            ->orderBy('waktu_keluar', 'asc')
-            ->get();
-
-        return view('admin.absensi.approval.supervisor', [
-            'freelanceYuli' => $produksiSupervisor,
-            'submissions'   => $produksiSupervisor,
-            'approverName'  => 'Supervisor',
-            'approverRole'  => 'Level 1 (Produksi)',
-            'scheduledLembur' => $scheduledLembur,
-            'izinKeluar' => $izinKeluar,
-            'currentStatus' => $status,
-        ]);
+        return redirect()->route('admin.absensi.approval.hrd');
     }
 
     public function manager(Request $request)
     {
-        $status = $request->input('status', 'pending');
-        $produksiManager = $this->getSubmissions($request, 'produksi', 2, $status);
-        $officeManager   = $this->getSubmissions($request, 'office', 1, $status);
-        $scheduledLembur = ScheduledLembur::where(function($query) {
-                // Produksi Level 2
-                $query->whereHas('user', function($q) {
-                    $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-                })->where('current_approval_level', 2);
-            })->orWhere(function($query) {
-                // Office Level 1
-                $query->whereHas('user', function($q) {
-                    $q->whereRaw('LOWER(work_location) != ?', ['produksi'])
-                      ->orWhereNull('work_location');
-                })->where('current_approval_level', 1);
-            })
-            ->where('status', 'pending')
-            ->with('user')
-            ->orderBy('tanggal_lembur', 'asc')
-            ->get();
-
-        $izinKeluar = IzinKeluar::where(function($outer) {
-                $outer->where(function($query) {
-                    // Produksi Level 2
-                    $query->whereHas('user', function($q) {
-                        $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-                    })->where('current_approval_level', 2);
-                })->orWhere(function($query) {
-                    // Office Level 1
-                    $query->whereHas('user', function($q) {
-                        $q->whereRaw('LOWER(work_location) != ?', ['produksi'])
-                          ->orWhereNull('work_location');
-                    })->where('current_approval_level', 1);
-                });
-            })
-            ->where('status_izin', 'selesai')
-            ->where('status_approval', 'pending')
-            ->with('user')
-            ->orderBy('waktu_keluar', 'asc')
-            ->get();
-
-        return view('admin.absensi.approval.manager', [
-            'freelanceManager' => $produksiManager,
-            'organikManager'   => $officeManager,
-            'izinKeluar' => $izinKeluar,
-            'approverName'     => 'Manager',
-            'approverRole'     => 'Level 2 Approval',
-            'scheduledLembur' => $scheduledLembur,
-            'currentStatus'    => $status, // ✅ Tambahin ini biar View tau lagi liat status apa
-        ]);
+        return redirect()->route('admin.absensi.approval.hrd');
     }
 
     public function hrga(Request $request)
     {
-        $status = $request->input('status', 'pending');
-        $produksiHRGA = $this->getSubmissions($request, 'produksi', 3, $status);
-        $officeHRGA   = $this->getSubmissions($request, 'office', 2, $status);
-        $scheduledLembur = ScheduledLembur::where(function($query) {
-                // Produksi Level 3
-                $query->whereHas('user', function($q) {
-                    $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-                })->where('current_approval_level', 3);
-            })->orWhere(function($query) {
-                // Office Level 2
-                $query->whereHas('user', function($q) {
-                    $q->whereRaw('LOWER(work_location) != ?', ['produksi'])
-                      ->orWhereNull('work_location');
-                })->where('current_approval_level', 2);
-            })
-            ->where('status', 'pending')
-            ->with('user')
-            ->orderBy('tanggal_lembur', 'asc')
-            ->get();
-
-        $izinKeluar = IzinKeluar::where(function($outer) {
-                $outer->where(function($query) {
-                    // Produksi Level 3
-                    $query->whereHas('user', function($q) {
-                        $q->whereRaw('LOWER(work_location) = ?', ['produksi']);
-                    })->where('current_approval_level', 3);
-                })->orWhere(function($query) {
-                    // Office Level 2
-                    $query->whereHas('user', function($q) {
-                        $q->whereRaw('LOWER(work_location) != ?', ['produksi'])
-                          ->orWhereNull('work_location');
-                    })->where('current_approval_level', 2);
-                });
-            })
-            ->where('status_izin', 'selesai')
-            ->where('status_approval', 'pending')
-            ->with('user')
-            ->orderBy('waktu_keluar', 'asc')
-            ->get();
-
-        return view('admin.absensi.approval.hrga', [
-            'freelanceHRGA' => $produksiHRGA,
-            'organikHRGA'   => $officeHRGA,
-            'approverName'  => 'HRGA',
-            'approverRole'  => 'Final Approval',
-            'scheduledLembur' => $scheduledLembur,
-            'izinKeluar' => $izinKeluar,
-            'currentStatus' => $status,
-        ]);
+        return redirect()->route('admin.absensi.approval.hrd');
     }
 
     public function handleAction(Request $request, Absensi $absensi, string $action)
     {
+        $this->ensureHrdApprover();
+
         if ($absensi->status_approval !== 'pending') {
             return back()->with('error', 'Pengajuan sudah diproses sebelumnya.');
         }
@@ -222,22 +94,10 @@ class ApprovalController extends Controller
         $userTipe = $absensi->user->work_location ?? 'office';
         $currentLevel = $absensi->current_approval_level ?? 1;
         $workflowMap = $this->workflowMap[$userTipe] ?? $this->workflowMap['office'];
-        $currentApprover = $workflowMap[$currentLevel] ?? 'Unknown';
+        $currentApprover = 'HRD';
+        $workflowKey = 'hrd';
 
-        $approverToKey = [
-            'Supervisor' => 'supervisor',
-            'Manager'    => 'manager',
-            'HRGA'       => 'hrga',
-        ];
-        $workflowKey = $approverToKey[$currentApprover] ?? strtolower(str_replace(' ', '_', $currentApprover));
-
-        $workflowStatus = is_array($absensi->workflow_status)
-            ? $absensi->workflow_status
-            : (json_decode($absensi->workflow_status ?? '[]', true) ?: []);
-
-        if(empty($workflowStatus)) {
-             $workflowStatus = $this->workflowTemplates[$userTipe] ?? $this->workflowTemplates['office'];
-        }
+        $workflowStatus = ['hrd' => 'pending'];
 
         $submissionType = $absensi->tipe ?? 'absensi';
         $targetPageMap = [
@@ -413,7 +273,8 @@ class ApprovalController extends Controller
                                     \App\Models\Absensi::isWeekend($absensi->check_in_at),
                                     $absensi->check_in_at,
                                     $absensi->check_out_at,
-                                    $absensi->user->employment_type
+                                    $absensi->user->employment_type,
+                                    $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
                                 );
                                 $updateData['base_salary'] = $salaryData['base_salary'];
                                 $updateData['final_salary'] = $salaryData['final_salary'];
@@ -481,7 +342,8 @@ class ApprovalController extends Controller
                                 $absensi->is_weekend_overtime ?? false,
                                 $absensi->check_in_at,
                                 $checkOutDateTime,
-                                $absensi->user->kategori_absensi
+                                $absensi->user->kategori_absensi,
+                                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
                             );
                             
                             $updateData['status'] = 'hadir'; // Ubah status jadi hadir tapi durasi kurang
@@ -560,7 +422,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                             false,
                             $absensi->check_in_at,
                             $absensi->check_out_at,
-                            $kategori
+                            $kategori,
+                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
                         );
                         $absensi->base_salary = $salaryData['base_salary'];
                         $absensi->late_penalty = $salaryData['late_penalty'];
@@ -577,7 +440,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                             $overtimeData = Absensi::calculateOvertimeFromInput(
                                 $absensi->lembur_start,
                                 $absensi->lembur_end,
-                                (bool) $absensi->lembur_rest
+                                (bool) $absensi->lembur_rest,
+                                (bool) $absensi->is_weekend_overtime
                             );
 
                             $overtimeMinutes = $overtimeData['minutes'];
@@ -708,63 +572,21 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
 
     private function determineResubmitLevel($rejectedBy, $workflowStatus)
     {
-        if (!$rejectedBy || !$workflowStatus) return 1;
-        $levelMap = [
-            'supervisor' => 1, 'mas_yuli' => 1,
-            'manager' => 2, 'mas_nu' => 2,
-            'hrga' => 3, 'mba_nadya' => 3,
-        ];
-        $rejectorLower = strtolower(trim($rejectedBy));
-        foreach ($levelMap as $key => $level) {
-            if (strpos($rejectorLower, $key) !== false) {
-                return $level;
-            }
-        }
         return 1;
     }
 
     private function resetWorkflowFromLevel($workflow, $startLevel, $employment)
     {
-        $employment = strtolower($employment);
-        if ($employment === 'produksi') {
-    $roleToLevel = [
-        'supervisor' => 1,
-        'manager' => 2,
-        'hrga' => 3,
-    ];
-} else {
-    $roleToLevel = [
-        'manager' => 1,
-        'hrga' => 2,
-    ];
-}
-        $resetWorkflow = [];
-        foreach ($roleToLevel as $role => $level) {
-            if ($level >= $startLevel) {
-                $resetWorkflow[$role] = 'pending';
-            } else {
-                $resetWorkflow[$role] = $workflow[$role] ?? 'approved';
-            }
-        }
-        return $resetWorkflow;
+        return ['hrd' => 'pending'];
     }
 
     public function handleScheduledLemburAction(Request $request, $id, $action)
     {
+        $this->ensureHrdApprover();
         $record = ScheduledLembur::with('user')->findOrFail($id);
 
         if ($action === 'approve') {
-            $userBranch = strtolower($record->user->work_location ?? 'office');
-            $maxLevel = ($userBranch === 'produksi') ? 3 : 2;
-
-            if ($record->current_approval_level < $maxLevel) {
-                // Naik level
-                $record->increment('current_approval_level');
-                \App\Models\ActivityLog::log('Approve Jadwal Lembur (Bukan Final)', "Jadwal ID: {$record->id} dari {$record->user->name}", "Naik level");
-                return back()->with('success', 'Lembur terjadwal berhasil di-approve dan lanjut ke level berikutnya.');
-            } else {
-                // Final Approve
-                $record->update(['status' => 'approved']);
+            $record->update(['status' => 'approved', 'current_approval_level' => 1]);
                 
                 $tanggal = \Carbon\Carbon::parse($record->tanggal_lembur)->translatedFormat('d F Y');
                 \App\Models\Notification::create([
@@ -776,9 +598,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                     'target_id'   => $record->id,
                 ]);
                 
-                \App\Models\ActivityLog::log('Approve Jadwal Lembur Final', "Jadwal ID: {$record->id} dari {$record->user->name}", "Persetujuan Final");
-                return back()->with('success', 'Lembur terjadwal berhasil disetujui sepenuhnya.');
-            }
+                \App\Models\ActivityLog::log('Approve Jadwal Lembur HRD', "Jadwal ID: {$record->id} dari {$record->user->name}", "Persetujuan HRD");
+                return back()->with('success', 'Lembur terjadwal berhasil disetujui oleh HRD.');
         }
 
         if ($action === 'reject') {
@@ -802,24 +623,16 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
     }
     public function handleIzinKeluarAction(Request $request, $id, $action)
     {
+        $this->ensureHrdApprover();
         $record = IzinKeluar::with('user')->findOrFail($id);
 
         if ($action === 'approve') {
-            $userBranch = strtolower($record->user->work_location ?? 'office');
-            $maxLevel = ($userBranch === 'produksi') ? 3 : 2;
-
-            if ($record->current_approval_level < $maxLevel) {
-                // Naik level, belum final
-                $record->increment('current_approval_level');
-                \App\Models\ActivityLog::log('Approve Izin Keluar (Bukan Final)', "Izin ID: {$record->id} dari {$record->user->name}", "Naik level");
-                return back()->with('success', 'Izin Keluar berhasil di-approve dan lanjut ke level berikutnya.');
-            } else {
-                // Final approve
-                $record->update([
-                    'status_approval' => 'approved',
-                    'approved_by' => auth()->id(),
-                    'approved_at' => now(),
-                ]);
+            $record->update([
+                'status_approval' => 'approved',
+                'current_approval_level' => 1,
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
 
                 \App\Models\Notification::create([
                     'user_id'     => $record->user_id,
@@ -830,9 +643,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                     'target_id'   => $record->id,
                 ]);
 
-                \App\Models\ActivityLog::log('Approve Izin Keluar Final', "Izin ID: {$record->id} dari {$record->user->name}", "Persetujuan Final");
-                return back()->with('success', 'Izin Keluar berhasil disetujui sepenuhnya.');
-            }
+                \App\Models\ActivityLog::log('Approve Izin Keluar HRD', "Izin ID: {$record->id} dari {$record->user->name}", "Persetujuan HRD");
+                return back()->with('success', 'Izin Keluar berhasil disetujui HRD.');
         }
 
         if ($action === 'reject') {
@@ -875,6 +687,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
 
     public function handleBulkAction(Request $request)
     {
+        $this->ensureHrdApprover();
         $ids = $request->input('ids', []);
         
         if (empty($ids)) {
@@ -901,24 +714,11 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
     {
         $userTipe = $absensi->user->work_location ?? 'office';
         $currentLevel = $absensi->current_approval_level ?? 1;
-        $workflowMap = $this->workflowMap[$userTipe] ?? $this->workflowMap['office'];
-        $currentApprover = $workflowMap[$currentLevel] ?? 'Unknown';
-        $maxLevel = count($workflowMap);
+        $currentApprover = 'HRD';
+        $maxLevel = 1;
+        $workflowKey = 'hrd';
 
-        $approverToKey = [
-            'Supervisor' => 'supervisor',
-            'Manager'    => 'manager',
-            'HRGA'       => 'hrga',
-        ];
-        $workflowKey = $approverToKey[$currentApprover] ?? strtolower(str_replace(' ', '_', $currentApprover));
-
-        $workflowStatus = is_array($absensi->workflow_status)
-            ? $absensi->workflow_status
-            : (json_decode($absensi->workflow_status ?? '[]', true) ?: []);
-
-        if(empty($workflowStatus)) {
-             $workflowStatus = $this->workflowTemplates[$userTipe] ?? $this->workflowTemplates['office'];
-        }
+        $workflowStatus = ['hrd' => 'pending'];
 
         $workflowStatus[$workflowKey] = 'approved';
         $submissionType = $absensi->tipe ?? 'absensi';
@@ -965,7 +765,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                             $isWeekend,
                             $checkIn,
                             $checkOut,
-                            $kategori
+                            $kategori,
+                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
                         );
                         
                         $updateData['base_salary'] = $salaryData['base_salary'];
@@ -1027,7 +828,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                 elseif (strpos($idKaryawan, 'AMB') === 0) $kategori = 'freelance';
 
                 if ($absensi->base_salary === null) {
-                    $salaryData = Absensi::calculateSalary($absensi->late_minutes ?? 0, $absensi->status, $absensi->tipe, false, $absensi->check_in_at, $absensi->check_out_at, $kategori);
+                    $salaryData = Absensi::calculateSalary($absensi->late_minutes ?? 0, $absensi->status, $absensi->tipe, false, $absensi->check_in_at, $absensi->check_out_at, $kategori, $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN');
                     $absensi->base_salary = $salaryData['base_salary'];
                     $absensi->late_penalty = $salaryData['late_penalty'];
                     $absensi->save();
@@ -1037,7 +838,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                 $overtimePay = 0;
                 $overtimeMinutes = 0;
                 if (strtolower($absensi->tipe ?? '') === 'lembur' && $absensi->lembur_start && $absensi->lembur_end) {
-                    $overtimeData = Absensi::calculateOvertimeFromInput($absensi->lembur_start, $absensi->lembur_end, (bool) $absensi->lembur_rest);
+                    $overtimeData = Absensi::calculateOvertimeFromInput($absensi->lembur_start, $absensi->lembur_end, (bool) $absensi->lembur_rest, (bool) $absensi->is_weekend_overtime);
                     $overtimeMinutes = $overtimeData['minutes'];
                     $overtimePay = $overtimeData['pay'];
                 }
