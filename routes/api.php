@@ -32,10 +32,6 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
     // PUBLIC ROUTES (Tanpa Auth)
     // ==========================================
 
-    // ✅ REGISTER - Rate limit: 10 attempts per menit
-    Route::post('/register', [AuthController::class, 'register'])
-        ->middleware('throttle:10,1');
-
     // ✅ LOGIN - Rate limit: 5 attempts per menit (anti brute force)
     Route::post('/login', [AuthController::class, 'login'])
         ->middleware('throttle:5,1');
@@ -113,5 +109,4 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
     });
 
 });
-
 

@@ -13,6 +13,6 @@ class IsSuperAdmin
         if (Auth::check() && Auth::user()->isSuperAdmin()) {
             return $next($request);
         }
-        abort(403, 'Akses ditolak. Hanya Super Admin yang bisa mengakses halaman ini.');
+        abort(403, 'Akses ditolak. Hanya HRD yang bisa mengakses halaman ini.');
     }
 }

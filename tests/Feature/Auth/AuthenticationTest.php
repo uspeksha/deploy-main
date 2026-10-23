@@ -8,8 +8,8 @@ test('login screen can be rendered', function () {
     $response->assertStatus(200);
 });
 
-test('users can authenticate using the login screen', function () {
-    $user = User::factory()->create();
+test('HRD can authenticate using the login screen', function () {
+    $user = User::factory()->create(['role' => 'hrd']);
 
     $response = $this->post('/login', [
         'email' => $user->email,
@@ -17,7 +17,7 @@ test('users can authenticate using the login screen', function () {
     ]);
 
     $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $response->assertRedirect(route('admin.absensi.index', absolute: false));
 });
 
 test('users can not authenticate with invalid password', function () {

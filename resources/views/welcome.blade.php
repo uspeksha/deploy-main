@@ -5,9 +5,9 @@
             <!-- Left Content -->
             <div data-aos="fade-right" data-aos-duration="1500" class="space-y-6">
                 <div class="flex items-center gap-4">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo PT" class="h-20 w-auto animate__animated animate__fadeInLeft">
+                    <img src="{{ asset('images/logo-followme.png') }}" alt="Logo PT Followme" class="h-20 w-auto animate__animated animate__fadeInLeft">
                     <div>
-                        <h1 class="text-xl font-semibold text-gray-700 dark:text-gray-200">PT. Ansel Muda Berkarya</h1>
+                        <h1 class="text-xl font-semibold text-gray-700 dark:text-gray-200">PT. Followme</h1>
                         <p class="text-sm text-gray-500 dark:text-gray-400 tracking-wide">Sistem Absensi Digital Terintegrasi</p>
                     </div>
                 </div>
@@ -85,7 +85,7 @@
 
     <!-- Footer -->
     <footer class="text-center text-sm py-6 text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
-        &copy; {{ date('Y') }} PT. Ansel Muda Berkarya. All rights reserved.
+        &copy; {{ date('Y') }} PT. Followme. All rights reserved.
     </footer>
 
     @push('styles')

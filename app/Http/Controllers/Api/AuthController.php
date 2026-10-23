@@ -7,65 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use App\Models\ActivityLog;
 
 
 class AuthController extends Controller
 {
-    /**
-     * Handle user registration.
-     */
-    public function register(Request $request)
-    {
-        try {
-            $request->validate([
-                'name' => 'required|string|max:255',
-                'email' => 'required|string|email|max:255|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-                'id_karyawan' => 'required|string|max:255|unique:users',
-                'departemen' => 'required|string|max:255',
-                'employment_type' => 'required|in:organik,freelance',
-                'work_location' => 'required|in:office,produksi',
-            ]);
-
-            $user = User::create([
-                'name' => $request->name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-                'id_karyawan' => $request->id_karyawan,
-                'departemen' => $request->departemen,
-                'employment_type' => $request->employment_type,
-                'work_location' => $request->work_location,
-            ]);
-
-            $token = $user->createToken('authToken')->plainTextToken;
-            ActivityLog::log('Register User', "User: {$user->name}", "User baru mendaftar via API.");
-
-            return response()->json([
-
-                'message' => 'Registration successful',
-                'user' => $user,
-                'access_token' => $token,
-                'token_type' => 'Bearer',
-            ], 201);
-
-        } catch (ValidationException $e) {
-            // JARING 1: Kucing (Validasi) - Udah bener
-            return response()->json([
-                'message' => 'Data yang dimasukkan tidak valid.',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            // JARING 2: Kulkas (Semua Error Lainnya)
-            return response()->json([
-                'message' => 'Registrasi gagal, terjadi kesalahan server.',
-                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
-            ], 500);
-        }
-    }
-
     /**
      * Handle user login.
      */
@@ -85,6 +32,16 @@ class AuthController extends Controller
             }
 
             $user = User::where('email', $request->email)->firstOrFail();
+            if ($user->registration_status !== 'approved' || !$user->is_active) {
+                Auth::logout();
+
+                return response()->json([
+                    'message' => $user->registration_status === 'rejected'
+                        ? 'Pendaftaran akun Anda ditolak. Silakan hubungi HRD.'
+                        : 'Akun Anda masih menunggu persetujuan HRD.',
+                ], 403);
+            }
+
             $token = $user->createToken('authToken')->plainTextToken;
             ActivityLog::log('Login User', "User: {$user->name}", "User login via API.");
 

@@ -226,9 +226,9 @@
             
             <div class="header-section">
                 <a href="/">
-                    <img src="{{ asset('images/logo.png') }}" alt="AMB Logo" class="logo">
+                    <img src="{{ asset('images/logo-followme.png') }}" alt="Logo Followme" class="logo">
                 </a>
-                <h1 class="company-name">PT. Ansel Muda Berkarya</h1>
+                <h1 class="company-name">PT. Followme</h1>
                 <p class="company-subheading">Sistem Absensi Digital Terintegrasi</p>
                 <h2 class="login-title">Silakan masuk ke akun Anda</h2>
             </div>
@@ -293,10 +293,11 @@
                     Masuk
                 </button>
             </form>
+
         </div>
 
         <div class="footer-text">
-            © 2026 PT. Ansel Muda Berkarya. All rights reserved.
+            © 2026 PT. Followme. All rights reserved.
         </div>
     </div>
 </x-guest-layout>

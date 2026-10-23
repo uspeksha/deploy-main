@@ -7,9 +7,15 @@ use App\Models\Absensi;
 use App\Models\Notification;
 use App\Models\ScheduledLembur;
 use App\Models\IzinKeluar;
+use App\Models\User;
+use App\Models\ActivityLog;
+use App\Services\EmployeeRegistrationMailer;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class ApprovalController extends Controller
 {
@@ -25,7 +31,7 @@ class ApprovalController extends Controller
 
     private function ensureHrdApprover(): void
     {
-        abort_unless(in_array(auth()->user()->role, ['hrd', 'hrga'], true), 403);
+        abort_unless(auth()->user()->role === 'hrd', 403);
     }
 
     public function index()
@@ -64,8 +70,115 @@ class ApprovalController extends Controller
         $scheduledLembur = ScheduledLembur::where('status', 'pending')->with('user')->orderBy('tanggal_lembur')->get();
         $izinKeluar = IzinKeluar::where('status_izin', 'selesai')->where('status_approval', 'pending')
             ->with('user')->orderBy('waktu_keluar')->get();
+        $pendingAccounts = auth()->user()->role === 'hrd'
+            ? User::where('registration_status', 'pending')
+                ->where('is_active', false)
+                ->orderBy('created_at')
+                ->get()
+            : collect();
 
-        return view('admin.absensi.approval.hrd', compact('submissions', 'scheduledLembur', 'izinKeluar', 'status'));
+        return view('admin.absensi.approval.hrd', compact(
+            'submissions',
+            'scheduledLembur',
+            'izinKeluar',
+            'status',
+            'pendingAccounts',
+        ));
+    }
+
+    public function createEmployeeAccount(
+        Request $request,
+        EmployeeRegistrationMailer $registrationMailer,
+    ) {
+        abort_unless(auth()->user()->role === 'hrd', 403);
+
+        $validator = Validator::make($request->all(), [
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'id_karyawan' => ['required', 'string', 'max:255', 'unique:users,id_karyawan'],
+            'departemen' => ['required', 'string', 'max:255'],
+            'employment_type' => ['required', 'in:organik,freelance'],
+            'work_location' => ['required', 'in:office,produksi'],
+            'nik' => ['required', 'digits:16'],
+            'bank_name' => ['required', 'string', 'max:100'],
+            'bank_account_number' => ['required', 'string', 'max:40'],
+            'bank_account_name' => ['required', 'string', 'max:255'],
+        ]);
+
+        if ($validator->fails()) {
+            return back()
+                ->withErrors($validator)
+                ->withInput($request->except([
+                    'nik',
+                    'bank_name',
+                    'bank_account_number',
+                    'bank_account_name',
+                ]));
+        }
+
+        $validated = $validator->validated();
+        $temporaryPassword = Str::random(32);
+        $user = User::create([
+            ...$validated,
+            'password' => Hash::make($temporaryPassword),
+            'role' => 'user',
+            'registration_status' => 'pending',
+            'is_active' => false,
+        ]);
+
+        $emailSent = $registrationMailer->sendTemporaryPassword($user, $temporaryPassword);
+        if ($emailSent) {
+            $user->update([
+                'registration_status' => 'approved',
+                'is_active' => true,
+            ]);
+        }
+
+        ActivityLog::log(
+            'Create Employee Account',
+            "User: {$user->name}",
+            $emailSent
+                ? 'HRD membuat akun karyawan dan mengirim password sementara melalui email.'
+                : 'HRD membuat akun karyawan; pengiriman password sementara gagal.',
+        );
+
+        return back()->with(
+            $emailSent ? 'success' : 'warning',
+            $emailSent
+                ? 'Akun berhasil dibuat dan password sementara dikirim ke email karyawan.'
+                : 'Akun tersimpan tetapi belum aktif karena email gagal dikirim. Konfigurasi SMTP lalu gunakan tombol kirim ulang.',
+        );
+    }
+
+    public function resendEmployeeCredentials(
+        User $user,
+        EmployeeRegistrationMailer $registrationMailer,
+    ) {
+        abort_unless(auth()->user()->role === 'hrd', 403);
+
+        if ($user->registration_status !== 'pending' || $user->is_active) {
+            return back()->with('error', 'Akun ini tidak menunggu pengiriman akses.');
+        }
+
+        $temporaryPassword = Str::random(32);
+        $user->update(['password' => Hash::make($temporaryPassword)]);
+
+        if (!$registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {
+            return back()->with('warning', 'Email gagal dikirim. Akun tetap tidak aktif; periksa konfigurasi SMTP lalu coba lagi.');
+        }
+
+        $user->update([
+            'registration_status' => 'approved',
+            'is_active' => true,
+        ]);
+
+        ActivityLog::log(
+            'Resend Employee Credentials',
+            "User: {$user->name}",
+            'HRD mengirim ulang password sementara dan mengaktifkan akun karyawan.',
+        );
+
+        return back()->with('success', 'Password sementara berhasil dikirim dan akun karyawan sudah aktif.');
     }
 
     public function supervisor(Request $request)

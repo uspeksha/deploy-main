@@ -28,7 +28,7 @@
                     </div>
                 </div>
 
-                <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bulan</label>
                         <select name="month" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
@@ -46,15 +46,6 @@
                             @for ($y = date('Y'); $y >= 2020; $y--)
                                 <option value="{{ $y }}" {{ request('year', $year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
-                        </select>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status Kepegawaian</label>
-                        <select name="employment_status" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            <option value="" {{ !request('employment_status') ? 'selected' : '' }}>Semua Status</option>
-                            <option value="organik" {{ request('employment_status') == 'organik' ? 'selected' : '' }}>Organik</option>
-                            <option value="freelance" {{ request('employment_status') == 'freelance' ? 'selected' : '' }}>Freelance</option>
                         </select>
                     </div>
 
@@ -362,10 +353,11 @@
             </div>
 
             {{-- 🔥 TODAY'S STATUS: 4 TABEL DENGAN ALPINE.JS TABS 🔥 --}}
-            @if($currentStatus === 'semua')
-                <div x-data="{ activeTab: 'semua' }" class="space-y-6">
+            @if(in_array($currentStatus, ['semua', 'freelance'], true))
+                <div x-data="{ activeTab: '{{ $currentStatus === 'freelance' ? 'freelance' : 'semua' }}' }" class="space-y-6">
                     
                     {{-- Tab Navigation Pills --}}
+                    @if($currentStatus === 'semua')
                     <div class="flex flex-wrap items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-3 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-700/50">
                         <button @click="activeTab = 'semua'" :class="activeTab === 'semua' ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                             <i class="fas fa-th-large"></i>
@@ -388,8 +380,10 @@
                             <span>Magang</span>
                         </button>
                     </div>
+                    @endif
 
                     {{-- Tabel Organik --}}
+                    @if($currentStatus === 'semua')
                     <div x-show="activeTab === 'semua' || activeTab === 'organik'" x-transition.opacity id="tabel-organik" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
@@ -454,6 +448,7 @@
                         </table>
                     </div>
                 </div>
+                    @endif
 
                 {{-- Tabel Freelance --}}
                 <div x-show="activeTab === 'semua' || activeTab === 'freelance'" x-transition.opacity id="tabel-freelance" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
@@ -522,6 +517,7 @@
                 </div>
 
                 {{-- Tabel Borongan --}}
+                    @if($currentStatus === 'semua')
                 <div x-show="activeTab === 'semua' || activeTab === 'borongan'" x-transition.opacity id="tabel-borongan" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
@@ -586,8 +582,10 @@
                         </table>
                     </div>
                 </div>
+                    @endif
 
                 {{-- Tabel Magang --}}
+                    @if($currentStatus === 'semua')
                 <div x-show="activeTab === 'semua' || activeTab === 'magang'" x-transition.opacity id="tabel-magang" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="p-3 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl">
@@ -767,6 +765,7 @@
                         </table>
                     </div>
                 </div>
+                    @endif
             @endif
 
         </div>
@@ -806,6 +805,7 @@
                 data: {
                     labels: [@for ($i = 1; $i <= 12; $i++) "{{ \Carbon\Carbon::createFromFormat('!m', $i)->translatedFormat('M') }}", @endfor],
                     datasets: [
+                        @if($currentStatus === 'semua')
                         {
                             label: 'Organik',
                             data: [@for ($i = 1; $i <= 12; $i++) {{ $grafikBulananOrganik[$i] ?? 0 }}, @endfor],
@@ -817,6 +817,7 @@
                             pointRadius: 7,
                             fill: true,
                         },
+                        @endif
                         {
                             label: 'Freelance',
                             data: [@for ($i = 1; $i <= 12; $i++) {{ $grafikBulananFreelance[$i] ?? 0 }}, @endfor],

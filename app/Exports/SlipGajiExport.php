@@ -105,7 +105,7 @@ class SlipGajiExport implements WithEvents
                 $row = 1;
 
                 // ================= HEADER PT =================
-                $logoPath = public_path('images/logo.png');
+                $logoPath = public_path('images/logo-followme.png');
                 if (file_exists($logoPath)) {
                     $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
                     $drawing->setName('Logo');
@@ -118,7 +118,7 @@ class SlipGajiExport implements WithEvents
                 }
 
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", 'PT. ANSEL MUDA BERKARYA');
+                $sheet->setCellValue("A{$row}", 'PT. FOLLOWME');
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 14],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
@@ -282,7 +282,7 @@ class SlipGajiExport implements WithEvents
                 $row++;
 
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", "PT. ANSEL MUDA BERKARYA");
+                $sheet->setCellValue("A{$row}", "PT. FOLLOWME");
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]

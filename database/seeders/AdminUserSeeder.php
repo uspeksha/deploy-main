@@ -5,51 +5,31 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 
 class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        // Manager (Full access)
-        User::updateOrCreate(
-            ['email' => 'manager@anselmudaberkarya.com'],
-            [
-                'name' => 'Manager',
-                'password' => Hash::make('anselsukses1010'),
-                'role' => 'manager',
-                'is_admin' => 1,
-                'id_karyawan' => 'ADM001',
-                'departemen' => 'Management',
-                'employment_type' => 'organik',
-            ]
-        );
+        $email = env('HRD_ADMIN_EMAIL', 'hrd@anselmudaberkarya.com');
+        $password = env('HRD_ADMIN_PASSWORD');
 
-        // Supervisor (Full access)
-        User::updateOrCreate(
-            ['email' => 'supervisor@anselmudaberkarya.com'],
-            [
-                'name' => 'Supervisor',
-                'password' => Hash::make('anselsukses1010'),
-                'role' => 'supervisor',
-                'is_admin' => 1,
-                'id_karyawan' => 'ADM002',
-                'departemen' => 'Operations',
-                'employment_type' => 'organik',
-            ]
-        );
+        $user = User::firstOrNew(['email' => $email]);
+        if (!$user->exists && (!is_string($password) || strlen($password) < 12)) {
+            throw new InvalidArgumentException('Set HRD_ADMIN_PASSWORD to a value with at least 12 characters before seeding the HRD account.');
+        }
 
-        // HRGA (Full access)
-        User::updateOrCreate(
-            ['email' => 'hrga@anselmudaberkarya.com'],
-            [
-                'name' => 'HRGA',
-                'password' => Hash::make('password'),
-                'role' => 'hrga',
-                'is_admin' => 1,
-                'id_karyawan' => 'ADM003',
-                'departemen' => 'HRGA',
-                'employment_type' => 'organik',
-            ]
-        );
+        $user->fill([
+            'name' => 'HRD',
+            'role' => 'hrd',
+            'is_admin' => true,
+            'id_karyawan' => $user->id_karyawan ?: 'HRD001',
+            'departemen' => 'HRD',
+            'employment_type' => 'organik',
+        ]);
+        if (!$user->exists) {
+            $user->password = Hash::make($password);
+        }
+        $user->save();
     }
 }

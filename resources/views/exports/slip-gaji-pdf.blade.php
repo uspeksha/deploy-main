@@ -110,11 +110,11 @@
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 15%; text-align: left; vertical-align: middle; border: none; padding: 0;">
-                        <img src="{{ public_path('images/logo.png') }}" alt="Logo" style="width: 120px; height: auto;">
+                        <img src="{{ public_path('images/logo-followme.png') }}" alt="Logo Followme" style="width: 120px; height: auto;">
                     </td>
 
                     <td style="width: 85%; text-align: center; vertical-align: middle; border: none; padding: 0;" class="header-title">
-                        <h1>PT. ANSEL MUDA BERKARYA</h1>
+                        <h1>PT. FOLLOWME</h1>
                         <h2>SLIP GAJI KARYAWAN</h2>
                     </td>
                 </tr>
@@ -225,7 +225,7 @@
             <div class="quote">"Keep Up The Good Work"</div>
             <div class="signature">
                 <div style="font-weight: bold;">HRGA Division</div>
-                <div style="font-weight: bold; margin-top: 5px;">PT. ANSEL MUDA BERKARYA</div>
+                <div style="font-weight: bold; margin-top: 5px;">PT. FOLLOWME</div>
             </div>
         </div>
 

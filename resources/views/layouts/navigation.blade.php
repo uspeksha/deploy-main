@@ -5,10 +5,10 @@
                 <div class="flex items-center gap-2">
                     <a href="{{ route('dashboard') }}">
                         {{-- Sesuaikan logo agar terlihat di background dustyLatte --}}
-                        <img src="{{ asset('images/logo.png') }}" class="block h-12 w-auto fill-current text-gray-800 dark:text-gray-200 filter contrast-125 dark:filter-none" alt="Logo PT Ansel Muda Berkarya">
+                        <img src="{{ asset('images/logo-followme.png') }}" class="block h-12 w-auto fill-current text-gray-800 dark:text-gray-200 filter contrast-125 dark:filter-none" alt="Logo PT Followme">
                     </a>
                     {{-- Sesuaikan warna teks jika logo aslinya gelap dan background nav jadi terang --}}
-                    <span class="font-bold text-lg text-black">PT. Ansel Muda Berkarya</span>
+                    <span class="font-bold text-lg text-black">PT. Followme</span>
                 </div>
             </div>
 

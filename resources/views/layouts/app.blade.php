@@ -49,9 +49,9 @@
 
         <!-- Logo (Kecil) -->
         <div class="sticky top-0 shrink-0 flex items-center gap-3 px-5 py-3 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
-            <img src="{{ asset('images/logo.png') }}" class="h-8 w-auto" alt="Logo">
+            <img src="{{ asset('images/logo-followme.png') }}" class="h-8 w-auto" alt="Logo Followme">
             <div class="flex-1 min-w-0">
-                <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">PT. Ansel Muda</h1>
+                <h1 class="text-sm font-bold text-gray-900 dark:text-white truncate">PT. Followme</h1>
             </div>
         </div>
 
@@ -73,25 +73,37 @@
                     <span>Absensi</span>
                 </div>
 
-                <a href="{{ route('admin.absensi.index') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.index') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-circle text-[8px] w-4"></i>
-                    <span>Semua</span>
-                </a>
-
                 <a href="{{ route('admin.absensi.freelance') }}"
-                   class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.freelance') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
-                    <i class="fas fa-circle text-[8px] w-4"></i>
+                   class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
+                   {{ request()->routeIs('admin.absensi.freelance') ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                   @if (request()->routeIs('admin.absensi.freelance')) aria-current="page" @endif>
+                    <i class="fas fa-user-tie text-base w-5 text-center"></i>
                     <span>Freelance</span>
                 </a>
 
             </div>
 
+            @auth
+            @if (Auth::user()->role === 'hrd')
+            <div class="pt-2 space-y-0.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
+                <div class="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
+                    <i class="fas fa-money-bill-wave w-4 text-emerald-500"></i>
+                    <span>Payroll</span>
+                </div>
+                <a href="{{ route('admin.payroll.index') }}"
+                   class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
+                   {{ request()->routeIs('admin.payroll.*') ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                   @if (request()->routeIs('admin.payroll.*')) aria-current="page" @endif>
+                    <i class="fas fa-file-invoice-dollar text-base w-5 text-center"></i>
+                    <span>Payroll Freelance</span>
+                </a>
+            </div>
+            @endif
+            @endauth
+
             <!-- APPROVAL SECTION -->
             @auth
-            @if (in_array(Auth::user()->role, ['hrd', 'hrga'], true))
+            @if (Auth::user()->role === 'hrd')
             <div class="pt-2 space-y-0.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
                 <div class="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
                     <i class="fas fa-user-shield w-4"></i>

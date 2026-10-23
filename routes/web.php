@@ -9,6 +9,25 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::middleware([
+    'auth',
+    'admin',
+    \App\Http\Middleware\ActivityLogMiddleware::class,
+    'super_admin',
+])->prefix('admin/payroll')->name('admin.payroll.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('index');
+    Route::post('/periods', [\App\Http\Controllers\Admin\PayrollController::class, 'store'])->name('store');
+    Route::post('/periods/{period}/submit', [\App\Http\Controllers\Admin\PayrollController::class, 'submit'])->name('submit');
+    Route::post('/periods/{period}/approve', [\App\Http\Controllers\Admin\PayrollController::class, 'approve'])->name('approve');
+    Route::post('/periods/{period}/paid', [\App\Http\Controllers\Admin\PayrollController::class, 'markPaid'])->name('paid');
+    Route::post('/periods/{period}/cancel', [\App\Http\Controllers\Admin\PayrollController::class, 'cancel'])->name('cancel');
+    Route::post('/periods/{period}/corrections', [\App\Http\Controllers\Admin\PayrollController::class, 'recordCorrection'])->name('corrections.store');
+    Route::post('/periods/{period}/corrections/{correction}/reconcile', [\App\Http\Controllers\Admin\PayrollController::class, 'reconcileCorrection'])->name('corrections.reconcile');
+    Route::get('/periods/{period}/export', [\App\Http\Controllers\Admin\PayrollController::class, 'export'])->name('export');
+    Route::get('/periods/{period}/items/{item}/slip/preview', [\App\Http\Controllers\Admin\PayrollController::class, 'previewSlip'])->name('slip.preview');
+    Route::get('/periods/{period}/items/{item}/slip', [\App\Http\Controllers\Admin\PayrollController::class, 'slip'])->name('slip');
+});
+
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.absensi.index');
@@ -88,6 +107,10 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
         Route::post('/izin-keluar/{id}/{action}', [ApprovalController::class, 'handleIzinKeluarAction'])
             ->name('admin.absensi.approval.izin-keluar.action')
             ->where('action', 'approve|reject');
+        Route::post('/employees', [ApprovalController::class, 'createEmployeeAccount'])
+            ->name('admin.absensi.approval.employees.store');
+        Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
+            ->name('admin.absensi.approval.employees.resend');
     });
 
     // --- ABSENSI MANAGEMENT (Adjustment Gaji) ---

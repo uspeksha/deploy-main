@@ -24,9 +24,24 @@ use Illuminate\Support\Facades\Auth;
 
 class AbsensiAdminController extends Controller
 {
+    private function ensureApprovedRegistration(User $user): void
+    {
+        abort_unless($user->registration_status === 'approved', 404);
+    }
+
+    private function ensureApprovedRegistrationIds(array $userIds): void
+    {
+        abort_if(
+            User::whereIn('id', $userIds)
+                ->where('registration_status', '!=', 'approved')
+                ->exists(),
+            404,
+        );
+    }
+
     public function index(Request $request)
     {
-        return $this->indexByEmploymentType($request, null);
+        return $this->indexByEmploymentType($request, 'freelance');
     }
 
     public function indexFreelance(Request $request)
@@ -43,10 +58,11 @@ class AbsensiAdminController extends Controller
         $year = $request->input('year', Carbon::now()->year);
 
         $userFilter = function (Builder $query) use ($type) {
+            $query->where('registration_status', 'approved');
             if ($type) {
                 $query->where('employment_type', $type);
             }
-            $query->whereNotIn('role', ['supervisor', 'manager', 'hrga', 'admin', 'super_admin', 'pkl']);
+            $query->whereNotIn('role', ['supervisor', 'manager', 'hrga', 'hrd', 'admin', 'super_admin', 'pkl']);
         };
 
         $dashboardTitle = match ($type) {
@@ -329,6 +345,8 @@ class AbsensiAdminController extends Controller
 
     public function show(Request $request, User $user)
     {
+        $this->ensureApprovedRegistration($user);
+
         $filterType = $request->input('filter_type', 'all');
         $year = $request->input('year', now()->year);
         $month = $request->input('month', now()->month);
@@ -459,7 +477,9 @@ class AbsensiAdminController extends Controller
         $endDate = Carbon::create($year, $month, 1)->endOfMonth();
     }
 
-    $users = User::whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'pkl'])->get();
+    $users = User::where('registration_status', 'approved')
+        ->whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'hrd', 'pkl'])
+        ->get();
     $recapData = [];
     $izinKeluarMonthStart = Carbon::create($year, $month, 1)->startOfMonth();
     $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
@@ -587,7 +607,9 @@ class AbsensiAdminController extends Controller
             $endDate = Carbon::create($year, $month, 1)->endOfMonth();
         }
 
-        $users = User::whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'pkl'])->get();
+        $users = User::where('registration_status', 'approved')
+            ->whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'hrd', 'pkl'])
+            ->get();
         $recapData = [];
         $izinKeluarMonthStart = Carbon::create($year, $month, 1)->startOfMonth();
         $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
@@ -698,7 +720,7 @@ class AbsensiAdminController extends Controller
 
     public function exportUser(Request $request, $id)
     {
-        $user = User::findOrFail($id);
+        $user = User::where('registration_status', 'approved')->findOrFail($id);
         $query = Absensi::where('user_id', $id);
 
         if ($request->filter_type === 'monthly') {
@@ -741,6 +763,8 @@ class AbsensiAdminController extends Controller
 
     public function exportSlipGaji(Request $request, User $user)
     {
+        $this->ensureApprovedRegistration($user);
+
         $filterType = $request->input('filter_type', 'all');
 
         // Query dasar
@@ -808,6 +832,7 @@ public function bulkExportDetail(Request $request)
     ]);
 
     $userIds = $request->input('user_ids');
+    $this->ensureApprovedRegistrationIds($userIds);
     $startDate = $request->input('start_date');
     $endDate = $request->input('end_date');
 
@@ -823,7 +848,7 @@ public function bulkExportDetail(Request $request)
 public function exportSlipGajiPdf(Request $request, $id)
 {
     // ✅ Manual query user
-    $user = User::findOrFail($id);
+    $user = User::where('registration_status', 'approved')->findOrFail($id);
 
     $filterType = $request->input('filter_type', 'all');
     $query = Absensi::where('user_id', $user->id);
@@ -887,6 +912,7 @@ public function bulkExportPdf(Request $request)
     ]);
 
     $userIds = $request->input('user_ids');
+    $this->ensureApprovedRegistrationIds($userIds);
     $startDate = Carbon::parse($request->input('start_date'));
     $endDate = Carbon::parse($request->input('end_date'));
 
@@ -904,7 +930,7 @@ public function bulkExportPdf(Request $request)
 
     // 3. Loop User
     foreach ($userIds as $userId) {
-        $user = User::find($userId);
+        $user = User::where('registration_status', 'approved')->find($userId);
         if (!$user) continue;
 
         // Ambil data absensi
@@ -1033,6 +1059,7 @@ private function penyebut($nilai)
     ]);
 
     $userIds = $request->input('user_ids');
+    $this->ensureApprovedRegistrationIds($userIds);
 
 
     try {

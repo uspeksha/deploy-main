@@ -54,7 +54,10 @@ class KpiIntegrationController extends Controller
     public function getActiveEmployees(Request $request)
     {
         // Mengambil semua user dengan informasi profil mereka langsung dari tabel users
-        $employees = \App\Models\User::select('id', 'name', 'email', 'id_karyawan as code')->get();
+        $employees = \App\Models\User::where('registration_status', 'approved')
+            ->where('is_active', true)
+            ->select('id', 'name', 'email', 'id_karyawan as code')
+            ->get();
 
         return response()->json([
             'status' => 'success',

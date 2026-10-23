@@ -22,6 +22,12 @@ class User extends Authenticatable
         'employment_type',
         'work_location',
         'role',
+        'registration_status',
+        'is_active',
+        'nik',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
         'sisa_cuti',           
         'total_cuti_diambil',  
         'tahun_cuti',
@@ -36,6 +42,10 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'nik',
+        'bank_name',
+        'bank_account_number',
+        'bank_account_name',
     ];
 
     protected function casts(): array
@@ -44,6 +54,11 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'is_admin' => 'boolean', 
+            'is_active' => 'boolean',
+            'nik' => 'encrypted',
+            'bank_name' => 'encrypted',
+            'bank_account_number' => 'encrypted',
+            'bank_account_name' => 'encrypted',
         ];
     }
 
@@ -71,7 +86,7 @@ public static function cutiYangMemotong(): array
 
     public function isSuperAdmin(): bool
     {
-        return in_array($this->role, ['super_admin', 'manager', 'supervisor', 'hrga']);
+        return $this->role === 'hrd';
     }
 
     public function isAdminOnly(): bool
@@ -81,7 +96,7 @@ public static function cutiYangMemotong(): array
 
     public function isAnyAdmin(): bool
     {
-        return in_array($this->role, ['super_admin', 'admin', 'manager', 'supervisor', 'hrga']);
+        return $this->role === 'hrd';
     }
 
     /**
