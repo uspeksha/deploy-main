@@ -33,6 +33,7 @@
         $money = fn ($amount) => 'Rp' . number_format((int) $amount, 0, ',', '.');
         $statusLabels = [
             'draft' => 'DRAFT - BELUM FINAL',
+            'exported' => 'DITARIK - BELUM FINAL',
             'pending_approval' => 'MENUNGGU PERSETUJUAN',
             'approved' => 'DISETUJUI - BELUM DIBAYARKAN',
             'paid' => 'DIBAYARKAN (KONFIRMASI MANUAL)',
@@ -92,7 +93,7 @@
         <tr class="net"><td>GAJI BERSIH DITERIMA</td><td class="amount">{{ $money($item->net_pay) }}</td></tr>
     </table>
 
-    <div class="status {{ $period->status === 'draft' ? 'draft' : ($period->status === 'paid' ? 'paid' : '') }}">
+    <div class="status {{ in_array($period->status, ['draft', 'exported'], true) ? 'draft' : ($period->status === 'paid' ? 'paid' : '') }}">
         Status: {{ $statusLabels[$period->status] ?? $period->status }}
     </div>
     @if ($period->status === 'paid')

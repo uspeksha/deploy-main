@@ -113,6 +113,7 @@ class PayrollGenerationService
     private function createItemSnapshot(PayrollPeriod $period, User $employee): void
     {
         $attendances = Absensi::query()
+            ->with('children')
             ->where('user_id', $employee->id)
             ->where('status', 'hadir')
             ->where('status_approval', 'approved')
@@ -130,6 +131,7 @@ class PayrollGenerationService
             ->values();
 
         $attendanceDates = [];
+        $dailyDetails = [];
         $lateRows = [];
         $lateMinutesByWorkday = [];
 
@@ -140,6 +142,31 @@ class PayrollGenerationService
             $lateMinutes = max(0, (int) ($attendance->late_minutes ?? 0));
 
             $attendanceDates[] = $workDate;
+            $overtimeRecords = $attendance->children
+                ->where('tipe', 'lembur');
+            $approvedOvertime = $overtimeRecords
+                ->where('status_approval', 'approved')
+                ->values();
+            $dailyDetails[] = [
+                'work_date' => $workDate,
+                'attendance_status' => $attendance->status,
+                'check_in_at' => $attendance->check_in_at?->toDateTimeString(),
+                'check_out_at' => $attendance->check_out_at?->toDateTimeString(),
+                'late_minutes' => $lateMinutes,
+                'overtime_status' => $approvedOvertime->isNotEmpty()
+                    ? 'approved'
+                    : ($overtimeRecords->isNotEmpty() ? 'pending' : null),
+                'overtime_start' => $approvedOvertime->pluck('lembur_start')->filter()->map(fn ($time) => Carbon::parse($time)->toDateTimeString())->all(),
+                'overtime_end' => $approvedOvertime->pluck('lembur_end')->filter()->map(fn ($time) => Carbon::parse($time)->toDateTimeString())->all(),
+                'overtime_rest' => $approvedOvertime->contains(fn (Absensi $record): bool => (bool) $record->lembur_rest),
+                'overtime_minutes' => $approvedOvertime->isNotEmpty()
+                    ? (int) $approvedOvertime->sum('overtime_minutes')
+                    : ($overtimeRecords->isNotEmpty() ? 0 : (int) ($attendance->overtime_minutes ?? 0)),
+                'overtime_pay' => $approvedOvertime->isNotEmpty()
+                    ? (float) $approvedOvertime->sum('overtime_pay')
+                    : ($overtimeRecords->isNotEmpty() ? 0 : (float) ($attendance->overtime_pay ?? 0)),
+            ];
+
             if ($lateMinutes === 0) {
                 continue;
             }
@@ -158,6 +185,17 @@ class PayrollGenerationService
 
         $workDays = count($attendanceDates);
         $totals = $this->calculateTotals($workDays, $lateMinutesByWorkday);
+        $slipNumber = sprintf(
+            'FM-%04d%02d-W%d-%06d',
+            $period->year,
+            $period->month,
+            $period->period_number,
+            $employee->id,
+        );
+        if ($period->revision > 1) {
+            $slipNumber .= sprintf('-R%d', $period->revision);
+        }
+
         $item = PayrollItem::create([
             'payroll_period_id' => $period->id,
             'user_id' => $employee->id,
@@ -176,15 +214,10 @@ class PayrollGenerationService
             'attendance_snapshot' => [
                 'attendance_ids' => $attendances->pluck('id')->all(),
                 'work_dates' => $attendanceDates,
+                'daily_details' => $dailyDetails,
                 'late_minutes_source' => 'stored_late_minutes_08_00_baseline',
             ],
-            'slip_number' => sprintf(
-                'FM-%04d%02d-W%d-%06d',
-                $period->year,
-                $period->month,
-                $period->period_number,
-                $employee->id,
-            ),
+            'slip_number' => $slipNumber,
         ]);
 
         foreach ($lateRows as $lateRow) {

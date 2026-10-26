@@ -6,8 +6,8 @@
         </div>
     </x-slot>
 
-    <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen">
+        <div class="ui-page">
             @foreach (['success', 'warning', 'error'] as $flashType)
                 @if (session($flashType))
                     <div class="mb-5 rounded-xl border px-4 py-3 text-sm {{ [
@@ -21,7 +21,7 @@
             @endforeach
 
             @if (auth()->user()->role === 'hrd')
-                <section class="mb-6 rounded-2xl border border-indigo-200 bg-white p-6 shadow-lg dark:border-indigo-900 dark:bg-gray-800">
+                <section class="ui-panel mb-6">
                     <div class="mb-5">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">Buat akun karyawan baru</h3>
                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -34,27 +34,27 @@
                         @csrf
                         <div>
                             <x-input-label for="employee_name" value="Nama lengkap" />
-                            <x-text-input id="employee_name" name="name" type="text" class="mt-1 block w-full" :value="old('name')" required />
+                            <x-text-input id="employee_name" name="name" type="text" class="mt-1 ui-control" :value="old('name')" required />
                             <x-input-error :messages="$errors->get('name')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_id_karyawan" value="ID karyawan" />
-                            <x-text-input id="employee_id_karyawan" name="id_karyawan" type="text" class="mt-1 block w-full" :value="old('id_karyawan')" required />
+                            <x-text-input id="employee_id_karyawan" name="id_karyawan" type="text" class="mt-1 ui-control" :value="old('id_karyawan')" required />
                             <x-input-error :messages="$errors->get('id_karyawan')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_email" value="Email karyawan" />
-                            <x-text-input id="employee_email" name="email" type="email" class="mt-1 block w-full" :value="old('email')" required />
+                            <x-text-input id="employee_email" name="email" type="email" class="mt-1 ui-control" :value="old('email')" required />
                             <x-input-error :messages="$errors->get('email')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_department" value="Departemen" />
-                            <x-text-input id="employee_department" name="departemen" type="text" class="mt-1 block w-full" :value="old('departemen')" required />
+                            <x-text-input id="employee_department" name="departemen" type="text" class="mt-1 ui-control" :value="old('departemen')" required />
                             <x-input-error :messages="$errors->get('departemen')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_type" value="Jenis karyawan" />
-                            <select id="employee_type" name="employment_type" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            <select id="employee_type" name="employment_type" required class="ui-control">
                                 <option value="">Pilih jenis karyawan</option>
                                 <option value="organik" @selected(old('employment_type') === 'organik')>Organik</option>
                                 <option value="freelance" @selected(old('employment_type') === 'freelance')>Freelance</option>
@@ -63,7 +63,7 @@
                         </div>
                         <div>
                             <x-input-label for="employee_work_location" value="Lokasi kerja" />
-                            <select id="employee_work_location" name="work_location" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300">
+                            <select id="employee_work_location" name="work_location" required class="ui-control">
                                 <option value="">Pilih lokasi kerja</option>
                                 <option value="office" @selected(old('work_location') === 'office')>Kantor</option>
                                 <option value="produksi" @selected(old('work_location') === 'produksi')>Produksi</option>
@@ -72,26 +72,26 @@
                         </div>
                         <div>
                             <x-input-label for="employee_nik" value="NIK (16 digit)" />
-                            <x-text-input id="employee_nik" name="nik" type="text" inputmode="numeric" maxlength="16" class="mt-1 block w-full" :value="old('nik')" required />
+                            <x-text-input id="employee_nik" name="nik" type="text" inputmode="numeric" maxlength="16" class="mt-1 ui-control" :value="old('nik')" required />
                             <x-input-error :messages="$errors->get('nik')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_bank" value="Nama bank" />
-                            <x-text-input id="employee_bank" name="bank_name" type="text" class="mt-1 block w-full" :value="old('bank_name')" required />
+                            <x-text-input id="employee_bank" name="bank_name" type="text" class="mt-1 ui-control" :value="old('bank_name')" required />
                             <x-input-error :messages="$errors->get('bank_name')" class="mt-2" />
                         </div>
                         <div>
                             <x-input-label for="employee_account_number" value="Nomor rekening" />
-                            <x-text-input id="employee_account_number" name="bank_account_number" type="text" class="mt-1 block w-full" :value="old('bank_account_number')" required />
+                            <x-text-input id="employee_account_number" name="bank_account_number" type="text" class="mt-1 ui-control" :value="old('bank_account_number')" required />
                             <x-input-error :messages="$errors->get('bank_account_number')" class="mt-2" />
                         </div>
                         <div class="sm:col-span-2 lg:col-span-3">
                             <x-input-label for="employee_account_name" value="Nama pemilik rekening" />
-                            <x-text-input id="employee_account_name" name="bank_account_name" type="text" class="mt-1 block w-full" :value="old('bank_account_name')" required />
+                            <x-text-input id="employee_account_name" name="bank_account_name" type="text" class="mt-1 ui-control" :value="old('bank_account_name')" required />
                             <x-input-error :messages="$errors->get('bank_account_name')" class="mt-2" />
                         </div>
                         <div class="flex items-end sm:col-span-2 lg:col-span-3">
-                            <button type="submit" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                            <button type="submit" class="ui-button-primary">
                                 Buat akun & kirim akses lewat email
                             </button>
                         </div>
@@ -109,7 +109,7 @@
                                     </div>
                                     <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', $account) }}">
                                         @csrf
-                                        <button type="submit" class="rounded-lg border border-amber-300 px-3 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-200">
+                                        <button type="submit" class="ui-button-primary">
                                             Buat password baru & kirim ulang
                                         </button>
                                     </form>
@@ -120,16 +120,16 @@
                 </section>
             @endif
 
-            <div class="flex flex-wrap items-center gap-2 mb-8 bg-white dark:bg-gray-800 p-1.5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 w-fit">
+            <div class="ui-panel flex flex-wrap items-center gap-2 mb-8 w-fit">
                 @foreach(['pending' => 'Menunggu', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $filter => $label)
                     <a href="{{ request()->fullUrlWithQuery(['status' => $filter]) }}"
-                       class="px-5 py-2.5 rounded-xl text-sm font-bold {{ $status === $filter ? 'bg-indigo-600 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                       class="px-5 py-2.5 rounded-xl text-sm font-bold {{ $status === $filter ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
                         {{ $label }}
                     </a>
                 @endforeach
             </div>
 
-            <section class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6">
+            <section class="ui-panel">
                 <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-5">Pengajuan absensi ({{ $submissions->count() }})</h3>
                 @include('admin.absensi.approval.table', ['submissions' => $submissions])
             </section>

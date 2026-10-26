@@ -39,6 +39,7 @@ class PayrollController extends Controller
             ->orderByDesc('revision');
         if ($request->filled('status') && in_array($request->string('status')->toString(), [
             PayrollPeriod::STATUS_DRAFT,
+            PayrollPeriod::STATUS_EXPORTED,
             PayrollPeriod::STATUS_PENDING_APPROVAL,
             PayrollPeriod::STATUS_APPROVED,
             PayrollPeriod::STATUS_PAID,
@@ -171,12 +172,17 @@ class PayrollController extends Controller
                 return $period;
             });
         } catch (UniqueConstraintViolationException $exception) {
-            $period = PayrollPeriod::query()
+            $periodQuery = PayrollPeriod::query()
                 ->where('year', $validated['year'])
                 ->where('month', $validated['month'])
                 ->where('period_number', $validated['period_number'])
-                ->orderByDesc('revision')
-                ->first();
+                ->where('revision', $revision);
+            if ($previousPeriod) {
+                $periodQuery->where('revision_of_id', $previousPeriod->id);
+            } else {
+                $periodQuery->whereNull('revision_of_id');
+            }
+            $period = $periodQuery->first();
 
             if (! $period) {
                 throw $exception;
@@ -246,6 +252,7 @@ class PayrollController extends Controller
             abort_unless(
                 in_array($lockedPeriod->status, [
                     PayrollPeriod::STATUS_DRAFT,
+                    PayrollPeriod::STATUS_EXPORTED,
                     PayrollPeriod::STATUS_PENDING_APPROVAL,
                     PayrollPeriod::STATUS_APPROVED,
                 ], true),
@@ -268,6 +275,32 @@ class PayrollController extends Controller
             return redirect()
                 ->route('admin.payroll.index', ['period_id' => $lockedPeriod->id])
                 ->with('success', 'Payroll dibatalkan dan alasannya tercatat.');
+        });
+    }
+
+    public function destroy(PayrollPeriod $period): RedirectResponse
+    {
+        $this->ensureHrd();
+
+        return DB::transaction(function () use ($period) {
+            $lockedPeriod = PayrollPeriod::query()->lockForUpdate()->findOrFail($period->id);
+
+            ActivityLog::log('payroll.deleted', "Payroll period ID: {$lockedPeriod->id}", [
+                'year' => $lockedPeriod->year,
+                'month' => $lockedPeriod->month,
+                'period_number' => $lockedPeriod->period_number,
+                'revision' => $lockedPeriod->revision,
+                'status' => $lockedPeriod->status,
+                'items_count' => $lockedPeriod->items()->count(),
+                'corrections_count' => $lockedPeriod->corrections()->count(),
+            ]);
+
+            $lockedPeriod->corrections()->delete();
+            $lockedPeriod->delete();
+
+            return redirect()
+                ->route('admin.payroll.index')
+                ->with('success', 'Payroll beserta snapshot dan catatan koreksinya berhasil dihapus permanen.');
         });
     }
 
@@ -346,16 +379,28 @@ class PayrollController extends Controller
     public function export(PayrollPeriod $period): BinaryFileResponse
     {
         $this->ensureHrd();
+
+        $response = Excel::download(
+            new PayrollSummaryExport($period),
+            sprintf('payroll-%04d-%02d-minggu-%d.xlsx', $period->year, $period->month, $period->period_number),
+        );
+
+        $markedAsExported = PayrollPeriod::query()
+            ->whereKey($period->id)
+            ->where('status', PayrollPeriod::STATUS_DRAFT)
+            ->update([
+                'status' => PayrollPeriod::STATUS_EXPORTED,
+                'updated_at' => now(),
+            ]) > 0;
+
         ActivityLog::log('payroll.summary_exported', "Payroll period ID: {$period->id}", [
             'year' => $period->year,
             'month' => $period->month,
             'period_number' => $period->period_number,
+            'marked_as_exported' => $markedAsExported,
         ]);
 
-        return Excel::download(
-            new PayrollSummaryExport($period),
-            sprintf('payroll-%04d-%02d-minggu-%d.xlsx', $period->year, $period->month, $period->period_number),
-        );
+        return $response;
     }
 
     public function previewSlip(PayrollPeriod $period, PayrollItem $item): View

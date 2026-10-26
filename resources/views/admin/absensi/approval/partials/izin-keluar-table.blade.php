@@ -1,6 +1,6 @@
 {{-- IZIN KELUAR SECTION --}}
 @if(isset($izinKeluar) && $izinKeluar->count() > 0)
-<div class="mt-8 bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+<div class="mt-8 ui-panel overflow-hidden">
     <div class="bg-gradient-to-r from-orange-500 to-amber-600 dark:from-orange-700 dark:to-amber-700 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
@@ -22,8 +22,8 @@
         </div>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+    <div class="ui-table-shell overflow-x-auto">
+        <table class="ui-table">
             <thead class="bg-gray-50 dark:bg-gray-800/50">
                 <tr>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Karyawan</th>
@@ -137,7 +137,7 @@
                                     method="POST" class="inline izin-keluar-approve-form">
                                     @csrf
                                     <button type="submit"
-                                        class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-green-500 transition-all shadow-sm hover:shadow dark:text-gray-900">
+                                        class="ui-button-primary">
                                         <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
                                         </svg>
@@ -147,7 +147,7 @@
 
                                 <button
                                     type="button"
-                                    class="izin-keluar-reject-btn inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-800 focus:ring-red-500 transition-all shadow-sm hover:shadow dark:text-gray-900"
+                                    class="izin-keluar-reject-btn ui-button-secondary"
                                     data-id="{{ $item->id }}"
                                     data-reject-url="{{ route('admin.absensi.approval.izin-keluar.action', ['id' => $item->id, 'action' => 'reject']) }}">
                                     <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">

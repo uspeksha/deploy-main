@@ -19,13 +19,13 @@
         </div>
     </x-slot>
 
-    <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen">
+        <div class="ui-page">
 
             {{-- PERSISTENT STATUS FILTER --}}
-            <div class="flex flex-wrap items-center gap-2 mb-8 bg-white dark:bg-gray-800 p-1.5 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 w-fit">
+            <div class="ui-panel flex flex-wrap items-center gap-2 mb-8 w-fit">
                 <a href="{{ request()->fullUrlWithQuery(['status' => 'pending']) }}" 
-                   class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 {{ request('status', 'pending') === 'pending' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/30' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+                   class="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 {{ request('status', 'pending') === 'pending' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/30' : 'text-gray-500 hover:text-indigo-600 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
                    <i class="fas fa-clock"></i>
                    Pending
                 </a>
@@ -44,7 +44,7 @@
             {{-- OVERVIEW STATS --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {{-- Total Pending Freelance --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Produksi Pending</p>
@@ -60,7 +60,7 @@
                 </div>
 
                 {{-- Total Pending Organik --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Office Pending</p>
@@ -76,7 +76,7 @@
                 </div>
 
                 {{-- Total All Pending --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Pending</p>
@@ -92,7 +92,7 @@
                 </div>
 
                 {{-- Quick Actions --}}
-                <div class="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
+                <div class="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between mb-3">
                         <div>
                             <p class="text-sm font-medium text-indigo-100 mb-1">Quick Actions</p>
@@ -106,9 +106,9 @@
             </div>
 
             {{-- TABS NAVIGATION --}}
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 mb-6 overflow-hidden">
+            <div class="ui-panel mb-6 overflow-hidden">
                 <div class="flex border-b border-gray-200 dark:border-gray-700">
-                    <button id="tab-freelance" data-tab="freelance" class="flex-1 px-6 py-4 text-sm font-semibold text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 transition-all">
+                    <button id="tab-freelance" data-tab="freelance" class="flex-1 px-6 py-4 text-sm font-semibold text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 transition-all">
                         <div class="flex items-center justify-center gap-2">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
@@ -135,7 +135,7 @@
 
             {{-- FREELANCE CONTENT --}}
             <div id="content-freelance" class="tab-content">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="ui-panel overflow-hidden">
                     <div class="bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-700 dark:to-indigo-700 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
@@ -153,7 +153,7 @@
                     </div>
 
                     @if ($freelanceHRGA->isEmpty())
-                        <div class="px-6 py-16 text-center">
+                        <div class="ui-empty-state">
                             <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-blue-100 dark:bg-blue-500/10 mb-4">
                                 <svg class="w-10 h-10 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -172,8 +172,8 @@
 
             {{-- ORGANIK CONTENT --}}
             <div id="content-organik" class="tab-content hidden">
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="bg-gradient-to-r from-purple-600 to-pink-600 dark:from-purple-700 dark:to-pink-700 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                <div class="ui-panel overflow-hidden">
+                    <div class="bg-gradient-to-r from-emerald-600 to-teal-600 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-3">
                                 <div class="p-2 bg-white/20 backdrop-blur-sm rounded-lg">
@@ -190,7 +190,7 @@
                     </div>
 
                     @if ($organikHRGA->isEmpty())
-                        <div class="px-6 py-16 text-center">
+                        <div class="ui-empty-state">
                             <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-purple-100 dark:bg-purple-500/10 mb-4">
                                 <svg class="w-10 h-10 text-purple-600 dark:text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -223,7 +223,7 @@
         });
 
         document.querySelectorAll('[id^="tab-"]').forEach(tab => {
-            tab.classList.remove('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-500/10', 'text-purple-600', 'dark:text-purple-400', 'border-purple-500', 'bg-purple-50', 'dark:bg-purple-500/10');
+            tab.classList.remove('text-emerald-600', 'dark:text-emerald-400', 'border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-500/10', 'text-teal-600', 'dark:text-teal-400', 'border-teal-500', 'bg-teal-50', 'dark:bg-teal-500/10');
             tab.classList.add('text-gray-600', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-700/50');
             tab.classList.remove('border-b-2');
         });
@@ -234,9 +234,9 @@
         activeTab.classList.remove('text-gray-600', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-gray-300', 'hover:bg-gray-50', 'dark:hover:bg-gray-700/50');
 
         if (tabName === 'freelance') {
-            activeTab.classList.add('text-indigo-600', 'dark:text-indigo-400', 'border-indigo-500', 'bg-indigo-50', 'dark:bg-indigo-500/10');
+            activeTab.classList.add('text-emerald-600', 'dark:text-emerald-400', 'border-emerald-500', 'bg-emerald-50', 'dark:bg-emerald-500/10');
         } else {
-            activeTab.classList.add('text-purple-600', 'dark:text-purple-400', 'border-purple-500', 'bg-purple-50', 'dark:bg-purple-500/10');
+            activeTab.classList.add('text-teal-600', 'dark:text-teal-400', 'border-teal-500', 'bg-teal-50', 'dark:bg-teal-500/10');
         }
         activeTab.classList.add('border-b-2');
         window.scrollTo({ top: 0, behavior: 'smooth' });

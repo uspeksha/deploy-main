@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
 use Carbon\Carbon;
 
@@ -17,61 +19,75 @@ class ForgotPasswordController extends Controller
     public function sendOtp(Request $request)
     {
         try {
-            $request->validate([
-                'email' => 'required|email|exists:users,email',
+            $validated = $request->validate([
+                'email' => 'required|email',
             ]);
 
-            $email = $request->email;
+            $email = mb_strtolower(trim($validated['email']));
+            $throttleKey = $this->otpSendThrottleKey($email);
+            $deliveryFailureKey = $this->otpDeliveryFailureThrottleKey($email);
 
-            // Generate OTP 6 digit
-            $otp = str_pad(rand(0, 999999), 6, '0', STR_PAD_LEFT);
+            $user = User::query()
+                ->whereRaw('LOWER(email) = ?', [$email])
+                ->first();
 
-            // Hapus OTP lama (kalo ada)
-            DB::table('password_resets')->where('email', $email)->delete();
-
-            // Simpan OTP baru
-            DB::table('password_resets')->insert([
-                'email' => $email,
-                'otp' => $otp,
-                'created_at' => Carbon::now(),
-            ]);
-
-            // Kirim email (pake Mail facade Laravel)
-            try {
-                Mail::raw(
-                    "Kode OTP reset password Anda adalah: $otp\n\nKode ini berlaku selama 10 menit.",
-                    function ($message) use ($email) {
-                        $message->to($email)
-                                ->subject('Kode OTP Reset Password');
-                    }
-                );
-            } catch (\Exception $e) {
-                // Kalo email gagal kirim (misal belum setup SMTP), tetap return success
-                // Supaya bisa testing. Di production, ini harus throw error.
-                \Log::error('Failed to send OTP email: ' . $e->getMessage());
-            }
-
-            // ✅ HANYA TAMPILKAN OTP DI LOCAL ENVIRONMENT
-                $response = [
-                    'message' => 'Kode OTP telah dikirim ke email Anda.',
-                ];
-
-                // ✅ Cuma kalo di local, baru tampilin OTP (untuk testing)
-                if (app()->environment('local')) {
-                    $response['otp_debug'] = $otp;
+            if (!$user) {
+                if (!RateLimiter::tooManyAttempts($throttleKey, 3)) {
+                    RateLimiter::hit($throttleKey, 60);
                 }
 
-                return response()->json($response, 200);
+                return $this->otpRequestAccepted();
+            }
 
+            $email = $user->email;
+            $otp = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            DB::transaction(function () use ($email, $otp, $throttleKey, $deliveryFailureKey) {
+                User::query()->where('email', $email)->lockForUpdate()->firstOrFail();
+                if (RateLimiter::tooManyAttempts($deliveryFailureKey, 1)
+                    || RateLimiter::tooManyAttempts($throttleKey, 3)) {
+                    return;
+                }
+                RateLimiter::hit($throttleKey, 60);
+
+                DB::table('password_resets')->where('email', $email)->delete();
+                DB::table('password_resets')->insert([
+                    'email' => $email,
+                    'otp' => $this->otpVerifier($email, $otp),
+                    'created_at' => Carbon::now(),
+                ]);
+
+                try {
+                    Mail::raw(
+                        "Kode OTP reset password Anda adalah: $otp\n\nKode ini berlaku selama 10 menit.",
+                        function ($message) use ($email) {
+                            $message->to($email)
+                                ->subject('Kode OTP Reset Password');
+                        }
+                    );
+                } catch (\Throwable $exception) {
+                    DB::table('password_resets')->where('email', $email)->delete();
+                    Log::error('Failed to send password reset OTP email.', [
+                        'exception_type' => get_class($exception),
+                    ]);
+                    RateLimiter::hit($deliveryFailureKey, 600);
+                }
+
+            });
+
+            return $this->otpRequestAccepted();
         } catch (ValidationException $e) {
             return response()->json([
-                'message' => 'Email tidak ditemukan.',
+                'message' => 'Data tidak valid.',
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Password reset OTP request failed.', [
+                'exception_type' => get_class($e),
+            ]);
+
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
     }
@@ -82,30 +98,67 @@ class ForgotPasswordController extends Controller
     public function verifyOtp(Request $request)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'email' => 'required|email',
-                'otp' => 'required|string|size:6',
+                'otp' => ['required', 'string', 'regex:/^[0-9]{6}$/'],
             ]);
 
-            $email = $request->email;
-            $otp = $request->otp;
+            $email = $validated['email'];
+            $otp = $validated['otp'];
+            $throttleKey = $this->otpAttemptThrottleKey($email);
 
-            // Cari OTP di database
-            $record = DB::table('password_resets')
-                ->where('email', $email)
-                ->where('otp', $otp)
-                ->first();
+            $record = DB::transaction(function () use ($email, $otp, $throttleKey) {
+                $user = User::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
+                    ->lockForUpdate()
+                    ->first();
+                if (!$user) {
+                    if (!RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                        RateLimiter::hit($throttleKey, 600);
+                    }
 
-            if (!$record) {
+                    return 'invalid';
+                }
+
+                if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                    return 'throttled';
+                }
+
+                $record = DB::table('password_resets')
+                    ->where('email', $user->email)
+                    ->orderByDesc('created_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$record || !$this->otpMatches($user->email, $otp, $record->otp)) {
+                    RateLimiter::hit($throttleKey, 600);
+
+                    return 'invalid';
+                }
+
+                if ($this->otpIsExpired($record->created_at)) {
+                    DB::table('password_resets')->where('email', $user->email)->delete();
+                    return 'expired';
+                }
+
+                RateLimiter::clear($throttleKey);
+
+                return 'valid';
+            });
+
+            if ($record === 'throttled') {
+                return response()->json([
+                    'message' => 'Terlalu banyak percobaan OTP. Silakan minta kode baru beberapa saat lagi.',
+                ], 429);
+            }
+
+            if ($record === 'invalid') {
                 return response()->json([
                     'message' => 'Kode OTP salah atau sudah tidak valid.',
                 ], 422);
             }
 
-            // Cek expired (10 menit)
-            $createdAt = Carbon::parse($record->created_at);
-            if ($createdAt->diffInMinutes(Carbon::now()) > 10) {
-                DB::table('password_resets')->where('email', $email)->delete();
+            if ($record === 'expired') {
                 return response()->json([
                     'message' => 'Kode OTP sudah kadaluarsa. Silakan minta kode baru.',
                 ], 422);
@@ -121,9 +174,12 @@ class ForgotPasswordController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Password reset OTP verification failed.', [
+                'exception_type' => get_class($e),
+            ]);
+
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
     }
@@ -134,53 +190,78 @@ class ForgotPasswordController extends Controller
     public function resetPassword(Request $request)
     {
         try {
-            $request->validate([
+            $validated = $request->validate([
                 'email' => 'required|email',
-                'otp' => 'required|string|size:6',
+                'otp' => ['required', 'string', 'regex:/^[0-9]{6}$/'],
                 'password' => 'required|string|min:8|confirmed',
             ]);
 
-            $email = $request->email;
-            $otp = $request->otp;
+            $email = $validated['email'];
+            $otp = $validated['otp'];
+            $throttleKey = $this->otpAttemptThrottleKey($email);
 
-            // Verifikasi OTP lagi (double check)
-            $record = DB::table('password_resets')
-                ->where('email', $email)
-                ->where('otp', $otp)
-                ->first();
+            $result = DB::transaction(function () use ($email, $otp, $validated, $throttleKey) {
+                $user = User::query()
+                    ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
+                    ->lockForUpdate()
+                    ->first();
 
-            if (!$record) {
+                if (!$user) {
+                    if (!RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                        RateLimiter::hit($throttleKey, 600);
+                    }
+
+                    return 'invalid';
+                }
+
+                if (RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                    return 'throttled';
+                }
+
+                $record = DB::table('password_resets')
+                    ->where('email', $user->email)
+                    ->orderByDesc('created_at')
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$record || !$this->otpMatches($user->email, $otp, $record->otp)) {
+                    RateLimiter::hit($throttleKey, 600);
+
+                    return 'invalid';
+                }
+
+                if ($this->otpIsExpired($record->created_at)) {
+                    DB::table('password_resets')->where('email', $user->email)->delete();
+
+                    return 'expired';
+                }
+
+                $user->password = Hash::make($validated['password']);
+                $user->save();
+                $user->tokens()->delete();
+                DB::table('password_resets')->where('email', $user->email)->delete();
+                RateLimiter::clear($throttleKey);
+
+                return 'success';
+            });
+
+            if ($result === 'throttled') {
+                return response()->json([
+                    'message' => 'Terlalu banyak percobaan OTP. Silakan minta kode baru beberapa saat lagi.',
+                ], 429);
+            }
+
+            if ($result === 'invalid') {
                 return response()->json([
                     'message' => 'Kode OTP salah atau sudah tidak valid.',
                 ], 422);
             }
 
-            // Cek expired
-            $createdAt = Carbon::parse($record->created_at);
-            if ($createdAt->diffInMinutes(Carbon::now()) > 10) {
-                DB::table('password_resets')->where('email', $email)->delete();
+            if ($result === 'expired') {
                 return response()->json([
                     'message' => 'Kode OTP sudah kadaluarsa.',
                 ], 422);
             }
-
-            // Update password user
-            $user = User::where('email', $email)->first();
-            if (!$user) {
-                return response()->json([
-                    'message' => 'User tidak ditemukan.',
-                ], 404);
-            }
-
-            $user->password = Hash::make($request->password);
-            $user->save();
-
-            // ✅ REVOKE SEMUA TOKEN (Kill Switch)
-            // Biar semua perangkat yang login pake password lama otomatis logout
-            $user->tokens()->delete();
-
-            // Hapus OTP setelah berhasil
-            DB::table('password_resets')->where('email', $email)->delete();
 
             return response()->json([
                 'message' => 'Password berhasil direset. Silakan login dengan password baru.',
@@ -192,10 +273,58 @@ class ForgotPasswordController extends Controller
                 'errors' => $e->errors(),
             ], 422);
         } catch (\Exception $e) {
+            Log::error('Password reset OTP consumption failed.', [
+                'exception_type' => get_class($e),
+            ]);
+
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
+    }
+
+    private function otpRequestAccepted()
+    {
+        return response()->json([
+            'message' => 'Jika email terdaftar, kode OTP akan dikirim.',
+        ], 200);
+    }
+
+    private function otpSendThrottleKey(string $email): string
+    {
+        return 'password-reset-send:'.hash('sha256', mb_strtolower(trim($email)));
+    }
+
+    private function otpAttemptThrottleKey(string $email): string
+    {
+        return 'password-reset-otp:'.hash('sha256', mb_strtolower(trim($email)));
+    }
+
+    private function otpDeliveryFailureThrottleKey(string $email): string
+    {
+        return 'password-reset-delivery-failure:'.hash('sha256', mb_strtolower(trim($email)));
+    }
+
+    private function otpVerifier(string $email, string $otp): string
+    {
+        $key = (string) config('app.key');
+        $digest = hash_hmac('sha256', mb_strtolower(trim($email)."\0".$otp), $key, true);
+        $value = unpack('Nvalue', substr($digest, 0, 4))['value'] % (36 ** 6);
+
+        return str_pad(base_convert((string) $value, 10, 36), 6, '0', STR_PAD_LEFT);
+    }
+
+    private function otpMatches(string $email, string $otp, string $storedVerifier): bool
+    {
+        $verifierMatches = hash_equals($storedVerifier, $this->otpVerifier($email, $otp));
+        $legacyPlaintextMatches = hash_equals($storedVerifier, $otp);
+
+        return $verifierMatches || $legacyPlaintextMatches;
+    }
+
+    private function otpIsExpired(?string $createdAt): bool
+    {
+        return $createdAt === null
+            || Carbon::parse($createdAt)->addMinutes(10)->lte(Carbon::now());
     }
 }

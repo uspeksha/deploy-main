@@ -5,10 +5,10 @@
                 <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Slip Gaji</h2>
                 <p class="text-sm text-gray-500 dark:text-gray-400">{{ $item->slip_number }}</p>
             </div>
-            <div class="flex gap-2 print:hidden">
-                <a href="{{ route('admin.payroll.slip', [$period, $item]) }}" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unduh PDF</a>
-                <button type="button" onclick="window.print()" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Cetak Slip</button>
-                <a href="{{ route('admin.payroll.index', ['period_id' => $period->id]) }}" class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Kembali</a>
+            <div class="flex flex-wrap gap-2 print:hidden">
+                <a href="{{ route('admin.payroll.slip', [$period, $item]) }}" class="ui-button-primary"><i class="fas fa-file-pdf"></i> Unduh PDF</a>
+                <button type="button" onclick="window.print()" class="ui-button-secondary"><i class="fas fa-print"></i> Cetak Slip</button>
+                <a href="{{ route('admin.payroll.index', ['period_id' => $period->id]) }}" class="ui-button-secondary"><i class="fas fa-arrow-left"></i> Kembali</a>
             </div>
         </div>
     </x-slot>
@@ -17,14 +17,15 @@
         $money = fn ($amount) => 'Rp' . number_format((int) $amount, 0, ',', '.');
         $statusLabels = [
             'draft' => 'DRAFT - BELUM FINAL',
+            'exported' => 'DITARIK - BELUM FINAL',
             'pending_approval' => 'MENUNGGU PERSETUJUAN',
             'approved' => 'DISETUJUI - BELUM DIBAYARKAN',
             'paid' => 'DIBAYARKAN (KONFIRMASI MANUAL)',
             'cancelled' => 'DIBATALKAN',
         ];
     @endphp
-    <div class="px-4 py-8 sm:px-6 lg:px-8">
-        <article id="slip-preview" class="mx-auto max-w-4xl rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800 print:max-w-none print:border-0 print:p-0 print:shadow-none">
+    <div class="ui-page">
+        <article id="slip-preview" class="ui-panel mx-auto max-w-4xl print:max-w-none print:border-0 print:p-0 print:shadow-none">
             <header class="flex items-center gap-5 border-b-4 border-emerald-600 pb-5">
                 <img src="{{ asset('images/logo-followme.png') }}" alt="Logo Followme" class="h-14 w-auto">
                 <div>

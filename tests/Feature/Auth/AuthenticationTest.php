@@ -5,7 +5,9 @@ use App\Models\User;
 test('login screen can be rendered', function () {
     $response = $this->get('/login');
 
-    $response->assertStatus(200);
+    $response->assertStatus(200)
+        ->assertSee('Mulai hari kerja')
+        ->assertSee('Ilustrasi karyawan melakukan absensi kerja');
 });
 
 test('HRD can authenticate using the login screen', function () {

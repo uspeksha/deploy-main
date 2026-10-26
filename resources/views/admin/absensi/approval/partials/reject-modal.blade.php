@@ -39,7 +39,7 @@
                             rows="4"
                             required
                             placeholder="Contoh: Bukti surat sakit tidak valid atau lembur tidak disetujui karena tidak ada urgensi..."
-                            class="block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                            class="ui-control"></textarea>
                         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">Minimal 10 karakter</p>
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                 <div class="bg-gray-50 dark:bg-gray-700 px-6 py-4 flex flex-row-reverse gap-3">
                     <button
                         type="submit"
-                        class="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        class="ui-button-danger">
                         <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
                         </svg>
@@ -56,7 +56,7 @@
                     </button>
                     <button
                         type="button"
-                        class="close-reject-modal inline-flex justify-center items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-lg text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        class="close-reject-modal ui-button-secondary">
                         Batal
                     </button>
                 </div>

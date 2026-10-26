@@ -19,8 +19,8 @@
         </div>
     </x-slot>
 
-    <div class="py-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="min-h-screen">
+        <div class="ui-page">
 
             {{-- ALERT NOTIFICATIONS --}}
             @if (session('success'))
@@ -62,7 +62,7 @@
             {{-- OVERVIEW STATS --}}
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {{-- Total Pending --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total Pending</p>
@@ -78,7 +78,7 @@
                 </div>
 
                 {{-- Freelance Workers --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Freelance Team</p>
@@ -94,7 +94,7 @@
                 </div>
 
                 {{-- Today's Submissions --}}
-                <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 p-6 hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
+                <div class="ui-panel hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-300 hover:-translate-y-0.5">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Hari Ini</p>
@@ -124,7 +124,7 @@
             </div>
 
             {{-- MAIN CONTENT --}}
-            <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div class="ui-panel overflow-hidden">
                 <div class="bg-gradient-to-r from-orange-600 to-red-600 dark:from-orange-700 dark:to-red-700 px-6 py-5 border-b border-gray-200 dark:border-gray-700">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-3">
@@ -142,7 +142,7 @@
                 </div>
 
                 @if ($freelanceYuli->isEmpty())
-                    <div class="px-6 py-16 text-center">
+                    <div class="ui-empty-state">
                         <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-500/10 mb-4">
                             <svg class="w-10 h-10 text-orange-600 dark:text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -151,7 +151,7 @@
                         <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">Semua Sudah Clear! 🎉</h3>
                         <p class="text-gray-600 dark:text-gray-400">Tidak ada pengajuan freelance yang menunggu approval supervisor.</p>
                         <div class="mt-6">
-                            <button class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-semibold rounded-lg transition-all shadow-sm">
+                            <button class="ui-button-primary">
                                 <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                                 </svg>

@@ -2,8 +2,15 @@
     <x-slot name="header">
         <div class="flex flex-wrap items-center justify-between gap-3">
             <div>
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Payroll Freelance</h2>
-                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Rekap berbasis absensi yang telah disetujui.</p>
+                <div class="flex items-center gap-3">
+                    <span class="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                    </span>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Payroll Freelance</h2>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Rekap berbasis absensi yang telah disetujui.</p>
+                    </div>
+                </div>
             </div>
         </div>
     </x-slot>
@@ -11,6 +18,7 @@
     @php
         $statusLabels = [
             'draft' => 'Draft',
+            'exported' => 'Ditarik',
             'pending_approval' => 'Menunggu Persetujuan',
             'approved' => 'Disetujui',
             'paid' => 'Dibayarkan (manual)',
@@ -18,6 +26,7 @@
         ];
         $statusClasses = [
             'draft' => 'bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200',
+            'exported' => 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/40 dark:text-cyan-200',
             'pending_approval' => 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200',
             'approved' => 'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-200',
             'paid' => 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200',
@@ -28,14 +37,18 @@
             'warning' => 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200',
             'error' => 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-200',
         ];
+        $panelClasses = 'ui-panel';
+        $fieldClasses = 'ui-control';
+        $primaryButtonClasses = 'ui-button-primary';
+        $secondaryButtonClasses = 'ui-button-secondary';
         $money = fn ($amount) => 'Rp' . number_format((int) $amount, 0, ',', '.');
         $defaultYear = $canRecreatePeriod ? $selectedPeriod->year : now()->year;
         $defaultMonth = $canRecreatePeriod ? $selectedPeriod->month : now()->month;
         $defaultPeriodNumber = $canRecreatePeriod ? $selectedPeriod->period_number : 1;
     @endphp
 
-    <div class="px-4 py-8 sm:px-6 lg:px-8">
-        <div class="mx-auto max-w-7xl space-y-6">
+    <div class="ui-page">
+        <div class="space-y-6">
             @foreach (['success' => 'emerald', 'warning' => 'amber', 'error' => 'rose'] as $flash => $color)
                 @if (session($flash))
                     <div class="rounded-xl border px-4 py-3 text-sm {{ $flashClasses[$flash] }}" role="status">
@@ -53,12 +66,17 @@
                 </div>
             @endif
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                <div class="mb-5">
-                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $canRecreatePeriod ? 'Buat Ulang Periode Payroll' : 'Buat Draft Payroll' }}</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            <section class="{{ $panelClasses }}">
+                <div class="mb-5 flex items-start gap-3">
+                    <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                        <i class="fas fa-calculator"></i>
+                    </span>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $canRecreatePeriod ? 'Buat Ulang Periode Payroll' : 'Buat Draft Payroll' }}</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
                         {{ $canRecreatePeriod ? 'Periode yang dibatalkan dipilih otomatis. Klik tombol untuk membuat draft baru dari absensi yang sudah disetujui.' : 'Nilai dihitung sekali dari data absensi yang disetujui dan disimpan sebagai snapshot.' }}
-                    </p>
+                        </p>
+                    </div>
                 </div>
                 @if ($canRecreatePeriod)
                     <div class="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
@@ -71,11 +89,11 @@
                         Periode ini sudah dibuat ulang. Pilih baris periode yang lebih baru di Riwayat Periode untuk melihat atau melanjutkan prosesnya.
                     </div>
                 @endif
-                <form method="POST" action="{{ route('admin.payroll.store') }}" class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <form method="POST" action="{{ route('admin.payroll.store') }}" class="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     @csrf
                     <div>
                         <label for="payroll-year" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Tahun</label>
-                        <select id="payroll-year" name="year" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <select id="payroll-year" name="year" class="{{ $fieldClasses }}">
                             @for ($year = now()->year; $year >= 2020; $year--)
                                 <option value="{{ $year }}" @selected((int) old('year', $defaultYear) === $year)>{{ $year }}</option>
                             @endfor
@@ -84,7 +102,7 @@
                     </div>
                     <div>
                         <label for="payroll-month" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Bulan</label>
-                        <select id="payroll-month" name="month" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <select id="payroll-month" name="month" class="{{ $fieldClasses }}">
                             @for ($month = 1; $month <= 12; $month++)
                                 <option value="{{ $month }}" @selected((int) old('month', $defaultMonth) === $month)>
                                     {{ \Carbon\Carbon::createFromDate(2026, $month, 1)->translatedFormat('F') }}
@@ -95,14 +113,14 @@
                     </div>
                     <div>
                         <label for="payroll-half" class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300">Periode</label>
-                        <select id="payroll-half" name="period_number" class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                        <select id="payroll-half" name="period_number" class="{{ $fieldClasses }}">
                             <option value="1" @selected((int) old('period_number', $defaultPeriodNumber) === 1)>Minggu 1 (1–15)</option>
                             <option value="2" @selected((int) old('period_number', $defaultPeriodNumber) === 2)>Minggu 2 (16–akhir bulan)</option>
                         </select>
                         @error('period_number')<p class="mt-1 text-sm text-rose-600">{{ $message }}</p>@enderror
                     </div>
-                    <button type="submit" class="inline-flex justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                        <i class="fas fa-calculator mt-1"></i>
+                    <button type="submit" class="{{ $primaryButtonClasses }}">
+                        <i class="fas fa-calculator"></i>
                         {{ $canRecreatePeriod ? 'Buat Payroll Baru' : 'Hitung Draft' }}
                     </button>
                 </form>
@@ -111,29 +129,38 @@
                 </p>
             </section>
 
-            <section class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+            <section class="{{ $panelClasses }}">
                 <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Riwayat Periode</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Pilih periode untuk melihat rincian dan proses status.</p>
+                    <div class="flex items-start gap-3">
+                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                            <i class="fas fa-clock-rotate-left"></i>
+                        </span>
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Riwayat Periode</h3>
+                            <p class="text-sm text-gray-500 dark:text-gray-400">Pilih periode untuk melihat rincian dan proses status.</p>
+                        </div>
                     </div>
-                    <form method="GET" action="{{ route('admin.payroll.index') }}" class="flex flex-wrap gap-2">
-                        <select name="status" aria-label="Filter status payroll" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                    <form method="GET" action="{{ route('admin.payroll.index') }}" class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                        <select name="status" aria-label="Filter status payroll" class="{{ $fieldClasses }} sm:w-56">
                             <option value="">Semua status</option>
                             @foreach ($statusLabels as $value => $label)
                                 <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>
                             @endforeach
                         </select>
-                        <button class="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">Filter</button>
+                        <button class="{{ $secondaryButtonClasses }}"><i class="fas fa-filter"></i> Filter</button>
                     </form>
                 </div>
 
                 @if ($periods->isEmpty())
-                    <p class="rounded-xl bg-gray-50 px-4 py-8 text-center text-sm text-gray-500 dark:bg-gray-900 dark:text-gray-400">Belum ada payroll. Buat draft dari absensi aktual untuk memulai.</p>
+                    <div class="rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-10 text-center dark:border-gray-600 dark:bg-gray-900/50">
+                        <i class="fas fa-folder-open text-2xl text-gray-400 dark:text-gray-500"></i>
+                        <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">Belum ada riwayat payroll</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Buat draft dari absensi aktual untuk memulai.</p>
+                    </div>
                 @else
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
-                            <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                    <div class="ui-table-shell">
+                        <table class="ui-table">
+                            <thead class="bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-900/70 dark:text-gray-400">
                                 <tr>
                                     <th class="px-4 py-3">Periode</th>
                                     <th class="px-4 py-3">Karyawan</th>
@@ -143,8 +170,8 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                                 @foreach ($periods as $periodRow)
-                                    <tr class="{{ $selectedPeriod?->id === $periodRow->id ? 'bg-emerald-50/60 dark:bg-emerald-950/20' : '' }}">
-                                        <td class="whitespace-nowrap px-4 py-3 font-medium text-gray-900 dark:text-white">{{ $periodRow->label }}</td>
+                                    <tr class="transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/40 {{ $selectedPeriod?->id === $periodRow->id ? 'bg-emerald-50/60 dark:bg-emerald-950/20' : '' }}">
+                                        <td class="whitespace-nowrap px-4 py-3 font-semibold text-gray-900 dark:text-white">{{ $periodRow->label }}</td>
                                         <td class="px-4 py-3 text-gray-600 dark:text-gray-300">{{ $periodRow->items_count }}</td>
                                         <td class="px-4 py-3">
                                             <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold {{ $statusClasses[$periodRow->status] ?? $statusClasses['draft'] }}">
@@ -152,9 +179,18 @@
                                             </span>
                                         </td>
                                         <td class="px-4 py-3">
-                                            <a href="{{ route('admin.payroll.index', ['period_id' => $periodRow->id]) }}" class="font-semibold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">
-                                                Lihat rincian
-                                            </a>
+                                            <div class="flex flex-wrap gap-2">
+                                                <a href="{{ route('admin.payroll.index', ['period_id' => $periodRow->id]) }}#rincian-payroll" class="{{ $primaryButtonClasses }} min-h-9 px-3 py-1.5">
+                                                <i class="fas fa-eye"></i> Lihat
+                                                </a>
+                                                <form method="POST" action="{{ route('admin.payroll.destroy', $periodRow) }}" onsubmit="return confirm('Hapus permanen payroll {{ $periodRow->label }} (status: {{ $statusLabels[$periodRow->status] ?? $periodRow->status }}) beserta snapshot, slip, dan catatan koreksinya? Tindakan ini tidak dapat dibatalkan.')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50">
+                                                        <i class="fas fa-trash-can"></i> Hapus
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach
@@ -166,11 +202,11 @@
             </section>
 
             @if ($selectedPeriod && $items)
-                <section class="space-y-5">
-                    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <section id="rincian-payroll" class="space-y-5">
+                    <div class="{{ $panelClasses }}">
                         <div class="flex flex-wrap items-start justify-between gap-4">
                             <div>
-                                <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Periode terpilih</p>
+                                <p class="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">Periode terpilih</p>
                                 <h3 class="mt-1 text-xl font-bold text-gray-900 dark:text-white">{{ $selectedPeriod->label }}</h3>
                                 <span class="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-semibold {{ $statusClasses[$selectedPeriod->status] ?? $statusClasses['draft'] }}">
                                     {{ $statusLabels[$selectedPeriod->status] ?? $selectedPeriod->status }}
@@ -181,50 +217,56 @@
                                     </p>
                                 @endif
                             </div>
-                            <div class="flex flex-wrap gap-2">
-                                <a href="{{ route('admin.payroll.export', $selectedPeriod) }}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-700">
-                                    <i class="fas fa-file-excel text-emerald-600"></i> Ekspor Excel
-                                </a>
-                                @if ($selectedPeriod->status === 'draft')
-                                    <form method="POST" action="{{ route('admin.payroll.submit', $selectedPeriod) }}" onsubmit="return confirm('Kirim snapshot payroll ini untuk persetujuan?')">
-                                        @csrf
-                                        <button class="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600">Ajukan Persetujuan</button>
-                                    </form>
-                                @elseif ($selectedPeriod->status === 'pending_approval')
-                                    <form method="POST" action="{{ route('admin.payroll.approve', $selectedPeriod) }}" onsubmit="return confirm('Setujui nominal payroll yang tersimpan?')">
-                                        @csrf
-                                        <button class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">Setujui Payroll</button>
-                                    </form>
-                                @elseif ($selectedPeriod->status === 'approved')
-                                    <form method="POST" action="{{ route('admin.payroll.paid', $selectedPeriod) }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Konfirmasi pembayaran manual untuk seluruh periode ini?')">
-                                        @csrf
-                                        <input name="payment_reference" required minlength="3" maxlength="100" placeholder="No. bukti/referensi pembayaran" class="min-w-56 rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                        <button class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Konfirmasi Dibayar</button>
-                                    </form>
-                                @endif
-                                @if (in_array($selectedPeriod->status, ['draft', 'pending_approval', 'approved'], true))
-                                    <form method="POST" action="{{ route('admin.payroll.cancel', $selectedPeriod) }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Batalkan payroll? Alasannya wajib dicatat.')">
-                                        @csrf
-                                        <input name="reason" required minlength="5" maxlength="1000" placeholder="Alasan pembatalan" class="min-w-48 rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                        <button class="rounded-lg border border-rose-300 px-4 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-800 dark:text-rose-300 dark:hover:bg-rose-950/30">Batalkan</button>
-                                    </form>
+                            <div class="flex flex-col gap-3 sm:items-end">
+                                <div class="flex flex-wrap gap-2">
+                                    <a href="{{ route('admin.payroll.export', $selectedPeriod) }}" class="{{ $secondaryButtonClasses }}">
+                                        <i class="fas fa-file-excel text-emerald-600"></i> Ekspor Excel
+                                    </a>
+                                    @if ($selectedPeriod->status === 'pending_approval')
+                                        <form method="POST" action="{{ route('admin.payroll.approve', $selectedPeriod) }}" onsubmit="return confirm('Setujui nominal payroll yang tersimpan?')">
+                                            @csrf
+                                            <button class="{{ $primaryButtonClasses }}">
+                                                <i class="fas fa-check"></i> Setujui Payroll
+                                            </button>
+                                        </form>
+                                    @elseif ($selectedPeriod->status === 'approved')
+                                        <form method="POST" action="{{ route('admin.payroll.paid', $selectedPeriod) }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Konfirmasi pembayaran manual untuk seluruh periode ini?')">
+                                            @csrf
+                                            <input name="payment_reference" required minlength="3" maxlength="100" placeholder="No. bukti/referensi pembayaran" class="{{ $fieldClasses }} min-w-56">
+                                            <button class="{{ $primaryButtonClasses }}">
+                                                <i class="fas fa-money-check-alt"></i> Konfirmasi Dibayar
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                                @if (in_array($selectedPeriod->status, ['draft', 'exported', 'pending_approval', 'approved'], true))
+                                    <details class="w-full sm:w-auto">
+                                        <summary class="cursor-pointer text-sm font-semibold text-gray-500 hover:text-rose-700 dark:text-gray-400 dark:hover:text-rose-300 sm:text-right">
+                                            <i class="fas fa-circle-minus mr-1"></i> Opsi lainnya: batalkan payroll
+                                        </summary>
+                                        <form method="POST" action="{{ route('admin.payroll.cancel', $selectedPeriod) }}" class="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end" onsubmit="return confirm('Batalkan payroll? Alasannya wajib dicatat.')">
+                                            @csrf
+                                            <input name="reason" required minlength="5" maxlength="1000" placeholder="Alasan pembatalan (wajib)" aria-label="Alasan pembatalan payroll" class="{{ $fieldClasses }} min-w-56">
+                                            <button class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2.5 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 focus:outline-none focus:ring-2 focus:ring-rose-500 dark:border-rose-800 dark:bg-rose-950/30 dark:text-rose-300 dark:hover:bg-rose-900/50"><i class="fas fa-ban"></i> Batalkan</button>
+                                        </form>
+                                    </details>
                                 @endif
                             </div>
                         </div>
                         @if ($selectedPeriod->status === 'paid')
-                            <p class="mt-4 text-sm text-emerald-700 dark:text-emerald-300">
+                            <p class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
                                 Pembayaran manual dikonfirmasi {{ $selectedPeriod->paid_at?->format('d/m/Y H:i') }}
                                 oleh {{ $selectedPeriod->payer?->name ?? 'pengguna yang sudah dihapus' }}.
                                 Referensi: {{ $selectedPeriod->payment_reference }}
                             </p>
-                            <div class="mt-5 border-t border-gray-200 pt-5 dark:border-gray-700">
+                            <div class="mt-5 rounded-xl border border-gray-200 bg-gray-50/70 p-5 dark:border-gray-700 dark:bg-gray-900/40">
                                 <h4 class="font-semibold text-gray-900 dark:text-white">Rekonsiliasi manual koreksi pascapembayaran</h4>
                                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Payroll yang dibayar tidak diubah dan tidak diproses ulang otomatis. Catat selisih dan penyelesaian manual di sini untuk audit.</p>
                                 <form method="POST" action="{{ route('admin.payroll.corrections.store', $selectedPeriod) }}" class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3" onsubmit="return confirm('Catat koreksi untuk rekonsiliasi manual? Nominal payroll tidak berubah.')">
                                     @csrf
-                                    <input type="number" name="adjustment_amount" required min="-1000000000" max="1000000000" placeholder="Selisih Rp (+/-)" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                    <input type="text" name="reason" required minlength="5" maxlength="1000" placeholder="Alasan koreksi" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white sm:col-span-2">
-                                    <button class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 sm:col-span-3 sm:justify-self-start">Catat Koreksi</button>
+                                    <input type="number" name="adjustment_amount" required min="-1000000000" max="1000000000" placeholder="Selisih Rp (+/-)" class="{{ $fieldClasses }}">
+                                    <input type="text" name="reason" required minlength="5" maxlength="1000" placeholder="Alasan koreksi" class="{{ $fieldClasses }} sm:col-span-2">
+                                    <button class="{{ $primaryButtonClasses }} sm:col-span-3 sm:justify-self-start"><i class="fas fa-plus"></i> Catat Koreksi</button>
                                 </form>
                                 @if ($selectedPeriod->corrections->isNotEmpty())
                                     <div class="mt-4 overflow-x-auto">
@@ -272,38 +314,44 @@
                             ['label' => 'Total Potongan', 'value' => $money((int) $totals['late_deduction'] + (int) $totals['other_deductions'])],
                             ['label' => 'Total Gaji Bersih', 'value' => $money($totals['net_pay'])],
                         ] as $card)
-                            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                                <p class="text-sm text-gray-500 dark:text-gray-400">{{ $card['label'] }}</p>
-                                <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">{{ $card['value'] }}</p>
+                            <div class="{{ $panelClasses }} relative overflow-hidden p-5">
+                                <span class="absolute -right-4 -top-4 h-16 w-16 rounded-full bg-emerald-500/5"></span>
+                                <p class="relative text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $card['label'] }}</p>
+                                <p class="relative mt-2 text-2xl font-bold text-gray-900 dark:text-white">{{ $card['value'] }}</p>
                             </div>
                         @endforeach
                     </div>
 
-                    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Rincian Payroll</h3>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">Nominal berasal dari snapshot backend; perubahan absensi setelah draft dibuat tidak mengubah hasil ini.</p>
+                    <div class="{{ $panelClasses }}">
+                        <div class="mb-5 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                            <div class="flex items-start gap-3">
+                                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                                    <i class="fas fa-list-check"></i>
+                                </span>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Rincian Payroll</h3>
+                                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Nominal berasal dari snapshot backend; perubahan absensi setelah draft dibuat tidak mengubah hasil ini.</p>
+                                </div>
                             </div>
-                            <form method="GET" action="{{ route('admin.payroll.index') }}" class="flex gap-2">
+                            <form method="GET" action="{{ route('admin.payroll.index') }}" class="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:flex xl:flex-wrap">
                                 <input type="hidden" name="period_id" value="{{ $selectedPeriod->id }}">
-                                <input name="search" value="{{ request('search') }}" placeholder="Cari ID atau nama" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
-                                <select name="sort" aria-label="Urutkan payroll" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <input name="search" value="{{ request('search') }}" placeholder="Cari ID atau nama" class="{{ $fieldClasses }} sm:col-span-2 xl:w-56">
+                                <select name="sort" aria-label="Urutkan payroll" class="{{ $fieldClasses }} xl:w-48">
                                     @foreach (['employee_name' => 'Nama', 'employee_id' => 'ID karyawan', 'work_days' => 'Hari kerja', 'gross_pay' => 'Gaji kotor', 'late_occurrences' => 'Kejadian terlambat', 'late_deduction' => 'Potongan', 'net_pay' => 'Gaji bersih'] as $column => $label)
                                         <option value="{{ $column }}" @selected(request('sort', 'employee_name') === $column)>{{ $label }}</option>
                                     @endforeach
                                 </select>
-                                <select name="direction" aria-label="Arah pengurutan" class="rounded-lg border-gray-300 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-white">
+                                <select name="direction" aria-label="Arah pengurutan" class="{{ $fieldClasses }} xl:w-32">
                                     <option value="asc" @selected(request('direction', 'asc') === 'asc')>Naik</option>
                                     <option value="desc" @selected(request('direction') === 'desc')>Turun</option>
                                 </select>
-                                <button class="rounded-lg bg-gray-100 px-3 py-2 text-sm font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Cari</button>
+                                <button class="{{ $primaryButtonClasses }}"><i class="fas fa-magnifying-glass"></i> Cari</button>
                             </form>
                         </div>
-                        <div class="overflow-x-auto">
-                            <table class="min-w-[1500px] divide-y divide-gray-200 text-sm dark:divide-gray-700">
-                                <thead class="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-900 dark:text-gray-400">
-                                    <tr>
+                        <div class="ui-table-shell">
+                            <table class="ui-table min-w-[1500px]">
+                                <thead class="bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-900/70 dark:text-gray-400">
+                                    <tr class="transition-colors hover:bg-gray-50/80 dark:hover:bg-gray-700/30">
                                         <th class="px-3 py-3">No.</th>
                                         <th class="px-3 py-3">ID / Nama</th>
                                         <th class="px-3 py-3">Jenis / Departemen</th>
@@ -343,11 +391,11 @@
                                             </td>
                                             <td class="px-3 py-3">
                                                 <div class="flex flex-col gap-2">
-                                                    <a href="{{ route('admin.payroll.slip.preview', [$selectedPeriod, $item]) }}" class="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Lihat slip / cetak</a>
-                                                    <a href="{{ route('admin.payroll.slip', [$selectedPeriod, $item]) }}" class="font-semibold text-indigo-600 hover:underline dark:text-indigo-400">Unduh slip PDF</a>
-                                                    <details class="max-w-72">
-                                                        <summary class="cursor-pointer font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-300">Rincian hitung</summary>
-                                                        <p class="mt-2 text-xs text-gray-600 dark:text-gray-300">
+                                                    <a href="{{ route('admin.payroll.slip.preview', [$selectedPeriod, $item]) }}" class="{{ $secondaryButtonClasses }} min-h-9 px-3 py-1.5 text-xs">Lihat slip / cetak</a>
+                                                    <a href="{{ route('admin.payroll.slip', [$selectedPeriod, $item]) }}" class="{{ $primaryButtonClasses }} min-h-9 px-3 py-1.5 text-xs">Unduh slip PDF</a>
+                                                    <details class="max-w-72 rounded-lg">
+                                                        <summary class="cursor-pointer rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">Rincian hitung</summary>
+                                                        <p class="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/60 dark:text-gray-300">
                                                             {{ $item->work_days }} hari × {{ $money($item->daily_rate) }} = {{ $money($item->gross_pay) }}.
                                                             {{ $item->total_late_minutes }} menit total keterlambatan; potongan tiap tanggal dibulatkan ke bawah per 30 menit penuh.
                                                         </p>
@@ -370,7 +418,7 @@
                                             </td>
                                         </tr>
                                     @empty
-                                        <tr><td colspan="13" class="px-4 py-10 text-center text-gray-500">Tidak ada karyawan yang cocok pada filter ini.</td></tr>
+                                        <tr><td colspan="13" class="px-4 py-10 text-center text-gray-500 dark:text-gray-400">Tidak ada karyawan yang cocok pada filter ini.</td></tr>
                                     @endforelse
                                 </tbody>
                             </table>

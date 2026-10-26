@@ -11,6 +11,8 @@ class PayrollPeriod extends Model
 {
     public const STATUS_DRAFT = 'draft';
 
+    public const STATUS_EXPORTED = 'exported';
+
     public const STATUS_PENDING_APPROVAL = 'pending_approval';
 
     public const STATUS_APPROVED = 'approved';

@@ -176,7 +176,7 @@
 
     {{-- Detail --}}
     <td class="px-6 py-4 whitespace-nowrap">
-        <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ $belumAbsen ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' }} rounded-lg text-sm font-medium transition-all">
+        <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ $belumAbsen ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-300' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300' }} rounded-xl text-sm font-medium transition-all">
             <i class="fas fa-eye"></i>
             <span>Detail</span>
         </a>

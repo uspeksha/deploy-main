@@ -57,8 +57,8 @@
         .dark .filter-btn:hover { background: #4b5563; }
     </style>
 
-    <div class="py-8 premium-bg min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="min-h-screen">
+        <div class="ui-page">
 
            {{-- Filter Section --}}
             <div class="premium-card p-6 rounded-2xl">
@@ -67,7 +67,7 @@
                     {{-- Pilihan Tipe Filter --}}
                     <div class="flex flex-col gap-2">
                         <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Tipe Filter</label>
-                        <select name="filter_type" id="filter_type" class="filter-select">
+                        <select name="filter_type" id="filter_type" class="ui-control">
                             <option value="all" {{ request('filter_type', 'all') == 'all' ? 'selected' : '' }}>Semua Data</option>
                             <option value="monthly" {{ request('filter_type') == 'monthly' ? 'selected' : '' }}>Per Bulan</option>
                             <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Range Tanggal (Custom)</option> {{-- ⬅️ INI BARU --}}
@@ -78,14 +78,14 @@
                     <div class="flex flex-col gap-2 {{ request('filter_type') == 'monthly' ? '' : 'hidden' }}" id="month_section">
                         <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Bulan & Tahun</label>
                         <div class="flex gap-2">
-                            <select name="month" class="filter-select">
+                            <select name="month" class="ui-control">
                                 @for ($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
                                         {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
                                     </option>
                                 @endfor
                             </select>
-                            <select name="year" class="filter-select">
+                            <select name="year" class="ui-control">
                                 @for($y = now()->year; $y >= 2020; $y--)
                                     <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
@@ -97,13 +97,13 @@
                     <div class="flex flex-col gap-2 {{ request('filter_type') == 'custom' ? '' : 'hidden' }}" id="custom_date_section">
                         <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Pilih Tanggal</label>
                         <div class="flex items-center gap-2">
-                            <input type="date" name="start_date" value="{{ request('start_date') }}" class="filter-select text-gray-700">
+                            <input type="date" name="start_date" value="{{ request('start_date') }}" class="ui-control">
                             <span class="text-gray-500">s/d</span>
-                            <input type="date" name="end_date" value="{{ request('end_date') }}" class="filter-select text-gray-700">
+                            <input type="date" name="end_date" value="{{ request('end_date') }}" class="ui-control">
                         </div>
                     </div>
 
-                    <button type="submit" class="filter-btn">
+                    <button type="submit" class="filter-btn ui-button-primary">
                         <i class="fas fa-filter mr-2"></i> Terapkan
                     </button>
 
@@ -301,7 +301,7 @@
 
             {{-- Tabel --}}
             <div class="premium-card p-6 rounded-2xl fade-in">
-                <div class="flex items-center gap-3 mb-6">
+                <div class="ui-section-heading mb-6">
                     <div class="w-10 h-10 bg-gray-900 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                         <i class="fas fa-table text-white"></i>
                     </div>
@@ -311,8 +311,8 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700">
-                    <table class="premium-table min-w-full">
+                <div class="ui-table-shell overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700">
+                    <table class="ui-table">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
@@ -453,9 +453,9 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                         @if($item->status === 'hadir' && $item->status_approval === 'approved')
-                                        <button class="edit-checkout-btn px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all mt-1"
+                                        <button class="edit-checkout-btn ui-button-secondary"
                                             data-absensi-id="{{ $item->id }}"
-                                            data-checkout-time="{{ $item->check_out_at ? $item->check_out_at->format('Y-m-d H:i:s') : now()->format('Y-m-d') . ' 17:00:00' }}">
+                                            data-checkout-time="{{ $item->check_out_at?->format('Y-m-d H:i:s') ?? (($item->check_in_at?->format('Y-m-d') ?? now()->format('Y-m-d')) . ' 17:00:00') }}">
                                             Edit Pulang
                                         </button>
                                         @endif
@@ -591,7 +591,7 @@
                                     </td>
                                     <td>
                             @if($item->status === 'hadir' && $item->status_approval === 'approved')
-                            <button class="edit-checkin-btn px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-semibold transition-all"
+                            <button class="edit-checkin-btn ui-button-secondary"
                                     data-absensi-id="{{ $item->id }}"
                                     data-checkin-time="{{ $item->check_in_at->format('Y-m-d H:i:s') }}">
                                 Edit
@@ -604,7 +604,7 @@
                             @empty
                                 <tr>
                                     <!-- 🆕 UPDATE COLSPAN (15 + 2 = 17) -->
-                                    <td colspan="17" class="text-center py-16">
+                                    <td colspan="17" class="ui-empty-state">
                                         <div class="flex flex-col items-center gap-3">
                                             <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                                                 <i class="fas fa-inbox text-gray-400 dark:text-gray-500 text-2xl"></i>
@@ -639,7 +639,7 @@
                         <p class="text-xs text-blue-100 mt-0.5">Ubah jam pulang karyawan</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-checkout-btn w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-xl flex items-center justify-center transition-all duration-200 hover:rotate-90">
+                <button type="button" class="close-modal-checkout-btn ui-button-secondary">
                     <i class="fas fa-times text-lg text-white"></i>
                 </button>
             </div>
@@ -656,14 +656,14 @@
                     <i class="fas fa-clock mr-1 text-blue-500"></i> Jam Pulang Baru
                 </label>
                 <input type="datetime-local" id="inputNewCheckOut" name="new_check_out"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    class="ui-control"
                     required>
             </div>
             <div class="flex gap-3 pt-2">
-                <button type="button" class="close-modal-checkout-btn flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all">
+                <button type="button" class="close-modal-checkout-btn flex-1 ui-button-secondary">
                     Batal
                 </button>
-                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg">
+                <button type="submit" class="flex-1 ui-button-primary">
                     <i class="fas fa-save mr-2"></i> Simpan
                 </button>
             </div>
@@ -692,7 +692,7 @@
                         <p class="text-xs text-blue-100 mt-0.5">Ubah jam masuk karyawan</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-xl flex items-center justify-center transition-all duration-200 hover:rotate-90">
+                <button type="button" class="close-modal-btn ui-button-secondary">
                     <i class="fas fa-times text-lg text-white"></i>
                 </button>
             </div>
@@ -728,11 +728,7 @@
             <input type="datetime-local"
                    name="new_check_in"
                    id="inputNewCheckIn"
-                   class="w-full px-4 py-3.5 pl-12 border-2 border-gray-300 dark:border-gray-600 rounded-xl
-                          bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium
-                          focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20
-                          transition-all duration-200 outline-none
-                          hover:border-blue-400 dark:hover:border-blue-500"
+                   class="ui-control pl-12"
                    required>
 
             <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
@@ -751,19 +747,13 @@
     {{-- Buttons --}}
     <div class="flex gap-3 pt-4">
         <button type="button"
-                class="close-modal-btn flex-1 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm
-                       transition-all duration-200 transform hover:scale-105 active:scale-95
-                       flex items-center justify-center gap-2 group">
+                class="close-modal-btn flex-1 ui-button-secondary">
             <i class="fas fa-times group-hover:rotate-90 transition-transform duration-200"></i>
             <span>Batal</span>
         </button>
 
         <button type="submit"
-                class="flex-1 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700
-                       text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/50
-                       transition-all duration-200 transform hover:scale-105 active:scale-95
-                       flex items-center justify-center gap-2 group relative overflow-hidden">
+                class="flex-1 ui-button-primary">
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
 
             <i class="fas fa-save relative z-10"></i>

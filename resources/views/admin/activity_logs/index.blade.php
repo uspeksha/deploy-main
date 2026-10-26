@@ -1,18 +1,19 @@
 <x-app-layout>
-<div class="py-12">
-    <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow-sm sm:rounded-lg">
-            <div class="p-6 text-gray-900 dark:text-gray-100">
-                <h2 class="text-2xl font-bold mb-4">
-                    <i class="fas fa-history text-indigo-500 mr-2"></i> Log Aktivitas Admin
-                </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-                    Rekaman jejak digital persetujuan absensi, lembur, dll oleh semua role admin.
-                </p>
+    <div class="ui-page">
+        <div class="ui-panel">
+            <div class="ui-section-heading mb-2">
+                <span class="ui-section-icon"><i class="fas fa-history"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">Log Aktivitas Admin</h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Rekaman jejak digital persetujuan absensi, lembur, dll oleh semua role admin.
+                    </p>
+                </div>
+            </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm text-left text-gray-500 dark:text-gray-400">
-                        <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                <div class="ui-table-shell mt-6">
+                    <table class="ui-table">
+                        <thead>
                             <tr>
                                 <th scope="col" class="px-6 py-3">Waktu</th>
                                 <th scope="col" class="px-6 py-3">Admin (Pelaku)</th>
@@ -24,7 +25,7 @@
                         </thead>
                         <tbody>
                             @forelse ($logs as $log)
-                                <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+                                <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         {{ $log->created_at->format('d M Y, H:i') }}
                                     </td>
@@ -33,9 +34,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 text-xs rounded-full 
-                                            @if(($log->user->role ?? '') === 'super_admin' || ($log->user->role ?? '') === 'manager') bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300
-                                            @elseif(($log->user->role ?? '') === 'supervisor') bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300
-                                            @elseif(($log->user->role ?? '') === 'hrga') bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300
+                                            @if(in_array(($log->user->role ?? ''), ['super_admin', 'manager', 'supervisor', 'hrga'])) bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300
                                             @else bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 @endif
                                         ">
                                             {{ strtoupper($log->user->role ?? 'UNKNOWN') }}
@@ -53,14 +52,17 @@
                                     <td class="px-6 py-4">
                                         {{ $log->subject ?? '-' }}
                                     </td>
-                                    <td class="px-6 py-4 max-w-xs truncate" title="{{ $log->details }}">
+                                    <td class="max-w-xs truncate px-6 py-4" title="{{ $log->details }}">
                                         {{ $log->details ?? '-' }}
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                                        Belum ada aktivitas yang direkam.
+                                    <td colspan="6" class="px-6 py-5">
+                                        <div class="ui-empty-state text-gray-600 dark:text-gray-400">
+                                            <i class="fas fa-inbox mb-3 text-3xl text-emerald-600 dark:text-emerald-400"></i>
+                                            <p class="font-medium">Belum ada aktivitas yang direkam.</p>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse
@@ -71,8 +73,6 @@
                 <div class="mt-4">
                     {{ $logs->links() }}
                 </div>
-            </div>
         </div>
     </div>
-</div>
 </x-app-layout>

@@ -10,8 +10,8 @@
         </div>
     </x-slot>
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto space-y-8">
+    <div class="min-h-screen">
+        <div class="ui-page">
             
             {{-- Summary Cards --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
@@ -65,10 +65,10 @@
             </div>
 
             {{-- Table Data --}}
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
+            <div class="ui-panel">
                 <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                     <div class="flex items-center gap-3">
-                        <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+                        <div class="ui-section-icon">
                             <i class="fas fa-list text-white dark:text-gray-900"></i>
                         </div>
                         <div>
@@ -78,13 +78,13 @@
                     </div>
                     
                     <form action="{{ route('admin.izin-keluar.index') }}" method="GET" class="flex gap-2">
-                        <input type="date" name="date" value="{{ request('date', date('Y-m-d')) }}" class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg dark:bg-gray-700 dark:text-white focus:ring-indigo-500">
-                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow font-medium transition duration-200"><i class="fas fa-filter mr-1"></i> Filter</button>
+                        <input type="date" name="date" value="{{ request('date', date('Y-m-d')) }}" class="ui-control">
+                        <button type="submit" class="ui-button-primary"><i class="fas fa-filter mr-1"></i> Filter</button>
                     </form>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <div class="ui-table-shell overflow-x-auto">
+                    <table class="ui-table">
                         <thead class="bg-gray-50 dark:bg-gray-900">
                             <tr>
                                 <th class="px-4 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -175,7 +175,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="text-center py-12">
+                                    <td colspan="6" class="ui-empty-state">
                                         <div class="flex flex-col items-center">
                                             <i class="fas fa-door-open text-4xl text-gray-300 dark:text-gray-600 mb-3 block"></i>
                                             <p class="text-gray-500 dark:text-gray-400 font-medium">Tidak ada pengajuan izin keluar pada tanggal ini.</p>

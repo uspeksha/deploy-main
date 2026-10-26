@@ -55,7 +55,7 @@
             $initial = $user->name ? strtoupper(substr($user->name, 0, 2)) : '??';
         @endphp
 
-        <div class="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-800 border-l-4 {{ $borderClass }} p-5 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+        <div class="ui-panel border-l-4 {{ $borderClass }} flex flex-col justify-between">
             <div>
                 {{-- CARD HEADER --}}
                 <div class="flex justify-between items-start gap-3 mb-4">
@@ -119,7 +119,7 @@
                     <div class="flex flex-wrap gap-2">
                         @if ($submission->tipe === 'sakit' || $submission->tipe === 'izin' || $submission->tipe === 'telat')
                             @if ($submission->file_bukti)
-                                <a href="{{ asset('storage/' . $submission->file_bukti) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50 transition-colors">
+                                <a href="{{ asset('storage/' . $submission->file_bukti) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Lihat File
                                 </a>
@@ -134,7 +134,7 @@
                                 ]));
                             @endphp
                             @forelse($allFotos as $i => $foto)
-                                <a href="{{ asset('storage/' . $foto) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50 transition-colors">
+                                <a href="{{ asset('storage/' . $foto) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
                                     Foto {{ $i + 1 }}
                                 </a>
                             @empty
@@ -151,15 +151,15 @@
                     <form action="{{ route('admin.absensi.approval.action', ['absensi' => $submission->id, 'action' => 'approve']) }}" method="POST">
                         @csrf
                         <input type="hidden" name="catatan_admin" value="Disetujui">
-                        <button type="submit" class="w-full py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-sm transition-all active:scale-[0.98]">
+                        <button type="submit" class="w-full ui-button-primary">
                             Setujui
                         </button>
                     </form>
                     
                     <form action="{{ route('admin.absensi.approval.action', ['absensi' => $submission->id, 'action' => 'reject']) }}" method="POST" class="flex gap-1">
                         @csrf
-                        <input type="text" name="catatan_admin" placeholder="Alasan..." class="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white rounded-xl px-2.5 text-xs focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition-all" required>
-                        <button type="submit" class="flex-shrink-0 px-3 py-2.5 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-semibold rounded-xl transition-all active:scale-[0.98]">
+                        <input type="text" name="catatan_admin" placeholder="Alasan..." class="ui-control" required>
+                        <button type="submit" class="ui-button-danger">
                             Tolak
                         </button>
                     </form>
@@ -167,7 +167,7 @@
             @endif
         </div>
     @empty
-        <div class="col-span-full py-20 text-center bg-white dark:bg-gray-900 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">
+        <div class="col-span-full ui-empty-state">
             <svg class="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012-2m-6 9l2 2 4-4"/></svg>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">Tidak ada data pengajuan absensi saat ini.</p>
         </div>

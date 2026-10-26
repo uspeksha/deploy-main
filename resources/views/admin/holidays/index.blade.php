@@ -2,24 +2,27 @@
 <x-app-layout>
     <x-slot name="header">
         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-                    Manajemen Hari Libur
-                </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Kelola kalender hari libur nasional dan cuti bersama perusahaan.
-                </p>
+            <div class="ui-section-heading">
+                <span class="ui-section-icon"><i class="fas fa-calendar-days"></i></span>
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+                        Manajemen Hari Libur
+                    </h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                        Kelola kalender hari libur nasional dan cuti bersama perusahaan.
+                    </p>
+                </div>
             </div>
             <div class="flex items-center gap-3">
                 <form action="{{ route('admin.holidays.sync') }}" method="POST">
                     @csrf
                     <input type="hidden" name="year" value="{{ date('Y') }}">
-                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 hover:bg-indigo-200 rounded-lg text-sm font-semibold transition-colors dark:bg-indigo-900/50 dark:text-indigo-300 dark:hover:bg-indigo-800/50">
+                    <button type="submit" class="ui-button-secondary">
                         <i class="fas fa-sync"></i>
                         Sync Kalender {{ date('Y') }}
                     </button>
                 </form>
-                <a href="{{ route('admin.holidays.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white rounded-lg text-sm font-semibold shadow-md transition-all">
+                <a href="{{ route('admin.holidays.create') }}" class="ui-button-primary">
                     <i class="fas fa-plus"></i>
                     Tambah Libur Manual
                 </a>
@@ -27,8 +30,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto">
+    <div class="ui-page">
 
             @if(session('success'))
                 <div class="mb-6 bg-emerald-50 border-l-4 border-emerald-500 p-4 rounded-r-lg dark:bg-emerald-900/30">
@@ -45,10 +47,10 @@
                 </div>
             @endif
 
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                        <thead class="bg-gray-50 dark:bg-gray-900">
+            <div class="ui-panel">
+                <div class="ui-table-shell">
+                    <table class="ui-table">
+                        <thead>
                             <tr>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Tanggal</th>
                                 <th class="px-6 py-4 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Keterangan</th>
@@ -56,9 +58,9 @@
                                 <th class="px-6 py-4 text-right text-xs font-bold text-gray-700 dark:text-gray-300 uppercase tracking-wider">Aksi</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                        <tbody>
                             @forelse($holidays as $holiday)
-                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         <div class="font-semibold text-gray-900 dark:text-white">
                                             {{ \Carbon\Carbon::parse($holiday->holiday_date)->translatedFormat('l, d F Y') }}
@@ -73,7 +75,7 @@
                                                 <i class="fas fa-flag"></i> Nasional
                                             </span>
                                         @else
-                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-400">
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300">
                                                 <i class="fas fa-building"></i> Kebijakan Perusahaan
                                             </span>
                                         @endif
@@ -82,7 +84,7 @@
                                         <form action="{{ route('admin.holidays.destroy', $holiday->id) }}" method="POST" class="inline-block" onsubmit="return confirm('Apakah Anda yakin ingin menghapus hari libur ini?');">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300 bg-red-50 dark:bg-red-900/20 p-2 rounded-lg transition-colors">
+                                            <button type="submit" class="ui-button-danger min-h-9 px-3 py-1.5">
                                                 <i class="fas fa-trash-alt"></i> Hapus
                                             </button>
                                         </form>
@@ -90,13 +92,11 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="4" class="px-6 py-12 text-center">
-                                        <div class="flex flex-col items-center justify-center">
-                                            <div class="p-4 bg-gray-100 dark:bg-gray-800 rounded-full mb-4">
-                                                <i class="fas fa-calendar-times text-3xl text-gray-400 dark:text-gray-500"></i>
-                                            </div>
-                                            <p class="text-gray-500 dark:text-gray-400 text-lg font-medium">Belum ada data hari libur.</p>
-                                            <p class="text-gray-400 dark:text-gray-500 text-sm mt-1">Silakan klik tombol "Sync Kalender" untuk menarik data libur nasional.</p>
+                                    <td colspan="4" class="px-6 py-5">
+                                        <div class="ui-empty-state">
+                                            <i class="fas fa-calendar-times mb-3 text-3xl text-emerald-600 dark:text-emerald-400"></i>
+                                            <p class="text-base font-semibold text-gray-800 dark:text-gray-100">Belum ada data hari libur.</p>
+                                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Silakan klik tombol "Sync Kalender" untuk menarik data libur nasional.</p>
                                         </div>
                                     </td>
                                 </tr>
@@ -105,12 +105,11 @@
                     </table>
                 </div>
                 @if($holidays->hasPages())
-                    <div class="px-6 py-4 border-t border-gray-200 dark:border-gray-700">
+                    <div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
                         {{ $holidays->links() }}
                     </div>
                 @endif
             </div>
 
-        </div>
     </div>
 </x-app-layout>

@@ -13,13 +13,13 @@
         </div>
     </x-slot>
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto space-y-8">
+    <div class="min-h-screen">
+        <div class="ui-page">
 
             {{-- Filter Section --}}
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+            <div class="ui-panel">
+                <div class="ui-section-heading mb-6">
+                    <div class="ui-section-icon">
                         <i class="fas fa-filter text-white text-lg"></i>
                     </div>
                     <div>
@@ -31,7 +31,7 @@
                 <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bulan</label>
-                        <select name="month" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <select name="month" class="ui-control">
                             @for ($m = 1; $m <= 12; $m++)
                                 <option value="{{ $m }}" {{ request('month', $month) == $m ? 'selected' : '' }}>
                                     {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
@@ -42,7 +42,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
-                        <select name="year" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                        <select name="year" class="ui-control">
                             @for ($y = date('Y'); $y >= 2020; $y--)
                                 <option value="{{ $y }}" {{ request('year', $year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                             @endfor
@@ -50,7 +50,7 @@
                     </div>
 
                     <div class="flex items-end">
-                        <button type="submit" class="w-full px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2">
+                        <button type="submit" class="ui-button-primary w-full">
                             <i class="fas fa-search"></i>
                             <span>Terapkan</span>
                         </button>
@@ -127,7 +127,7 @@
 
             {{-- Attendance Today Summary (Produksi vs Office) --}}
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 flex items-center justify-between">
+                <div class="ui-panel flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="p-4 bg-orange-100 dark:bg-orange-900/30 rounded-2xl">
                             <i class="fas fa-industry text-orange-600 dark:text-orange-400 text-2xl"></i>
@@ -155,7 +155,7 @@
                     </div>
                 </div>
 
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 flex items-center justify-between">
+                <div class="ui-panel flex items-center justify-between">
                     <div class="flex items-center gap-4">
                         <div class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">
                             <i class="fas fa-building text-blue-600 dark:text-blue-400 text-2xl"></i>
@@ -186,9 +186,9 @@
 
             {{-- Comparison Cards --}}
             @if($currentStatus === 'semua' && $comparison)
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
+                <div class="ui-panel">
+                    <div class="ui-section-heading mb-6">
+                        <div class="ui-section-icon">
                             <i class="fas fa-balance-scale text-white text-lg"></i>
                         </div>
                         <div>
@@ -320,9 +320,9 @@
             {{-- Charts --}}
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {{-- Statistik Bulanan --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
+                <div class="ui-panel">
+                    <div class="ui-section-heading mb-6">
+                        <div class="ui-section-icon">
                             <i class="fas fa-chart-bar text-white"></i>
                         </div>
                         <div>
@@ -336,9 +336,9 @@
                 </div>
 
                 {{-- Ringkasan Status --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl">
+                <div class="ui-panel">
+                    <div class="ui-section-heading mb-6">
+                        <div class="ui-section-icon">
                             <i class="fas fa-chart-pie text-white"></i>
                         </div>
                         <div>
@@ -359,7 +359,7 @@
                     {{-- Tab Navigation Pills --}}
                     @if($currentStatus === 'semua')
                     <div class="flex flex-wrap items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-3 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-700/50">
-                        <button @click="activeTab = 'semua'" :class="activeTab === 'semua' ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                        <button @click="activeTab = 'semua'" :class="activeTab === 'semua' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                             <i class="fas fa-th-large"></i>
                             <span>Semua Status</span>
                         </button>
@@ -367,15 +367,15 @@
                             <i class="fas fa-users-cog"></i>
                             <span>Organik</span>
                         </button>
-                        <button @click="activeTab = 'freelance'" :class="activeTab === 'freelance' ? 'bg-cyan-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                        <button @click="activeTab = 'freelance'" :class="activeTab === 'freelance' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                             <i class="fas fa-users"></i>
                             <span>Freelance</span>
                         </button>
-                        <button @click="activeTab = 'borongan'" :class="activeTab === 'borongan' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                        <button @click="activeTab = 'borongan'" :class="activeTab === 'borongan' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                             <i class="fas fa-hammer"></i>
                             <span>Borongan</span>
                         </button>
-                        <button @click="activeTab = 'magang'" :class="activeTab === 'magang' ? 'bg-sky-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
+                        <button @click="activeTab = 'magang'" :class="activeTab === 'magang' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
                             <i class="fas fa-graduation-cap"></i>
                             <span>Magang</span>
                         </button>
@@ -384,9 +384,9 @@
 
                     {{-- Tabel Organik --}}
                     @if($currentStatus === 'semua')
-                    <div x-show="activeTab === 'semua' || activeTab === 'organik'" x-transition.opacity id="tabel-organik" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
+                    <div x-show="activeTab === 'semua' || activeTab === 'organik'" x-transition.opacity id="tabel-organik" class="ui-panel">
+                    <div class="ui-section-heading mb-6">
+                        <div class="ui-section-icon">
                             <i class="fas fa-users-cog text-white"></i>
                         </div>
                         <div>
@@ -402,9 +402,9 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="search" name="search_organik" id="search_organik" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan organik..." value="{{ request('search_organik') }}">
+                                <input type="search" name="search_organik" id="search_organik" class="ui-control pl-10" placeholder="Cari nama karyawan organik..." value="{{ request('search_organik') }}">
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <button type="submit" class="ui-button-primary">
                                 Cari
                             </button>
                             @if(request('search_organik'))
@@ -415,8 +415,8 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="ui-table-shell overflow-x-auto">
+                        <table class="ui-table">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -432,7 +432,7 @@
                                     <x-admin.absensi-row :daily="$daily" type="organik" />
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-12">
+                                        <td colspan="6" class="ui-empty-state">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
                                                 @if(request('search_organik'))
@@ -451,8 +451,8 @@
                     @endif
 
                 {{-- Tabel Freelance --}}
-                <div x-show="activeTab === 'semua' || activeTab === 'freelance'" x-transition.opacity id="tabel-freelance" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
+                <div x-show="activeTab === 'semua' || activeTab === 'freelance'" x-transition.opacity id="tabel-freelance" class="ui-panel">
+                    <div class="ui-section-heading mb-6">
                         <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl">
                             <i class="fas fa-users text-white"></i>
                         </div>
@@ -469,9 +469,9 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="search" name="search_freelance" id="search_freelance" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama freelance..." value="{{ request('search_freelance') }}">
+                                <input type="search" name="search_freelance" id="search_freelance" class="ui-control pl-10" placeholder="Cari nama freelance..." value="{{ request('search_freelance') }}">
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <button type="submit" class="ui-button-primary">
                                 Cari
                             </button>
                             @if(request('search_freelance'))
@@ -482,8 +482,8 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="ui-table-shell overflow-x-auto">
+                        <table class="ui-table">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -499,7 +499,7 @@
                                     <x-admin.absensi-row :daily="$daily" type="freelance" />
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-12">
+                                        <td colspan="6" class="ui-empty-state">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
                                                 @if(request('search_freelance'))
@@ -518,8 +518,8 @@
 
                 {{-- Tabel Borongan --}}
                     @if($currentStatus === 'semua')
-                <div x-show="activeTab === 'semua' || activeTab === 'borongan'" x-transition.opacity id="tabel-borongan" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
+                <div x-show="activeTab === 'semua' || activeTab === 'borongan'" x-transition.opacity id="tabel-borongan" class="ui-panel">
+                    <div class="ui-section-heading mb-6">
                         <div class="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
                             <i class="fas fa-hammer text-white"></i>
                         </div>
@@ -536,9 +536,9 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="search" name="search_borongan" id="search_borongan" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan borongan..." value="{{ request('search_borongan') }}">
+                                <input type="search" name="search_borongan" id="search_borongan" class="ui-control pl-10" placeholder="Cari nama karyawan borongan..." value="{{ request('search_borongan') }}">
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <button type="submit" class="ui-button-primary">
                                 Cari
                             </button>
                             @if(request('search_borongan'))
@@ -549,8 +549,8 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="ui-table-shell overflow-x-auto">
+                        <table class="ui-table">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -566,7 +566,7 @@
                                     <x-admin.absensi-row :daily="$daily" type="borongan" />
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-12">
+                                        <td colspan="6" class="ui-empty-state">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
                                                 @if(request('search_borongan'))
@@ -586,8 +586,8 @@
 
                 {{-- Tabel Magang --}}
                     @if($currentStatus === 'semua')
-                <div x-show="activeTab === 'semua' || activeTab === 'magang'" x-transition.opacity id="tabel-magang" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
+                <div x-show="activeTab === 'semua' || activeTab === 'magang'" x-transition.opacity id="tabel-magang" class="ui-panel">
+                    <div class="ui-section-heading mb-6">
                         <div class="p-3 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl">
                             <i class="fas fa-graduation-cap text-white"></i>
                         </div>
@@ -604,9 +604,9 @@
                                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                     <i class="fas fa-search text-gray-400"></i>
                                 </div>
-                                <input type="search" name="search_magang" id="search_magang" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan magang..." value="{{ request('search_magang') }}">
+                                <input type="search" name="search_magang" id="search_magang" class="ui-control pl-10" placeholder="Cari nama karyawan magang..." value="{{ request('search_magang') }}">
                             </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                            <button type="submit" class="ui-button-primary">
                                 Cari
                             </button>
                             @if(request('search_magang'))
@@ -617,8 +617,8 @@
                         </div>
                     </form>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="ui-table-shell overflow-x-auto">
+                        <table class="ui-table">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -634,7 +634,7 @@
                                     <x-admin.absensi-row :daily="$daily" type="magang" />
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-12">
+                                        <td colspan="6" class="ui-empty-state">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
                                                 @if(request('search_magang'))
@@ -652,8 +652,8 @@
                 </div>
             @else
                 {{-- Tabel Single (Kalo Filter Dipilih) --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
+                <div class="ui-panel">
+                    <div class="ui-section-heading mb-6">
                         <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl">
                             <i class="fas fa-users-cog text-white"></i>
                         </div>
@@ -663,8 +663,8 @@
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <div class="ui-table-shell overflow-x-auto">
+                        <table class="ui-table">
                             <thead class="bg-gray-50 dark:bg-gray-900">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
@@ -745,7 +745,7 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all">
+                                            <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="ui-button-secondary min-h-9 px-3 py-1.5">
                                                 <i class="fas fa-eye"></i>
                                                 <span>Detail</span>
                                             </a>
@@ -753,7 +753,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-12">
+                                        <td colspan="6" class="ui-empty-state">
                                             <div class="flex flex-col items-center">
                                                 <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
                                                 <p class="text-gray-500">Tidak ada data absensi hari ini</p>

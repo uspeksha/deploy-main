@@ -21,6 +21,7 @@ Route::middleware([
     Route::post('/periods/{period}/approve', [\App\Http\Controllers\Admin\PayrollController::class, 'approve'])->name('approve');
     Route::post('/periods/{period}/paid', [\App\Http\Controllers\Admin\PayrollController::class, 'markPaid'])->name('paid');
     Route::post('/periods/{period}/cancel', [\App\Http\Controllers\Admin\PayrollController::class, 'cancel'])->name('cancel');
+    Route::delete('/periods/{period}', [\App\Http\Controllers\Admin\PayrollController::class, 'destroy'])->name('destroy');
     Route::post('/periods/{period}/corrections', [\App\Http\Controllers\Admin\PayrollController::class, 'recordCorrection'])->name('corrections.store');
     Route::post('/periods/{period}/corrections/{correction}/reconcile', [\App\Http\Controllers\Admin\PayrollController::class, 'reconcileCorrection'])->name('corrections.reconcile');
     Route::get('/periods/{period}/export', [\App\Http\Controllers\Admin\PayrollController::class, 'export'])->name('export');

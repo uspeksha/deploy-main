@@ -1,11 +1,11 @@
 <x-guest-layout>
-    <section class="min-h-screen flex items-center justify-center px-6 py-20">
-        <div class="max-w-7xl w-full grid md:grid-cols-2 items-center gap-12">
+    <section class="ui-page flex min-h-screen max-w-none items-center justify-center px-6 py-20">
+        <div class="grid w-full max-w-7xl items-center gap-12 lg:grid-cols-2">
 
             <!-- Left Content -->
             <div data-aos="fade-right" data-aos-duration="1500" class="space-y-6">
                 <div class="flex items-center gap-4">
-                    <img src="{{ asset('images/logo-followme.png') }}" alt="Logo PT Followme" class="h-20 w-auto animate__animated animate__fadeInLeft">
+                    <img src="{{ asset('images/logo-followme.png') }}" alt="Logo PT Followme" class="h-auto max-h-20 w-full max-w-48 object-contain object-left animate__animated animate__fadeInLeft">
                     <div>
                         <h1 class="text-xl font-semibold text-gray-700 dark:text-gray-200">PT. Followme</h1>
                         <p class="text-sm text-gray-500 dark:text-gray-400 tracking-wide">Sistem Absensi Digital Terintegrasi</p>
@@ -14,7 +14,7 @@
 
                 <h2 class="text-4xl md:text-5xl font-bold leading-tight text-gray-900 dark:text-white animate__animated animate__fadeInDown">
                     Presensi Online <br>
-                    <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Cepat & Efisien</span>
+                    <span class="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Cepat & Efisien</span>
                 </h2>
 
                 <p class="text-lg text-gray-600 dark:text-gray-300 animate__animated animate__fadeIn animate__delay-1s">
@@ -23,7 +23,7 @@
 
                 <div class="flex flex-wrap gap-4">
                     <a href="{{ route('login') }}"
-                       class="group px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 animate__animated animate__fadeInUp animate__delay-2s flex items-center gap-2">
+                       class="ui-button-primary group animate__animated animate__fadeInUp animate__delay-2s">
                         <span>Masuk Sekarang</span>
                         <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </a>
@@ -34,20 +34,20 @@
                 <!-- Features List -->
                 <div class="pt-8 space-y-3 animate__animated animate__fadeIn animate__delay-4s">
                     <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                            <i class="fas fa-check text-sm text-emerald-600 dark:text-emerald-400"></i>
                         </div>
                         <span class="font-medium">Absensi berbasis GPS & Foto</span>
                     </div>
                     <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                            <i class="fas fa-check text-sm text-emerald-600 dark:text-emerald-400"></i>
                         </div>
                         <span class="font-medium">Laporan Real-time & Analitik</span>
                     </div>
                     <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
+                        <div class="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-900/30">
+                            <i class="fas fa-check text-sm text-emerald-600 dark:text-emerald-400"></i>
                         </div>
                         <span class="font-medium">Mudah digunakan & Terintegrasi</span>
                     </div>
@@ -55,26 +55,26 @@
             </div>
 
             <!-- Right Illustration (Optional) -->
-            <div data-aos="fade-left" data-aos-duration="1500" class="hidden md:flex justify-center">
+            <div data-aos="fade-left" data-aos-duration="1500" class="hidden justify-center lg:flex">
                 <div class="relative">
                     <!-- Decorative Elements -->
-                    <div class="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob"></div>
-                    <div class="absolute -bottom-8 right-4 w-72 h-72 bg-indigo-300 dark:bg-indigo-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                    <div class="absolute -bottom-4 left-20 w-72 h-72 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
+                    <div class="absolute -top-4 -left-4 w-72 h-72 bg-emerald-300 dark:bg-emerald-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob"></div>
+                    <div class="absolute -bottom-8 right-4 w-72 h-72 bg-teal-300 dark:bg-teal-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
+                    <div class="absolute -bottom-4 left-20 w-72 h-72 bg-cyan-300 dark:bg-cyan-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
 
                     <!-- Icon Grid -->
                     <div class="relative grid grid-cols-2 gap-6 p-8">
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-users text-5xl text-indigo-600 dark:text-indigo-400"></i>
+                        <div class="ui-panel transform p-8 transition-all hover:scale-110">
+                            <i class="fas fa-users text-5xl text-emerald-600 dark:text-emerald-400"></i>
                         </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-clock text-5xl text-purple-600 dark:text-purple-400"></i>
+                        <div class="ui-panel transform p-8 transition-all hover:scale-110">
+                            <i class="fas fa-clock text-5xl text-teal-600 dark:text-teal-400"></i>
                         </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-chart-line text-5xl text-pink-600 dark:text-pink-400"></i>
+                        <div class="ui-panel transform p-8 transition-all hover:scale-110">
+                            <i class="fas fa-chart-line text-5xl text-cyan-600 dark:text-cyan-400"></i>
                         </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-mobile-alt text-5xl text-blue-600 dark:text-blue-400"></i>
+                        <div class="ui-panel transform p-8 transition-all hover:scale-110">
+                            <i class="fas fa-mobile-alt text-5xl text-emerald-600 dark:text-emerald-400"></i>
                         </div>
                     </div>
                 </div>

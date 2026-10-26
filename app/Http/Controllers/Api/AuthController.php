@@ -9,6 +9,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use App\Models\ActivityLog;
+use Laravel\Sanctum\PersonalAccessToken;
 
 
 class AuthController extends Controller
@@ -73,7 +74,15 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
+        $accessToken = $request->user()->currentAccessToken();
+
+        if ($accessToken instanceof PersonalAccessToken) {
+            $accessToken->delete();
+        } else {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->json([
             'message' => 'Successfully logged out'

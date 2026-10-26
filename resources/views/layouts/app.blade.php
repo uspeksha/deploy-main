@@ -61,7 +61,7 @@
             <!-- Dashboard -->
             <a href="{{ route('dashboard') }}"
                class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
-               {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+               {{ request()->routeIs('dashboard') ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                 <i class="fas fa-home text-base w-5"></i>
                 <span>Dashboard</span>
             </a>
@@ -69,13 +69,13 @@
             <!-- ABSENSI SECTION -->
             <div class="pt-2 space-y-0.5">
                 <div class="flex items-center gap-2 px-3 py-1.5 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider">
-                    <i class="fas fa-calendar-check w-4 text-indigo-400"></i>
+                    <i class="fas fa-calendar-check w-4 text-emerald-500"></i>
                     <span>Absensi</span>
                 </div>
 
                 <a href="{{ route('admin.absensi.freelance') }}"
                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
-                   {{ request()->routeIs('admin.absensi.freelance') ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}"
+                   {{ request()->routeIs('admin.absensi.freelance') ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}"
                    @if (request()->routeIs('admin.absensi.freelance')) aria-current="page" @endif>
                     <i class="fas fa-user-tie text-base w-5 text-center"></i>
                     <span>Freelance</span>
@@ -112,7 +112,7 @@
 
                 <a href="{{ route('admin.absensi.approval.hrd') }}"
                    class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.absensi.approval.hrd') ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-l-4 border-blue-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                   {{ request()->routeIs('admin.absensi.approval.hrd') ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-l-4 border-emerald-500' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                     <i class="fas fa-user-check text-[10px] w-4"></i>
                     <span class="truncate">HRD</span>
                 </a>
@@ -130,7 +130,7 @@
                 </div>
                 <a href="{{ route('admin.holidays.index') }}"
                    class="flex items-center gap-3 px-3 py-1.5 ml-3 text-sm font-medium rounded-md transition-all
-                   {{ request()->routeIs('admin.holidays.*') ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border-l-4 border-indigo-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                   {{ request()->routeIs('admin.holidays.*') ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-l-4 border-emerald-600' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                     <i class="fas fa-calendar-day text-[10px] w-4"></i>
                     <span>Hari Libur</span>
                 </a>
@@ -151,7 +151,7 @@
             <div class="pt-2 space-y-0.5 border-t border-gray-100 dark:border-gray-700/50 mt-2">
                 <a href="{{ route('admin.absensi.recap') }}"
                    class="flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-all
-                   {{ request()->routeIs('admin.absensi.recap') ? 'bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
+                   {{ request()->routeIs('admin.absensi.recap') ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700' }}">
                     <i class="fas fa-calendar-check text-base w-5"></i>
                     <span>Rekap Bulanan</span>
                 </a>
@@ -163,7 +163,7 @@
         @auth
         <div class="sticky bottom-0 shrink-0 mt-auto p-3 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 z-20">
             <div class="flex items-center gap-2">
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-xs font-bold shrink-0 shadow-sm">
                     {{ substr(Auth::user()->name ?? 'U', 0, 1) }}
                 </div>
                 <div class="flex-1 min-w-0">
@@ -220,7 +220,7 @@
         </header>
 
         <!-- Page Content -->
-        <main class="flex-1 bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-950 dark:via-gray-900 dark:to-indigo-950">
+        <main class="flex-1 bg-gray-50 dark:bg-gray-900">
             {{ $slot }}
         </main>
     </div>

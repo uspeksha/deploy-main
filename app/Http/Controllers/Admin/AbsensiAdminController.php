@@ -29,6 +29,17 @@ class AbsensiAdminController extends Controller
         abort_unless($user->registration_status === 'approved', 404);
     }
 
+    private function validateAttendanceDetailFilters(Request $request, array $filterTypes = ['all', 'monthly', 'custom']): void
+    {
+        $request->validate([
+            'filter_type' => ['sometimes', 'in:' . implode(',', $filterTypes)],
+            'year' => ['sometimes', 'nullable', 'integer', 'between:1,9999'],
+            'month' => ['sometimes', 'nullable', 'integer', 'between:1,12'],
+            'start_date' => ['required_if:filter_type,custom', 'date_format:Y-m-d'],
+            'end_date' => ['required_if:filter_type,custom', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        ]);
+    }
+
     private function ensureApprovedRegistrationIds(array $userIds): void
     {
         abort_if(
@@ -37,6 +48,16 @@ class AbsensiAdminController extends Controller
                 ->exists(),
             404,
         );
+    }
+
+    private function validateBulkExportFilters(Request $request): array
+    {
+        return $request->validate([
+            'user_ids' => ['required', 'array', 'min:1'],
+            'user_ids.*' => ['required', 'exists:users,id'],
+            'start_date' => ['required', 'date_format:Y-m-d H:i:s,Y-m-d'],
+            'end_date' => ['required', 'date_format:Y-m-d H:i:s,Y-m-d', 'after_or_equal:start_date'],
+        ]);
     }
 
     public function index(Request $request)
@@ -346,6 +367,7 @@ class AbsensiAdminController extends Controller
     public function show(Request $request, User $user)
     {
         $this->ensureApprovedRegistration($user);
+        $this->validateAttendanceDetailFilters($request);
 
         $filterType = $request->input('filter_type', 'all');
         $year = $request->input('year', now()->year);
@@ -479,7 +501,9 @@ class AbsensiAdminController extends Controller
 
     $users = User::where('registration_status', 'approved')
         ->whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'hrd', 'pkl'])
-        ->get();
+        ->get()
+        ->filter(fn (User $user) => $this->detectKategori($user) === 'freelance')
+        ->values();
     $recapData = [];
     $izinKeluarMonthStart = Carbon::create($year, $month, 1)->startOfMonth();
     $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
@@ -579,21 +603,26 @@ class AbsensiAdminController extends Controller
 
     public function exportRecap(Request $request)
     {
-        $month = $request->input('month', Carbon::now()->month);
-        $year = $request->input('year', Carbon::now()->year);
-        $type = $request->input('type', 'all');
-        $range = $request->input('range', 'monthly');
-        $week = $request->input('week', null);
+        $validated = $request->validate([
+            'month' => ['sometimes', 'integer', 'between:1,12'],
+            'year' => ['sometimes', 'integer', 'between:1,9999'],
+            'type' => ['sometimes', 'in:all,organik,freelance,borongan,magang'],
+            'range' => ['sometimes', 'in:monthly,weekly,custom'],
+            'week' => ['sometimes', 'nullable', 'integer', 'between:1,6'],
+            'start_date' => ['required_if:range,custom', 'date_format:Y-m-d'],
+            'end_date' => ['required_if:range,custom', 'date_format:Y-m-d', 'after_or_equal:start_date'],
+        ]);
+
+        $month = $validated['month'] ?? Carbon::now()->month;
+        $year = $validated['year'] ?? Carbon::now()->year;
+        $type = $validated['type'] ?? 'all';
+        $range = $validated['range'] ?? 'monthly';
+        $week = $validated['week'] ?? null;
 
         // 🔥 LOGIKA BARU (SAMA KAYAK DI recap())
         if ($range === 'custom') {
-            $startDate = $request->input('start_date')
-                ? Carbon::parse($request->input('start_date'))->startOfDay()
-                : Carbon::now()->startOfMonth();
-
-            $endDate = $request->input('end_date')
-                ? Carbon::parse($request->input('end_date'))->endOfDay()
-                : Carbon::now()->endOfMonth();
+            $startDate = Carbon::parse($validated['start_date'])->startOfDay();
+            $endDate = Carbon::parse($validated['end_date'])->endOfDay();
 
         } elseif ($range === 'weekly' && $week) {
             $firstMonday = Carbon::create($year, $month, 1)->startOfMonth()->next(Carbon::MONDAY);
@@ -618,7 +647,7 @@ class AbsensiAdminController extends Controller
             // Main payroll totals are based on parent attendance records only.
             $absensiUser = Absensi::where('user_id', $user->id)
                 ->whereBetween('check_in_at', [$startDate, $endDate])
-                ->whereIn('status_approval', ['approved', 'rejected', 'pending'])
+                ->whereIn('status_approval', ['approved', 'rejected'])
                 ->whereNull('parent_id')
                 ->get();
 
@@ -720,6 +749,8 @@ class AbsensiAdminController extends Controller
 
     public function exportUser(Request $request, $id)
     {
+        $this->validateAttendanceDetailFilters($request, ['all', 'monthly', 'weekly', 'yearly', 'custom']);
+
         $user = User::where('registration_status', 'approved')->findOrFail($id);
         $query = Absensi::where('user_id', $id);
 
@@ -764,6 +795,7 @@ class AbsensiAdminController extends Controller
     public function exportSlipGaji(Request $request, User $user)
     {
         $this->ensureApprovedRegistration($user);
+        $this->validateAttendanceDetailFilters($request);
 
         $filterType = $request->input('filter_type', 'all');
 
@@ -824,17 +856,12 @@ class AbsensiAdminController extends Controller
 // INI FUNGSI BARU BUAT NANGANIN CHECKBOX
 public function bulkExportDetail(Request $request)
 {
-    $request->validate([
-        'user_ids'   => 'required|array|min:1',
-        'user_ids.*' => 'exists:users,id',
-        'start_date' => 'required|date_format:Y-m-d H:i:s',
-        'end_date'   => 'required|date_format:Y-m-d H:i:s',
-    ]);
+    $validated = $this->validateBulkExportFilters($request);
 
-    $userIds = $request->input('user_ids');
+    $userIds = $validated['user_ids'];
     $this->ensureApprovedRegistrationIds($userIds);
-    $startDate = $request->input('start_date');
-    $endDate = $request->input('end_date');
+    $startDate = $validated['start_date'];
+    $endDate = $validated['end_date'];
 
     $fileName = "Rekap_Detail_Massal_" . date('Ymd_His') . ".xlsx";
 
@@ -847,6 +874,8 @@ public function bulkExportDetail(Request $request)
 
 public function exportSlipGajiPdf(Request $request, $id)
 {
+    $this->validateAttendanceDetailFilters($request);
+
     // ✅ Manual query user
     $user = User::where('registration_status', 'approved')->findOrFail($id);
 
@@ -904,17 +933,12 @@ $absensiStats = [
 
 public function bulkExportPdf(Request $request)
 {
-    // 1. Validasi
-    $request->validate([
-        'user_ids'   => 'required|array|min:1',
-        'start_date' => 'required',
-        'end_date'   => 'required',
-    ]);
+    $validated = $this->validateBulkExportFilters($request);
 
-    $userIds = $request->input('user_ids');
+    $userIds = $validated['user_ids'];
     $this->ensureApprovedRegistrationIds($userIds);
-    $startDate = Carbon::parse($request->input('start_date'));
-    $endDate = Carbon::parse($request->input('end_date'));
+    $startDate = Carbon::parse($validated['start_date']);
+    $endDate = Carbon::parse($validated['end_date']);
 
     // 2. Siapkan ZIP
     $zipName = 'Slip_Gaji_Bulk_' . date('Ymd_His') . '.zip';
@@ -1046,26 +1070,17 @@ private function penyebut($nilai)
 }
 
     public function bulkExportSimple(Request $request)
-{
-    // 🔥 VALIDASI SIMPLE (ga perlu strict format)
-    $request->validate([
-        'user_ids'   => 'required|array|min:1',
-        'user_ids.*' => 'exists:users,id',
-        'start_date' => 'required',
-        'end_date'   => 'required',
-    ], [
-        'user_ids.required' => 'Pilih minimal 1 karyawan untuk export!',
-        'user_ids.min' => 'Pilih minimal 1 karyawan untuk export!',
-    ]);
+    {
+        $validated = $this->validateBulkExportFilters($request);
 
-    $userIds = $request->input('user_ids');
-    $this->ensureApprovedRegistrationIds($userIds);
+        $userIds = $validated['user_ids'];
+        $this->ensureApprovedRegistrationIds($userIds);
 
 
     try {
 
-        $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
-        $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
+        $startDate = Carbon::parse($validated['start_date'])->startOfDay();
+        $endDate = Carbon::parse($validated['end_date'])->endOfDay();
     } catch (\Exception $e) {
         Log::error('Simple Export Date Parse Error: ' . $e->getMessage());
         return redirect()->back()->with('error', 'Format tanggal tidak valid!');
@@ -1086,6 +1101,8 @@ private function penyebut($nilai)
 
 public function updateCheckIn(Request $request, $id)
 {
+    $absensi = Absensi::findOrFail($id);
+
     Log::info(' updateCheckIn called', [
         'id' => $id,
         'request' => $request->all(),
@@ -1095,9 +1112,12 @@ public function updateCheckIn(Request $request, $id)
         'new_check_in' => 'required|date_format:Y-m-d\TH:i',
     ]);
 
-    $absensi = Absensi::findOrFail($id);
-    $inputTime = $request->input('new_check_in');
-    $newCheckIn = Carbon::parse(str_replace('T', ' ', $inputTime));
+    $newCheckIn = Carbon::parse(str_replace('T', ' ', $request->input('new_check_in')));
+    if ($absensi->check_out_at && $newCheckIn->greaterThan($absensi->check_out_at)) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'new_check_in' => 'Waktu check-in tidak boleh melewati waktu check-out.',
+        ]);
+    }
 
     $jamMasukShift = Carbon::parse($newCheckIn->format('Y-m-d') . ' 08:00:00');
 
@@ -1145,6 +1165,8 @@ public function updateCheckIn(Request $request, $id)
 
     public function updateCheckOut(Request $request, $id)
     {
+        $absensi = Absensi::findOrFail($id);
+
         Log::info('updateCheckOut called', [
             'id' => $id,
             'request' => $request->all(),
@@ -1154,9 +1176,13 @@ public function updateCheckIn(Request $request, $id)
             'new_check_out' => 'required|date_format:Y-m-d\TH:i',
         ]);
 
-        $absensi = Absensi::findOrFail($id);
         $inputTime = $request->input('new_check_out');
         $newCheckOut = Carbon::parse(str_replace('T', ' ', $inputTime));
+        if ($absensi->check_in_at && $newCheckOut->lessThan($absensi->check_in_at)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'new_check_out' => 'Waktu check-out tidak boleh mendahului waktu check-in.',
+            ]);
+        }
 
         DB::table('absensis')
             ->where('id', $absensi->id)
