@@ -54,6 +54,7 @@ Deskripsi saat ini menyatakan `intdiv(minutes, 30)`:
 ## Snapshot payroll
 - Item payroll menyimpan snapshot identitas pegawai, hari kerja, tarif, nilai gaji, ringkasan keterlambatan, serta snapshot absensi.
 - Snapshot harus stabil untuk review dan approval berikutnya.
+- Alur status payroll adalah draft → menunggu persetujuan HRD → disetujui → dibayarkan; ekspor Excel hanya tersedia setelah status disetujui atau dibayarkan.
 - Detail keterlambatan menyimpan referensi absensi, tanggal kerja, menit telat, blok potongan, nominal potongan, dan sumber keterlambatan jika field tersebut memang tersedia.
 - Pembuatan item dan detail keterlambatan harus konsisten: jangan sampai item tersimpan sebagian tanpa detail atau sebaliknya.
 

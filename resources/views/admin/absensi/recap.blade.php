@@ -35,7 +35,7 @@
         usort($freelanceData, fn ($a, $b) => $a['user']->name <=> $b['user']->name);
         $totalGajiFreelance = array_sum(array_column($freelanceData, 'total_gaji'));
         $isPkl = auth()->user()->role === 'pkl';
-        $columnCount = $isPkl ? 10 : 14;
+        $columnCount = $isPkl ? 9 : 13;
     @endphp
 
     <div class="ui-page">
@@ -107,118 +107,94 @@
         </section>
 
         <section class="ui-panel">
-            <form method="POST">
-                @csrf
-                <input type="hidden" name="start_date" value="{{ $startDate->format('Y-m-d H:i:s') }}">
-                <input type="hidden" name="end_date" value="{{ $endDate->format('Y-m-d H:i:s') }}">
-
-                <div class="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div class="ui-section-heading">
-                        <span class="ui-section-icon"><i class="fas fa-user-clock"></i></span>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-900 dark:text-white">Karyawan Freelance</h3>
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                {{ $startDate->translatedFormat('d M Y') }} – {{ $endDate->translatedFormat('d M Y') }}
-                                <span class="mx-1">·</span>{{ count($freelanceData) }} karyawan
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                        <button type="submit" formaction="{{ route('admin.absensi.bulk-export-simple') }}" class="ui-button-secondary">
-                            <i class="fas fa-table"></i> Simple
-                        </button>
-                        <button type="submit" formaction="{{ route('admin.absensi.bulk-export-detail') }}" class="ui-button-primary">
-                            <i class="fas fa-file-excel"></i> Excel
-                        </button>
-                        <button type="submit" formaction="{{ route('admin.absensi.bulk-export-pdf') }}" class="ui-button-danger">
-                            <i class="fas fa-file-pdf"></i> PDF
-                        </button>
+            <div class="mb-5">
+                <div class="ui-section-heading">
+                    <span class="ui-section-icon"><i class="fas fa-user-clock"></i></span>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Karyawan Freelance</h3>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                            {{ $startDate->translatedFormat('d M Y') }} – {{ $endDate->translatedFormat('d M Y') }}
+                            <span class="mx-1">·</span>{{ count($freelanceData) }} karyawan
+                        </p>
                     </div>
                 </div>
+            </div>
 
-                <div class="ui-table-shell">
-                    <table class="ui-table min-w-[1050px]">
-                        <thead>
+            <div class="ui-table-shell">
+                <table class="ui-table min-w-[1050px]">
+                    <thead>
+                        <tr>
+                            <th class="px-4 py-3 text-left">Nama</th>
+                            <th class="px-4 py-3 text-center">Hadir</th>
+                            <th class="px-4 py-3 text-center">Izin</th>
+                            <th class="px-4 py-3 text-center">Sakit</th>
+                            <th class="px-4 py-3 text-center">Alfa</th>
+                            <th class="px-4 py-3 text-center">Lembur</th>
+                            <th class="px-4 py-3 text-center">Telat</th>
+                            @unless ($isPkl)
+                                <th class="px-4 py-3 text-right">Potongan</th>
+                                <th class="px-4 py-3 text-center">Menit OT</th>
+                                <th class="px-4 py-3 text-right">Gaji OT</th>
+                                <th class="px-4 py-3 text-right">Total Gaji</th>
+                            @endunless
+                            <th class="px-4 py-3 text-center">Izin Keluar</th>
+                            <th class="px-4 py-3 text-center">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($freelanceData as $data)
                             <tr>
-                                <th class="px-4 py-3 text-left">
-                                    <input type="checkbox" class="toggle-table-checkbox rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" data-category="freelance" aria-label="Pilih semua karyawan freelance">
-                                </th>
-                                <th class="px-4 py-3 text-left">Nama</th>
-                                <th class="px-4 py-3 text-center">Hadir</th>
-                                <th class="px-4 py-3 text-center">Izin</th>
-                                <th class="px-4 py-3 text-center">Sakit</th>
-                                <th class="px-4 py-3 text-center">Alfa</th>
-                                <th class="px-4 py-3 text-center">Lembur</th>
-                                <th class="px-4 py-3 text-center">Telat</th>
+                                <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
+                                    {{ $data['user']->name }}
+                                    <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ $data['user']->id_karyawan }}</div>
+                                </td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_hadir'] }}</td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_izin'] }}</td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_sakit'] }}</td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_alfa'] ?? 0 }}</td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_lembur'] }}</td>
+                                <td class="px-4 py-3 text-center">{{ $data['total_telat'] ?? 0 }}x</td>
                                 @unless ($isPkl)
-                                    <th class="px-4 py-3 text-right">Potongan</th>
-                                    <th class="px-4 py-3 text-center">Menit OT</th>
-                                    <th class="px-4 py-3 text-right">Gaji OT</th>
-                                    <th class="px-4 py-3 text-right">Total Gaji</th>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right">Rp {{ number_format($data['total_potongan'] ?? 0, 0, ',', '.') }}</td>
+                                    <td class="px-4 py-3 text-center">{{ $data['total_menit_lembur'] ?? 0 }}'</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right">Rp {{ number_format($data['total_gaji_lembur'] ?? 0, 0, ',', '.') }}</td>
+                                    <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">Rp {{ number_format($data['total_gaji'] ?? 0, 0, ',', '.') }}</td>
                                 @endunless
-                                <th class="px-4 py-3 text-center">Izin Keluar</th>
-                                <th class="px-4 py-3 text-center">Aksi</th>
+                                <td class="px-4 py-3 text-center">
+                                    {{ $data['total_izin_keluar'] ?? 0 }}x
+                                    @if (($data['total_izin_keluar_ditolak'] ?? 0) > 0)
+                                        <div class="text-xs text-rose-600 dark:text-rose-400">{{ $data['total_izin_keluar_ditolak'] }} ditolak</div>
+                                    @endif
+                                </td>
+                                <td class="px-4 py-3 text-center">
+                                    <a href="{{ route('admin.absensi.user', $data['user']->id) }}" class="ui-button-secondary min-h-9 px-3 py-1.5" aria-label="Lihat detail {{ $data['user']->name }}">
+                                        <i class="fas fa-eye"></i> Detail
+                                    </a>
+                                </td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            @forelse ($freelanceData as $data)
-                                <tr>
-                                    <td class="px-4 py-3">
-                                        <input type="checkbox" name="user_ids[]" value="{{ $data['user']->id }}" class="user-checkbox-freelance rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" aria-label="Pilih {{ $data['user']->name }}">
-                                    </td>
-                                    <td class="px-4 py-3 font-medium text-gray-900 dark:text-white">
-                                        {{ $data['user']->name }}
-                                        <div class="text-xs font-normal text-gray-500 dark:text-gray-400">{{ $data['user']->id_karyawan }}</div>
-                                    </td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_hadir'] }}</td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_izin'] }}</td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_sakit'] }}</td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_alfa'] ?? 0 }}</td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_lembur'] }}</td>
-                                    <td class="px-4 py-3 text-center">{{ $data['total_telat'] ?? 0 }}x</td>
-                                    @unless ($isPkl)
-                                        <td class="whitespace-nowrap px-4 py-3 text-right">Rp {{ number_format($data['total_potongan'] ?? 0, 0, ',', '.') }}</td>
-                                        <td class="px-4 py-3 text-center">{{ $data['total_menit_lembur'] ?? 0 }}'</td>
-                                        <td class="whitespace-nowrap px-4 py-3 text-right">Rp {{ number_format($data['total_gaji_lembur'] ?? 0, 0, ',', '.') }}</td>
-                                        <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">Rp {{ number_format($data['total_gaji'] ?? 0, 0, ',', '.') }}</td>
-                                    @endunless
-                                    <td class="px-4 py-3 text-center">
-                                        {{ $data['total_izin_keluar'] ?? 0 }}x
-                                        @if (($data['total_izin_keluar_ditolak'] ?? 0) > 0)
-                                            <div class="text-xs text-rose-600 dark:text-rose-400">{{ $data['total_izin_keluar_ditolak'] }} ditolak</div>
-                                        @endif
-                                    </td>
-                                    <td class="px-4 py-3 text-center">
-                                        <a href="{{ route('admin.absensi.user', $data['user']->id) }}" class="ui-button-secondary min-h-9 px-3 py-1.5" aria-label="Lihat detail {{ $data['user']->name }}">
-                                            <i class="fas fa-eye"></i> Detail
-                                        </a>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="{{ $columnCount }}" class="px-4 py-10 text-center">
-                                        <div class="ui-empty-state">
-                                            <i class="fas fa-user-clock text-2xl text-gray-400"></i>
-                                            <p class="mt-2 font-medium text-gray-700 dark:text-gray-300">Belum ada data karyawan freelance</p>
-                                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Coba pilih rentang tanggal yang berbeda.</p>
-                                        </div>
-                                    </td>
-                                </tr>
-                            @endforelse
-                            @if (count($freelanceData) > 0 && ! $isPkl)
-                                <tr class="bg-emerald-50/70 font-semibold dark:bg-emerald-950/20">
-                                    <td colspan="11" class="px-4 py-4 text-right text-gray-900 dark:text-white">Total Gaji Freelance</td>
-                                    <td class="whitespace-nowrap px-4 py-4 text-right text-emerald-700 dark:text-emerald-300">
-                                        Rp {{ number_format($totalGajiFreelance, 0, ',', '.') }}
-                                    </td>
-                                    <td colspan="2"></td>
-                                </tr>
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-            </form>
+                        @empty
+                            <tr>
+                                <td colspan="{{ $columnCount }}" class="px-4 py-10 text-center">
+                                    <div class="ui-empty-state">
+                                        <i class="fas fa-user-clock text-2xl text-gray-400"></i>
+                                        <p class="mt-2 font-medium text-gray-700 dark:text-gray-300">Belum ada data karyawan freelance</p>
+                                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Coba pilih rentang tanggal yang berbeda.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforelse
+                        @if (count($freelanceData) > 0 && ! $isPkl)
+                            <tr class="bg-emerald-50/70 font-semibold dark:bg-emerald-950/20">
+                                <td colspan="10" class="px-4 py-4 text-right text-gray-900 dark:text-white">Total Gaji Freelance</td>
+                                <td class="whitespace-nowrap px-4 py-4 text-right text-emerald-700 dark:text-emerald-300">
+                                    Rp {{ number_format($totalGajiFreelance, 0, ',', '.') }}
+                                </td>
+                                <td colspan="2"></td>
+                            </tr>
+                        @endif
+                    </tbody>
+                </table>
+            </div>
         </section>
     </div>
 
@@ -243,13 +219,6 @@
 
                 rangeSelect.addEventListener('change', toggleFields);
                 toggleFields();
-
-                const selectAll = document.querySelector('.toggle-table-checkbox');
-                selectAll?.addEventListener('change', function () {
-                    document.querySelectorAll('.user-checkbox-freelance').forEach(function (checkbox) {
-                        checkbox.checked = selectAll.checked;
-                    });
-                });
             });
         </script>
     @endpush

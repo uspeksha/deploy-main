@@ -2,24 +2,11 @@
     <main class="login-page">
         <div class="login-layout">
             <section class="login-card" aria-labelledby="login-heading">
-                <a href="/" class="login-brand" aria-label="Followme - Beranda">
-                    <span class="login-logo" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none">
-                            <path d="M12 3.5a8.5 8.5 0 1 0 8.5 8.5" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>
-                            <path d="M12 7v5l3.2 2" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="m16.5 4.5 2 2 3-3" stroke="#F2B943" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </span>
-                    <span>
-                        <strong>FOLLOWME</strong>
-                        <small>SISTEM ABSENSI KERJA</small>
-                    </span>
-                </a>
+                <a href="/" class="login-brand" aria-label="Followme - Beranda">FOLLOWME</a>
 
                 <div class="login-heading">
-                    <p class="login-eyebrow">PORTAL KARYAWAN</p>
-                    <h1 id="login-heading">Selamat datang<br>kembali</h1>
-                    <p>Masuk untuk mulai bekerja dan mencatat kehadiranmu.</p>
+                    <h1 id="login-heading">Selamat datang kembali!</h1>
+                    <p>Masuk untuk mengelola aktivitas dan kehadiran kerjamu.</p>
                 </div>
 
                 @if(session('status'))
@@ -32,7 +19,7 @@
                     @csrf
 
                     <div class="login-field">
-                        <label for="email">Alamat email</label>
+                        <label class="sr-only" for="email">Alamat email</label>
                         <input
                             id="email"
                             type="email"
@@ -48,12 +35,7 @@
                     </div>
 
                     <div class="login-field">
-                        <div class="login-label-row">
-                            <label for="password">Kata sandi</label>
-                            @if (Route::has('password.request'))
-                                <a href="{{ route('password.request') }}">Lupa kata sandi?</a>
-                            @endif
-                        </div>
+                        <label class="sr-only" for="password">Kata sandi</label>
                         <input
                             id="password"
                             type="password"
@@ -67,6 +49,12 @@
                         @enderror
                     </div>
 
+                    @if (Route::has('password.request'))
+                        <div class="login-forgot">
+                            <a href="{{ route('password.request') }}">Lupa kata sandi?</a>
+                        </div>
+                    @endif
+
                     <label class="login-remember" for="remember_me">
                         <input id="remember_me" type="checkbox" name="remember">
                         <span>Ingat saya</span>
@@ -78,19 +66,9 @@
                     </button>
                 </form>
 
-                <p class="login-security">
-                    <span aria-hidden="true">●</span>
-                    Akses aman untuk seluruh aktivitas kerja
-                </p>
             </section>
 
             <section class="login-visual" aria-label="Ilustrasi karyawan melakukan absensi kerja">
-                <div class="visual-copy">
-                    <span class="visual-tag"><span></span> SIAP UNTUK HARI INI</span>
-                    <h2>Mulai hari kerja<br>dengan lebih mudah.</h2>
-                    <p>Absensi, aktivitas, dan informasi kerja dalam satu tempat.</p>
-                </div>
-
                 <svg class="login-illustration" viewBox="0 0 620 430" fill="none" role="img" aria-label="Karyawan mencatat kehadiran menggunakan perangkat absensi">
                     <ellipse cx="335" cy="372" rx="247" ry="31" fill="#C2A8F4" opacity=".55"/>
                     <circle cx="475" cy="116" r="63" fill="#FFE3AE"/>
@@ -126,8 +104,7 @@
                     </g>
                 </svg>
                 <div class="visual-caption">
-                    <span class="caption-icon" aria-hidden="true">✓</span>
-                    <span><strong>Hadir dan siap bekerja</strong><small>Catat kehadiranmu dengan praktis</small></span>
+                    <span><strong>Bekerja lebih mudah dan terorganisir</strong><small>Absensi dan aktivitas kerja dalam satu tempat</small></span>
                 </div>
             </section>
         </div>

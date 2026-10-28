@@ -24,6 +24,10 @@ Payroll is available to HRD accounts from the **Payroll Freelance** sidebar menu
 - Unpaid periods can be cancelled with a reason and recreated as a new draft for the same period using the **Buat Payroll Baru** action. The cancelled payroll remains in history, and the recreation is recorded automatically. Paid snapshots remain locked; any post-payment difference must be entered and settled through the manual reconciliation log and does not change the original slip or trigger a payment.
 - HRD can review details, export the period to Excel, preview/print a slip, and download its PDF. The Excel export includes bank, account number, and account-holder name from the employee profile; handle the file as confidential financial data. Employees cannot access another person’s slip through this admin feature.
 
+## Reverse Proxy Deployment
+
+Set `APP_URL` to the canonical public HTTPS URL before deployment; password-reset links use this configured host rather than request headers. If the application is behind a reverse proxy, set `TRUSTED_PROXIES` to the proxy IP addresses or CIDRs (comma-separated). Do not use `*`; configure the edge proxy to overwrite forwarded headers and block direct public access to the application origin.
+
 The payroll schema is added by `database/migrations/2026_10_23_000000_create_payroll_tables.php`. Before deployment, back up the intended database, verify the deployment environment and connection, then apply migrations through the normal deployment process (`php artisan migrate --force` only against the intended database).
 
  Arsitektur Singkat
