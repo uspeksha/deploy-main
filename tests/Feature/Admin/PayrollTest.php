@@ -8,6 +8,7 @@ use App\Models\PayrollLatenessDetail;
 use App\Models\PayrollPeriod;
 use App\Models\User;
 use App\Services\PayrollGenerationService;
+use Carbon\Carbon;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Maatwebsite\Excel\Facades\Excel;
@@ -19,8 +20,12 @@ function createPayrollAttendance(
     int $lateMinutes = 0,
     string $approval = 'approved',
     bool $mocked = false,
-    string $checkInTime = '08:00:00',
+    ?string $checkInTime = null,
 ): void {
+    $checkInTime ??= Carbon::parse('08:00:00')
+        ->addMinutes($lateMinutes)
+        ->format('H:i:s');
+
     DB::table('absensis')->insert([
         'user_id' => $employee->id,
         'status' => 'hadir',
@@ -60,11 +65,11 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
     ]);
     foreach ([
         ['2026-10-01', 0, 'approved', false, '08:00:00'],
-        ['2026-10-02', 29, 'approved', false, '08:00:00'],
-        ['2026-10-03', 30, 'approved', false, '08:00:00'],
-        ['2026-10-04', 59, 'approved', false, '08:00:00'],
-        ['2026-10-05', 60, 'approved', false, '08:00:00'],
-        ['2026-10-06', 90, 'approved', false, '23:59:59'],
+        ['2026-10-02', 29, 'approved', false, '08:29:00'],
+        ['2026-10-03', 30, 'approved', false, '08:30:00'],
+        ['2026-10-04', 59, 'approved', false, '08:59:00'],
+        ['2026-10-05', 60, 'approved', false, '09:00:00'],
+        ['2026-10-06', 90, 'approved', false, '09:30:00'],
         ['2026-10-07', 0, 'pending', false, '08:00:00'],
         ['2026-10-08', 0, 'approved', true, '08:00:00'],
         ['2026-10-16', 0, 'approved', false, '08:00:00'],
@@ -141,6 +146,30 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
     expect(PayrollPeriod::count())->toBe(1)
         ->and(PayrollItem::where('payroll_period_id', $period->id)->count())->toBe(2)
         ->and($item->fresh()->work_days)->toBe(6);
+});
+
+it('excludes the lunch break from payroll lateness even for older stored attendance minutes', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create([
+        'employment_type' => 'freelance',
+        'registration_status' => 'approved',
+        'is_active' => true,
+    ]);
+    createPayrollAttendance($employee, '2026-10-12', 270, checkInTime: '12:30:00');
+
+    $period = (new PayrollGenerationService)->createPeriod(2026, 10, 1, $hrd->id);
+    $item = PayrollItem::query()
+        ->where('payroll_period_id', $period->id)
+        ->where('user_id', $employee->id)
+        ->firstOrFail();
+    $lateness = $item->latenessDetails()->firstOrFail();
+
+    expect($item->total_late_minutes)->toBe(240)
+        ->and($item->late_deduction)->toBe(60_000)
+        ->and($item->net_pay)->toBe(60_000)
+        ->and($lateness->late_minutes)->toBe(240)
+        ->and($lateness->penalty_blocks)->toBe(8)
+        ->and($lateness->deduction_amount)->toBe(60_000);
 });
 
 it('denies the non-HRD admin role across all protected payroll actions', function () {
@@ -871,7 +900,7 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
             ->and($dailyWorksheet)->not->toBeNull()
             ->and($dailyWorksheet->getCell('A1')->getValue())->toBe('ID Karyawan')
             ->and($dailyWorksheet->getCell('D2')->getValue())->toBe('2026-10-03')
-            ->and($dailyWorksheet->getCell('F2')->getValue())->toBe('08:00')
+            ->and($dailyWorksheet->getCell('F2')->getValue())->toBe('08:30')
             ->and($dailyWorksheet->getCell('G2')->getValue())->toBe('17:00')
             ->and($dailyWorksheet->getCell('H2')->getValue())->toBe(30)
             ->and($dailyWorksheet->getCell('J2')->getValue())->toBe(7500)

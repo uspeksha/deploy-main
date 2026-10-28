@@ -102,6 +102,7 @@ it('recalculates freelance pay with the fixed rate and 30-minute penalty blocks 
     ]);
     $noPenaltyAttendance = createAttendanceDetailRecord($employee, '2026-10-12');
     $penaltyAttendance = createAttendanceDetailRecord($employee, '2026-10-13');
+    $lunchBreakAttendance = createAttendanceDetailRecord($employee, '2026-10-14');
 
     $this->actingAs($hrd)
         ->post(route('admin.absensi.updateCheckIn', $noPenaltyAttendance), [
@@ -116,12 +117,21 @@ it('recalculates freelance pay with the fixed rate and 30-minute penalty blocks 
         ->assertRedirect()
         ->assertSessionHasNoErrors();
 
+    $this->post(route('admin.absensi.updateCheckIn', $lunchBreakAttendance), [
+        'new_check_in' => '2026-10-14T12:30',
+    ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
     expect($noPenaltyAttendance->fresh()->base_salary)->toBe('120000.00')
         ->and($noPenaltyAttendance->fresh()->late_penalty)->toBe('0.00')
         ->and($noPenaltyAttendance->fresh()->final_salary)->toBe('120000.00')
         ->and($penaltyAttendance->fresh()->base_salary)->toBe('120000.00')
         ->and($penaltyAttendance->fresh()->late_penalty)->toBe('7500.00')
-        ->and($penaltyAttendance->fresh()->final_salary)->toBe('112500.00');
+        ->and($penaltyAttendance->fresh()->final_salary)->toBe('112500.00')
+        ->and($lunchBreakAttendance->fresh()->late_minutes)->toBe(240)
+        ->and($lunchBreakAttendance->fresh()->late_penalty)->toBe('60000.00')
+        ->and($lunchBreakAttendance->fresh()->final_salary)->toBe('60000.00');
 });
 
 it('shows the same attendance history columns for organic and non-organic employees', function () {

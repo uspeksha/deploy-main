@@ -15,6 +15,7 @@ use App\Models\Notification;
 use Illuminate\Support\Facades\Validator;
 use App\Models\ActivityLog;
 use App\Http\Resources\AbsensiResource;
+use App\Services\FreelancePayrollCalculator;
 
 
 class AbsensiController extends Controller
@@ -34,16 +35,9 @@ class AbsensiController extends Controller
         return ['hrd' => 'pending'];
     }
 
-    private function calculateLateMinutes($checkInTime, bool $isWeekend = false): int
+    private function calculateLateMinutes($checkInTime): int
     {
-        $checkIn = Carbon::parse($checkInTime);
-        $standardTime = $checkIn->copy()->setTime(8, 0, 0);
-
-        if ($checkIn->greaterThan($standardTime)) {
-            return (int) abs($checkIn->diffInMinutes($standardTime));
-        }
-
-        return 0;
+        return FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse($checkInTime));
     }
 
     public function absenMasuk(Request $request)
@@ -102,7 +96,7 @@ class AbsensiController extends Controller
 
 
                     if ($kategori !== 'organik' && $kategori !== 'magang') {
-                        $lateMinutes = $this->calculateLateMinutes($checkInTime, $isWeekend);
+                        $lateMinutes = $this->calculateLateMinutes($checkInTime);
                     }
                 }
 
@@ -175,7 +169,7 @@ class AbsensiController extends Controller
 
             
             if ($kategori !== 'organik' && $kategori !== 'magang') {
-                $lateMinutes = $this->calculateLateMinutes($checkInTime, $isWeekend);
+                $lateMinutes = $this->calculateLateMinutes($checkInTime);
             }
         }
 
@@ -1648,10 +1642,7 @@ public function pengajuanTelat(Request $request)
 
         
         $checkIn = Carbon::parse($absensi->check_in_at);
-        $standardTime = $checkIn->copy()->setTime(8, 0, 0);
-        $lateMinutes = $checkIn->greaterThan($standardTime)
-            ? (int) abs($checkIn->diffInMinutes($standardTime))
-            : 0;
+        $lateMinutes = FreelancePayrollCalculator::lateMinutesFromCheckIn($checkIn);
 
         if ($lateMinutes === 0) {
             DB::rollBack();

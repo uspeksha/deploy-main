@@ -17,6 +17,7 @@ use App\Exports\SlipGajiExport;
 use App\Exports\SlipGajiPdfExport;
 use App\Exports\BulkDetailExport;
 use App\Exports\BulkSimpleExport;
+use App\Services\FreelancePayrollCalculator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Models\ActivityLog;
@@ -1119,13 +1120,7 @@ public function updateCheckIn(Request $request, $id)
         ]);
     }
 
-    $jamMasukShift = Carbon::parse($newCheckIn->format('Y-m-d') . ' 08:00:00');
-
-    // Hitung telat
-    $lateMinutes = 0;
-    if ($newCheckIn->greaterThan($jamMasukShift)) {
-        $lateMinutes = abs((int) $newCheckIn->diffInMinutes($jamMasukShift));
-    }
+    $lateMinutes = FreelancePayrollCalculator::lateMinutesFromCheckIn($newCheckIn);
 
     $user = $absensi->user;
     if ($user->kategori_absensi === 'freelance') {

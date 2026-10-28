@@ -54,7 +54,10 @@ class ApprovalController extends Controller
             });
         }
 
-        return $query->whereNull('parent_id')
+        return $query->where(function ($query) {
+            $query->whereNull('parent_id')
+                ->orWhereIn('absensis.tipe', ['telat', 'lembur']);
+        })
             ->join('users', 'absensis.user_id', '=', 'users.id')
             ->select('absensis.*')
             ->orderBy('users.name')
@@ -291,7 +294,7 @@ class ApprovalController extends Controller
     }
 
     // ✅ UPDATE DATABASE
-    $absensi->update([
+    $absensi->forceFill([
         'status_approval' => 'rejected',
         'catatan_admin' => $request->catatan_admin,
         'rejected_by' => $rejectedBy,
@@ -310,7 +313,7 @@ class ApprovalController extends Controller
         'base_salary'   => $baseSalary,
         'late_penalty'  => $latePenalty,
         'final_salary'  => $finalSalary, // ✅ Gaji pokok - potongan (tanpa lembur)
-    ]);
+    ])->save();
 
     \App\Models\ActivityLog::log('Reject Pengajuan', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Alasan: {$request->catatan_admin}");
 

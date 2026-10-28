@@ -36,9 +36,10 @@ Konstanta yang dijelaskan:
 - Nilai satu blok: Rp7.500.
 - Keterlambatan di bawah 30 menit tidak dipotong; setiap blok penuh 30 menit mengurangi Rp7.500 dari tarif harian Rp120.000.
 - Setiap hari hadir freelance mendapat tarif dasar Rp120.000, tanpa prorata durasi check-in/check-out. Hari tanpa keterlambatan dibayar penuh Rp120.000.
+- Jam keterlambatan dihitung dari pukul 08.00 dan mengecualikan waktu istirahat pukul 12.00–13.00. Untuk check-in pada/ setelah 13.00, satu jam istirahat penuh tidak masuk ke menit telat.
 - `gross_pay = work_days × daily_rate`.
 - `late_occurrences` = jumlah hari kerja yang terlambat (pastikan definisi aktual).
-- `total_late_minutes` = jumlah menit terlambat pada hari kerja yang dihitung.
+- `total_late_minutes` = jumlah menit terlambat yang dihitung dari check-in pukul 08.00 dan tidak termasuk waktu istirahat 12.00–13.00.
 - `total_penalty_blocks` = jumlah blok hasil penjumlahan per hari sesuai implementasi aktual.
 - `late_deduction = total_penalty_blocks × late_block_amount`.
 - `net_pay = gross_pay - late_deduction - other_deductions` hanya jika definisi `other_deductions` memang berlaku; jika tidak, pertahankan formula aktual dan tandai sebagai keputusan terbuka.

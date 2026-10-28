@@ -139,7 +139,9 @@ class PayrollGenerationService
             $workDate = Carbon::parse($attendance->check_in_at)
                 ->timezone(config('app.timezone'))
                 ->toDateString();
-            $lateMinutes = max(0, (int) ($attendance->late_minutes ?? 0));
+            $lateMinutes = FreelancePayrollCalculator::lateMinutesFromCheckIn(
+                Carbon::parse($attendance->check_in_at)->timezone(config('app.timezone')),
+            );
 
             $attendanceDates[] = $workDate;
             $overtimeRecords = $attendance->children
@@ -179,7 +181,7 @@ class PayrollGenerationService
                 'late_minutes' => $lateMinutes,
                 'penalty_blocks' => $penaltyBlocks,
                 'deduction_amount' => $penaltyBlocks * self::LATE_BLOCK_AMOUNT,
-                'lateness_source' => 'stored_late_minutes_08_00_baseline',
+                'lateness_source' => 'check_in_at_08_00_excluding_12_00_13_00_break',
             ];
         }
 
@@ -215,7 +217,7 @@ class PayrollGenerationService
                 'attendance_ids' => $attendances->pluck('id')->all(),
                 'work_dates' => $attendanceDates,
                 'daily_details' => $dailyDetails,
-                'late_minutes_source' => 'stored_late_minutes_08_00_baseline',
+                'late_minutes_source' => 'check_in_at_08_00_excluding_12_00_13_00_break',
             ],
             'slip_number' => $slipNumber,
         ]);

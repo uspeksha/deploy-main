@@ -1,6 +1,8 @@
 <?php
 
+use App\Services\FreelancePayrollCalculator;
 use App\Services\PayrollGenerationService;
+use Carbon\Carbon;
 
 it('creates non-overlapping first and second half-month payroll periods', function () {
     $service = new PayrollGenerationService;
@@ -42,4 +44,19 @@ it('calculates daily pay and full 30-minute late blocks on the backend', functio
         ->and($lateBoundaries['total_penalty_blocks'])->toBe(7)
         ->and($lateBoundaries['late_deduction'])->toBe(52_500)
         ->and($lateBoundaries['net_pay'])->toBe(547_500);
+});
+
+it('excludes the 12:00 to 13:00 lunch break from lateness', function () {
+    expect(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 11:59')))
+        ->toBe(239)
+        ->and(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 12:00')))
+        ->toBe(240)
+        ->and(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 12:30')))
+        ->toBe(240)
+        ->and(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 13:00')))
+        ->toBe(240)
+        ->and(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 13:30')))
+        ->toBe(270)
+        ->and(FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse('2026-10-12 07:59')))
+        ->toBe(0);
 });

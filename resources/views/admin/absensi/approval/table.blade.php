@@ -13,6 +13,7 @@
             $user = $submission->user ?? null;
             $isOvertime = ($submission->tipe === 'lembur');
             $status = $submission->status_approval ?? 'pending';
+            $submissionLabel = $submission->submission_type ?: ($submission->tipe ?: $submission->status);
 
             // Durasi lembur
             $durationStr = '-';
@@ -65,7 +66,7 @@
                         </div>
                         <div class="min-w-0">
                             <h3 class="text-sm font-semibold text-gray-900 dark:text-white truncate">{{ $user->name ?? '-' }}</h3>
-                            <span class="inline-block text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-0.5">{{ $submission->tipe }}</span>
+                            <span class="inline-block text-[11px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mt-0.5">{{ str_replace('_', ' ', $submissionLabel) }}</span>
                         </div>
                     </div>
                     <span class="px-2.5 py-1 rounded-full text-[10px] font-semibold tracking-wide uppercase flex-shrink-0 {{ $statusClass }}">
@@ -78,9 +79,22 @@
                     <div class="flex items-center justify-between">
                         <span class="text-gray-400 dark:text-gray-500 font-medium">Tanggal</span>
                         <span class="text-gray-700 dark:text-gray-200 font-semibold">
-                            {{ $submission->check_in_at ? \Carbon\Carbon::parse($submission->check_in_at)->isoFormat('DD MMM YYYY') : '-' }}
+                            @if ($submission->check_in_at)
+                                {{ \Carbon\Carbon::parse($submission->check_in_at)->isoFormat('DD MMM YYYY') }}
+                                @if ($submission->end_date && \Carbon\Carbon::parse($submission->end_date)->toDateString() !== \Carbon\Carbon::parse($submission->check_in_at)->toDateString())
+                                    - {{ \Carbon\Carbon::parse($submission->end_date)->isoFormat('DD MMM YYYY') }}
+                                @endif
+                            @else
+                                -
+                            @endif
                         </span>
                     </div>
+                    @if ($submission->total_days > 1)
+                        <div class="flex items-center justify-between">
+                            <span class="text-gray-400 dark:text-gray-500 font-medium">Durasi izin/cuti</span>
+                            <span class="text-gray-700 dark:text-gray-200 font-semibold">{{ $submission->total_days }} hari</span>
+                        </div>
+                    @endif
 
                     @if($isOvertime)
                         @if($submission->lembur_start && $submission->lembur_end)
