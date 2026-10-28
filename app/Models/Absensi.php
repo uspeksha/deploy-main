@@ -2,9 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\FreelancePayrollCalculator;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
 
 class Absensi extends Model
 {
@@ -151,6 +152,7 @@ class Absensi extends Model
     }
 
     if (strtolower($status) === 'hadir' || strtolower($tipe ?? '') === 'lembur') {
+        $isFreelance = strtolower($kategori) === 'freelance';
         $isMultiplierDay = $isWeekend || $isHoliday;
         $dailySalary = $isMultiplierDay ? self::WEEKEND_DAILY_SALARY : self::DAILY_SALARY;
         $salaryPerMinute = $isMultiplierDay ? self::WEEKEND_SALARY_PER_MINUTE : self::SALARY_PER_MINUTE;
@@ -183,11 +185,18 @@ class Absensi extends Model
         // 🆕 PRORATA GAJI BERDASARKAN JAM KERJA
         $expectedMinutes = 480; // 8 jam kerja normal (exclude istirahat)
         $workRatio = min(1, $workedMinutes / $expectedMinutes); // Max 1 (100%)
-        $baseSalary = $dailySalary * $workRatio;
 
-        // Potong penalty telat
-        $roundedLateMinutes = self::roundLateMinutes($actualLateMinutes);
-        $latePenalty = $roundedLateMinutes * $salaryPerMinute;
+        if ($isFreelance) {
+            $dailyPay = FreelancePayrollCalculator::calculateDay($actualLateMinutes);
+            $baseSalary = $dailyPay['gross_pay'];
+            $roundedLateMinutes = $dailyPay['charged_late_minutes'];
+            $latePenalty = $dailyPay['late_deduction'];
+        } else {
+            $baseSalary = $dailySalary * $workRatio;
+            $roundedLateMinutes = self::roundLateMinutes($actualLateMinutes);
+            $latePenalty = $roundedLateMinutes * $salaryPerMinute;
+        }
+
         $finalSalary = max(0, $baseSalary - $latePenalty);
     }
 

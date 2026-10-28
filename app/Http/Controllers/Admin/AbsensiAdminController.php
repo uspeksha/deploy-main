@@ -1124,23 +1124,33 @@ public function updateCheckIn(Request $request, $id)
     // Hitung telat
     $lateMinutes = 0;
     if ($newCheckIn->greaterThan($jamMasukShift)) {
-        $lateMinutes = $newCheckIn->diffInMinutes($jamMasukShift);
+        $lateMinutes = abs((int) $newCheckIn->diffInMinutes($jamMasukShift));
     }
 
-    // Bulatkan ke kelipatan 15 menit
-    $roundedLateMinutes = 0;
-    if ($lateMinutes > 0) {
-        $roundedLateMinutes = ceil($lateMinutes / 15) * 15;
-    }
-
-    // Hitung denda
     $user = $absensi->user;
-    $baseSalaryPerDay = $user->base_salary_per_day ?? 0;
-    $tarifDendaTelat = $baseSalaryPerDay > 0 ? $baseSalaryPerDay / 480 : 0;
-    $latePenalty = $roundedLateMinutes * $tarifDendaTelat;
-
-    // Hitung gaji bersih
-    $finalSalary = $absensi->base_salary - $latePenalty + ($absensi->overtime_pay ?? 0);
+    if ($user->kategori_absensi === 'freelance') {
+        $salary = Absensi::calculateSalary(
+            $lateMinutes,
+            $absensi->status,
+            $absensi->tipe,
+            Absensi::isWeekend($newCheckIn),
+            $newCheckIn,
+            $absensi->check_out_at,
+            $user->kategori_absensi,
+            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+        );
+        $baseSalary = $salary['base_salary'];
+        $roundedLateMinutes = $salary['rounded_late_minutes'];
+        $latePenalty = $salary['late_penalty'];
+        $finalSalary = $salary['final_salary'] + ($absensi->overtime_pay ?? 0);
+    } else {
+        $roundedLateMinutes = $lateMinutes > 0 ? (int) ceil($lateMinutes / 15) * 15 : 0;
+        $baseSalaryPerDay = $user->base_salary_per_day ?? 0;
+        $tarifDendaTelat = $baseSalaryPerDay > 0 ? $baseSalaryPerDay / 480 : 0;
+        $latePenalty = $roundedLateMinutes * $tarifDendaTelat;
+        $baseSalary = $absensi->base_salary;
+        $finalSalary = $baseSalary - $latePenalty + ($absensi->overtime_pay ?? 0);
+    }
 
     // Update database
     DB::table('absensis')
@@ -1149,6 +1159,7 @@ public function updateCheckIn(Request $request, $id)
             'check_in_at' => $newCheckIn,
             'late_minutes' => $lateMinutes,
             'rounded_late_minutes' => $roundedLateMinutes,
+            'base_salary' => $baseSalary,
             'late_penalty' => $latePenalty,
             'final_salary' => $finalSalary,
             'updated_at' => now(),

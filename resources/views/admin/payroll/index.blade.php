@@ -18,7 +18,7 @@
     @php
         $statusLabels = [
             'draft' => 'Draft',
-            'exported' => 'Ditarik',
+            'exported' => 'Perlu Persetujuan (ekspor lama)',
             'pending_approval' => 'Menunggu Persetujuan',
             'approved' => 'Disetujui',
             'paid' => 'Dibayarkan (manual)',
@@ -219,9 +219,23 @@
                             </div>
                             <div class="flex flex-col gap-3 sm:items-end">
                                 <div class="flex flex-wrap gap-2">
-                                    <a href="{{ route('admin.payroll.export', $selectedPeriod) }}" class="{{ $secondaryButtonClasses }}">
-                                        <i class="fas fa-file-excel text-emerald-600"></i> Ekspor Excel
-                                    </a>
+                                    @if (in_array($selectedPeriod->status, ['approved', 'paid'], true))
+                                        <a href="{{ route('admin.payroll.export', $selectedPeriod) }}" class="{{ $secondaryButtonClasses }}">
+                                            <i class="fas fa-file-excel text-emerald-600"></i> Ekspor Excel
+                                        </a>
+                                    @else
+                                        <button type="button" disabled title="Ekspor tersedia setelah payroll disetujui HRD" class="{{ $secondaryButtonClasses }} cursor-not-allowed opacity-50">
+                                            <i class="fas fa-lock"></i> Excel terkunci
+                                        </button>
+                                    @endif
+                                    @if (in_array($selectedPeriod->status, ['draft', 'exported'], true))
+                                        <form method="POST" action="{{ route('admin.payroll.submit', $selectedPeriod) }}" onsubmit="return confirm('Ajukan nominal payroll ini untuk persetujuan HRD?')">
+                                            @csrf
+                                            <button class="{{ $primaryButtonClasses }}">
+                                                <i class="fas fa-paper-plane"></i> Ajukan Persetujuan
+                                            </button>
+                                        </form>
+                                    @endif
                                     @if ($selectedPeriod->status === 'pending_approval')
                                         <form method="POST" action="{{ route('admin.payroll.approve', $selectedPeriod) }}" onsubmit="return confirm('Setujui nominal payroll yang tersimpan?')">
                                             @csrf
@@ -239,6 +253,11 @@
                                         </form>
                                     @endif
                                 </div>
+                                @if (in_array($selectedPeriod->status, ['draft', 'exported', 'pending_approval'], true))
+                                    <p class="text-xs text-amber-700 dark:text-amber-300">
+                                        <i class="fas fa-lock mr-1"></i> File Excel baru bisa diunduh setelah payroll disetujui HRD.
+                                    </p>
+                                @endif
                                 @if (in_array($selectedPeriod->status, ['draft', 'exported', 'pending_approval', 'approved'], true))
                                     <details class="w-full sm:w-auto">
                                         <summary class="cursor-pointer text-sm font-semibold text-gray-500 hover:text-rose-700 dark:text-gray-400 dark:hover:text-rose-300 sm:text-right">

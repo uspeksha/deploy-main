@@ -200,7 +200,10 @@ class PayrollController extends Controller
 
     public function submit(PayrollPeriod $period): RedirectResponse
     {
-        return $this->transition($period, PayrollPeriod::STATUS_DRAFT, PayrollPeriod::STATUS_PENDING_APPROVAL, function (PayrollPeriod $lockedPeriod): array {
+        return $this->transition($period, [
+            PayrollPeriod::STATUS_DRAFT,
+            PayrollPeriod::STATUS_EXPORTED,
+        ], PayrollPeriod::STATUS_PENDING_APPROVAL, function (PayrollPeriod $lockedPeriod): array {
             $lockedPeriod->submitted_at = now();
 
             return ['submitted_at' => $lockedPeriod->submitted_at];
@@ -379,25 +382,22 @@ class PayrollController extends Controller
     public function export(PayrollPeriod $period): BinaryFileResponse
     {
         $this->ensureHrd();
+        abort_unless(
+            in_array($period->status, [PayrollPeriod::STATUS_APPROVED, PayrollPeriod::STATUS_PAID], true),
+            409,
+            'Payroll hanya dapat diekspor setelah disetujui HRD.',
+        );
 
         $response = Excel::download(
             new PayrollSummaryExport($period),
             sprintf('payroll-%04d-%02d-minggu-%d.xlsx', $period->year, $period->month, $period->period_number),
         );
 
-        $markedAsExported = PayrollPeriod::query()
-            ->whereKey($period->id)
-            ->where('status', PayrollPeriod::STATUS_DRAFT)
-            ->update([
-                'status' => PayrollPeriod::STATUS_EXPORTED,
-                'updated_at' => now(),
-            ]) > 0;
-
         ActivityLog::log('payroll.summary_exported', "Payroll period ID: {$period->id}", [
             'year' => $period->year,
             'month' => $period->month,
             'period_number' => $period->period_number,
-            'marked_as_exported' => $markedAsExported,
+            'status' => $period->status,
         ]);
 
         return $response;
@@ -435,7 +435,7 @@ class PayrollController extends Controller
 
     private function transition(
         PayrollPeriod $period,
-        string $expectedStatus,
+        string|array $expectedStatus,
         string $newStatus,
         callable $applyTransition,
         string $action,
@@ -444,18 +444,20 @@ class PayrollController extends Controller
 
         return DB::transaction(function () use ($period, $expectedStatus, $newStatus, $applyTransition, $action) {
             $lockedPeriod = PayrollPeriod::query()->lockForUpdate()->findOrFail($period->id);
+            $expectedStatuses = (array) $expectedStatus;
             abort_unless(
-                $lockedPeriod->status === $expectedStatus,
+                in_array($lockedPeriod->status, $expectedStatuses, true),
                 409,
                 'Status payroll sudah berubah atau tindakan ini tidak diizinkan.',
             );
 
+            $previousStatus = $lockedPeriod->status;
             $changes = $applyTransition($lockedPeriod);
             $lockedPeriod->status = $newStatus;
             $lockedPeriod->save();
 
             ActivityLog::log($action, "Payroll period ID: {$lockedPeriod->id}", [
-                'previous_status' => $expectedStatus,
+                'previous_status' => $previousStatus,
                 'new_status' => $newStatus,
                 ...$changes,
             ]);

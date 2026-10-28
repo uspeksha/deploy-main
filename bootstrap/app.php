@@ -4,6 +4,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,22 +14,26 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        
         $middleware->validateCsrfTokens(except: [
-            
         ]);
 
         $middleware->statefulApi();
 
-			$middleware->trustProxies(at: '*');
-		
+        $middleware->trustProxies(
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX
+                | Request::HEADER_X_FORWARDED_AWS_ELB,
+        );
+
         $middleware->alias([
             'admin' => \App\Http\Middleware\IsAdmin::class,
             'super_admin' => \App\Http\Middleware\IsSuperAdmin::class, 
             'api.kpi' => \App\Http\Middleware\VerifyKpiApiKey::class,
             'block.pkl' => \App\Http\Middleware\BlockPkl::class,
         ]);
-        
+
         $middleware->api(prepend: [
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);

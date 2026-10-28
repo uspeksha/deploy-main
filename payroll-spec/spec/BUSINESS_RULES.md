@@ -34,6 +34,8 @@ Konstanta yang dijelaskan:
 - Tarif harian: Rp120.000.
 - Satu blok potongan: 30 menit.
 - Nilai satu blok: Rp7.500.
+- Keterlambatan di bawah 30 menit tidak dipotong; setiap blok penuh 30 menit mengurangi Rp7.500 dari tarif harian Rp120.000.
+- Setiap hari hadir freelance mendapat tarif dasar Rp120.000, tanpa prorata durasi check-in/check-out. Hari tanpa keterlambatan dibayar penuh Rp120.000.
 - `gross_pay = work_days × daily_rate`.
 - `late_occurrences` = jumlah hari kerja yang terlambat (pastikan definisi aktual).
 - `total_late_minutes` = jumlah menit terlambat pada hari kerja yang dihitung.
@@ -54,6 +56,7 @@ Deskripsi saat ini menyatakan `intdiv(minutes, 30)`:
 ## Snapshot payroll
 - Item payroll menyimpan snapshot identitas pegawai, hari kerja, tarif, nilai gaji, ringkasan keterlambatan, serta snapshot absensi.
 - Snapshot harus stabil untuk review dan approval berikutnya.
+- Alur status payroll adalah draft → menunggu persetujuan HRD → disetujui → dibayarkan; ekspor Excel hanya tersedia setelah status disetujui atau dibayarkan.
 - Detail keterlambatan menyimpan referensi absensi, tanggal kerja, menit telat, blok potongan, nominal potongan, dan sumber keterlambatan jika field tersebut memang tersedia.
 - Pembuatan item dan detail keterlambatan harus konsisten: jangan sampai item tersimpan sebagian tanpa detail atau sebaliknya.
 
