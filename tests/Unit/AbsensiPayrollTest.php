@@ -1,8 +1,8 @@
 <?php
 
+use App\Exports\AbsensiRekapExport;
 use App\Models\Absensi;
 use App\Models\User;
-use App\Exports\AbsensiRekapExport;
 use Carbon\Carbon;
 
 test('organic salary calculation preserves the auto-checkout adjustment without static instance access', function () {
@@ -34,6 +34,49 @@ test('organic salary calculation preserves the auto-checkout adjustment without 
         ->and($salary['base_salary'])->toBe(300000.0)
         ->and($autoCheckout['worked_minutes'])->toBe(0)
         ->and($autoCheckout['base_salary'])->toBe(0.0);
+});
+
+it('pays freelance employees the fixed daily rate and deducts completed 30-minute blocks', function () {
+    $checkIn = Carbon::parse('2026-10-11 08:00:00');
+    $checkOut = Carbon::parse('2026-10-11 12:00:00');
+
+    $onTime = Absensi::calculateSalary(
+        0,
+        'hadir',
+        null,
+        false,
+        $checkIn,
+        $checkOut,
+        'freelance',
+    );
+
+    expect($onTime['base_salary'])->toBe(120000.0)
+        ->and($onTime['late_penalty'])->toBe(0.0)
+        ->and($onTime['final_salary'])->toBe(120000.0)
+        ->and($onTime['worked_minutes'])->toBe(240);
+
+    foreach ([
+        29 => [0, 0.0],
+        30 => [30, 7500.0],
+        59 => [30, 7500.0],
+        60 => [60, 15000.0],
+        90 => [90, 22500.0],
+    ] as $lateMinutes => [$chargedMinutes, $deduction]) {
+        $salary = Absensi::calculateSalary(
+            $lateMinutes,
+            'hadir',
+            null,
+            false,
+            $checkIn,
+            $checkOut,
+            'freelance',
+        );
+
+        expect($salary['base_salary'])->toBe(120000.0)
+            ->and($salary['rounded_late_minutes'])->toBe($chargedMinutes)
+            ->and($salary['late_penalty'])->toBe($deduction)
+            ->and($salary['final_salary'])->toBe(120000.0 - $deduction);
+    }
 });
 
 test('recap export includes the payroll totals and overtime values from the prepared row', function () {

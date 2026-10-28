@@ -91,6 +91,39 @@ it('applies a valid custom date range to attendance details and their summary', 
         ->and($after->exists)->toBeTrue();
 });
 
+it('recalculates freelance pay with the fixed rate and 30-minute penalty blocks when HRD edits check-in', function () {
+    $hrd = User::factory()->create([
+        'role' => 'hrd',
+        'registration_status' => 'approved',
+    ]);
+    $employee = User::factory()->create([
+        'employment_type' => 'freelance',
+        'registration_status' => 'approved',
+    ]);
+    $noPenaltyAttendance = createAttendanceDetailRecord($employee, '2026-10-12');
+    $penaltyAttendance = createAttendanceDetailRecord($employee, '2026-10-13');
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.updateCheckIn', $noPenaltyAttendance), [
+            'new_check_in' => '2026-10-12T08:29',
+        ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    $this->post(route('admin.absensi.updateCheckIn', $penaltyAttendance), [
+        'new_check_in' => '2026-10-13T08:30',
+    ])
+        ->assertRedirect()
+        ->assertSessionHasNoErrors();
+
+    expect($noPenaltyAttendance->fresh()->base_salary)->toBe('120000.00')
+        ->and($noPenaltyAttendance->fresh()->late_penalty)->toBe('0.00')
+        ->and($noPenaltyAttendance->fresh()->final_salary)->toBe('120000.00')
+        ->and($penaltyAttendance->fresh()->base_salary)->toBe('120000.00')
+        ->and($penaltyAttendance->fresh()->late_penalty)->toBe('7500.00')
+        ->and($penaltyAttendance->fresh()->final_salary)->toBe('112500.00');
+});
+
 it('defaults a missing checkout edit to the attendance date', function () {
     $hrd = User::factory()->create([
         'role' => 'hrd',

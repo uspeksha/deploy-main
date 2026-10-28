@@ -12,11 +12,11 @@ use Illuminate\Support\Facades\DB;
 
 class PayrollGenerationService
 {
-    public const DAILY_RATE = 120_000;
+    public const DAILY_RATE = FreelancePayrollCalculator::DAILY_RATE;
 
-    public const LATE_BLOCK_MINUTES = 30;
+    public const LATE_BLOCK_MINUTES = FreelancePayrollCalculator::LATE_BLOCK_MINUTES;
 
-    public const LATE_BLOCK_AMOUNT = 7_500;
+    public const LATE_BLOCK_AMOUNT = FreelancePayrollCalculator::LATE_BLOCK_AMOUNT;
 
     public function createPeriod(
         int $year,
@@ -93,7 +93,7 @@ class PayrollGenerationService
         $lateOccurrences = count(array_filter($lateMinutesByWorkday, fn (int $minutes): bool => $minutes > 0));
         $totalLateMinutes = array_sum($lateMinutesByWorkday);
         $totalPenaltyBlocks = array_sum(array_map(
-            fn (int $minutes): int => intdiv($minutes, self::LATE_BLOCK_MINUTES),
+            fn (int $minutes): int => FreelancePayrollCalculator::calculateDay($minutes)['penalty_blocks'],
             $lateMinutesByWorkday,
         ));
         $grossPay = $workDays * self::DAILY_RATE;
