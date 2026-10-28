@@ -13,6 +13,23 @@ Siap dipakai buat production, scalable, dan gampang diintegrasi.
 -  Authentication: Sanctum (API Token)
 -  Web Admin: Blade + Tailwind / Bootstrap
 
+## Kolaborasi dan Validasi
+
+Jangan commit langsung ke `develop`. Buat branch untuk setiap pekerjaan, lalu ajukan pull request agar perubahan bisa ditinjau sebelum digabung:
+
+```bash
+git pull --ff-only origin develop
+git switch -c feature/nama-perubahan
+# kerjakan dan uji perubahan
+git add .
+git commit -m "Jelaskan perubahan"
+git push -u origin feature/nama-perubahan
+```
+
+GitHub Actions menjalankan `npm run build` dan `composer test` pada pull request menuju `develop`. Di pengaturan repository, aktifkan branch protection untuk `develop`: wajibkan pull request, minimal satu persetujuan, dan status check `validate`; larang force-push dan penghapusan branch. Tanpa branch protection, anggota tim masih bisa melewati pemeriksaan dengan push langsung.
+
+Sebelum meminta review, jalankan `npm ci`, `composer install`, `npm run build`, dan `composer test` secara lokal. Jangan commit `.env`, `public/hot`, atau perubahan build yang tidak disengaja. Setiap pull request yang memang mengubah tampilan atau perilaku harus menjelaskan perubahan yang diharapkan dan menyertakan tangkapan layar sebelum/sesudah untuk halaman UI terkait. Build dan tes otomatis menangkap banyak regresi, tetapi tidak dapat menjamin semua perubahan visual atau perilaku tetap sama.
+
 ## Payroll Freelance
 
 Payroll is available to HRD accounts from the **Payroll Freelance** sidebar menu. It uses approved, non-mocked `hadir` attendance records and counts at most one approved check-in per employee per local work date. Absences and unapproved records are not paid.
