@@ -124,6 +124,35 @@ it('recalculates freelance pay with the fixed rate and 30-minute penalty blocks 
         ->and($penaltyAttendance->fresh()->final_salary)->toBe('112500.00');
 });
 
+it('shows the same attendance history columns for organic and non-organic employees', function () {
+    $hrd = User::factory()->create([
+        'role' => 'hrd',
+        'registration_status' => 'approved',
+    ]);
+    $employees = [
+        User::factory()->create([
+            'employment_type' => 'organik',
+            'registration_status' => 'approved',
+        ]),
+        User::factory()->create([
+            'employment_type' => 'freelance',
+            'registration_status' => 'approved',
+        ]),
+    ];
+
+    foreach ($employees as $employee) {
+        $this->actingAs($hrd)
+            ->get(route('admin.absensi.user', $employee))
+            ->assertOk()
+            ->assertSee('Riwayat Absensi')
+            ->assertSee('Gaji Pokok')
+            ->assertSee('Potongan')
+            ->assertSee('Gaji Bersih')
+            ->assertSee('Menit Lembur')
+            ->assertSee('Gaji Lembur');
+    }
+});
+
 it('defaults a missing checkout edit to the attendance date', function () {
     $hrd = User::factory()->create([
         'role' => 'hrd',

@@ -312,23 +312,17 @@
                 </div>
 
                 <div class="ui-table-shell overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700">
-                    <table class="ui-table">
+                    <table class="ui-table min-w-[1800px] [&_th]:whitespace-nowrap [&_th]:px-4 [&_th]:py-3 [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Check-in</th>
                                 <th>Telat</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Pokok</th>
                                 <th>Potongan</th>
                                 <th>Gaji Bersih</th>
-                                @endif
-                                <!-- 🆕 TAMBAH 2 HEADER INI -->
                                 <th>Menit Lembur</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Lembur</th>
-                                @endif
-                                <!-- ------------------- -->
                                 <th>Check-out</th>
                                 <th>Status</th>
                                 <th>Tipe</th>
@@ -380,10 +374,11 @@
                                         @endif
                                     </td>
 
-                                    @if($user->employment_type !== 'organik')
                                     {{-- Gaji Pokok --}}
                                     <td>
-                                        @if($item->base_salary)
+                                        @if($user->employment_type === 'organik')
+                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
+                                        @elseif($item->base_salary)
                                             <span class="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg text-xs font-semibold">
                                                 Rp {{ number_format($item->base_salary, 0, ',', '.') }}
                                             </span>
@@ -394,7 +389,9 @@
 
                                     {{-- Potongan Telat --}}
                                     <td>
-                                        @if($item->late_penalty && $item->late_penalty > 0)
+                                        @if($user->employment_type === 'organik')
+                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
+                                        @elseif($item->late_penalty && $item->late_penalty > 0)
                                             <div class="flex flex-col gap-1">
                                                 <span class="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-xs font-semibold">
                                                     -Rp {{ number_format($item->late_penalty, 0, ',', '.') }}
@@ -410,7 +407,9 @@
 
                                     {{-- Gaji Bersih --}}
                                     <td>
-                                        @if($item->final_salary)
+                                        @if($user->employment_type === 'organik')
+                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
+                                        @elseif($item->final_salary)
                                             <span class="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 rounded-lg text-sm font-bold">
                                                 Rp {{ number_format($item->final_salary, 0, ',', '.') }}
                                             </span>
@@ -418,9 +417,7 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
 
-                                    <!-- 🆕 TAMBAH 2 KOLOM INI -->
                                     <td>
                                         @if($item->overtime_minutes > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -430,9 +427,10 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @if($user->employment_type !== 'organik')
                                     <td>
-                                        @if($item->overtime_pay > 0)
+                                        @if($user->employment_type === 'organik')
+                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
+                                        @elseif($item->overtime_pay > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
                                                 Rp {{ number_format($item->overtime_pay, 0, ',', '.') }}
                                             </span>
@@ -440,8 +438,6 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
-                                    <!-- ------------------- -->
 
                                     {{-- Check-out --}}
                                     <td>
@@ -603,8 +599,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <!-- 🆕 UPDATE COLSPAN (15 + 2 = 17) -->
-                                    <td colspan="17" class="ui-empty-state">
+                                <td colspan="18" class="ui-empty-state">
                                         <div class="flex flex-col items-center gap-3">
                                             <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                                                 <i class="fas fa-inbox text-gray-400 dark:text-gray-500 text-2xl"></i>
