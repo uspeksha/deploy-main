@@ -27,14 +27,15 @@
         .dark .stat-card:hover { box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.4); }
         .stat-icon { transition: transform 0.3s ease; }
         .stat-card:hover .stat-icon { transform: scale(1.08); }
-        .premium-table { border-collapse: separate; border-spacing: 0; }
-        .premium-table thead th { background: #1f2937; color: #f3f4f6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; padding: 1rem; border-bottom: 2px solid #374151; white-space: nowrap; }
+        .premium-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1200px; }
+        .premium-table thead th { background: #1f2937; color: #f3f4f6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; padding: 0.875rem 1rem; border-bottom: 2px solid #374151; white-space: nowrap; text-align: left; }
         .dark .premium-table thead th { background: #111827; color: #e5e7eb; border-bottom-color: #1f2937; }
         .premium-table tbody tr { transition: all 0.15s ease; background: white; border-bottom: 1px solid #e5e7eb; }
         .dark .premium-table tbody tr { background: #1e293b; border-bottom-color: #334155; }
         .premium-table tbody tr:hover { background: #f1f5f9; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
         .dark .premium-table tbody tr:hover { background: #334155; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
-        .premium-table tbody td { padding: 1rem; vertical-align: middle; white-space: nowrap; }
+        .premium-table tbody td { padding: 0.875rem 1rem; vertical-align: middle; font-size: 0.875rem; color: #374151; white-space: nowrap; }
+        .dark .premium-table tbody td { color: #d1d5db; }
         .badge-premium { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; transition: all 0.2s ease; }
         .link-premium { transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
         .link-premium:hover { background: rgba(107, 114, 128, 0.12); }
@@ -58,26 +59,36 @@
     </style>
 
     <div class="min-h-screen">
-        <div class="ui-page">
+        <div class="ui-page space-y-6">
 
            {{-- Filter Section --}}
-            <div class="premium-card p-6 rounded-2xl">
-                <form method="GET" action="{{ route('admin.absensi.user', $user->id) }}" class="flex flex-wrap items-end gap-4">
+            <div class="premium-card p-6 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-filter text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Filter Data Absensi</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pilih periode atau tanggal khusus untuk melihat riwayat</p>
+                    </div>
+                </div>
+
+                <form method="GET" action="{{ route('admin.absensi.user', $user->id) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
 
                     {{-- Pilihan Tipe Filter --}}
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Tipe Filter</label>
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Tipe Filter</label>
                         <select name="filter_type" id="filter_type" class="ui-control">
                             <option value="all" {{ request('filter_type', 'all') == 'all' ? 'selected' : '' }}>Semua Data</option>
                             <option value="monthly" {{ request('filter_type') == 'monthly' ? 'selected' : '' }}>Per Bulan</option>
-                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Range Tanggal (Custom)</option> {{-- ⬅️ INI BARU --}}
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Range Tanggal (Custom)</option>
                         </select>
                     </div>
 
                     {{-- Filter Bulan (Muncul kalo pilih Per Bulan) --}}
-                    <div class="flex flex-col gap-2 {{ request('filter_type') == 'monthly' ? '' : 'hidden' }}" id="month_section">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Bulan & Tahun</label>
-                        <div class="flex gap-2">
+                    <div class="flex flex-col gap-1.5 {{ request('filter_type') == 'monthly' ? '' : 'hidden' }}" id="month_section">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Bulan & Tahun</label>
+                        <div class="grid grid-cols-2 gap-2">
                             <select name="month" class="ui-control">
                                 @for ($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
@@ -94,158 +105,148 @@
                     </div>
 
                     {{-- Filter Custom Tanggal (Muncul kalo pilih Range Tanggal) --}}
-                    <div class="flex flex-col gap-2 {{ request('filter_type') == 'custom' ? '' : 'hidden' }}" id="custom_date_section">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Pilih Tanggal</label>
+                    <div class="flex flex-col gap-1.5 sm:col-span-2 {{ request('filter_type') == 'custom' ? '' : 'hidden' }}" id="custom_date_section">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Pilih Tanggal</label>
                         <div class="flex items-center gap-2">
                             <input type="date" name="start_date" value="{{ request('start_date') }}" class="ui-control">
-                            <span class="text-gray-500">s/d</span>
+                            <span class="text-gray-500 font-medium px-1">s/d</span>
                             <input type="date" name="end_date" value="{{ request('end_date') }}" class="ui-control">
                         </div>
                     </div>
 
-                    <button type="submit" class="filter-btn ui-button-primary">
-                        <i class="fas fa-filter mr-2"></i> Terapkan
-                    </button>
-
-                    {{-- Tombol Export Slip Gaji (Ikut Filter) --}}
-                    <a href="{{ route('admin.absensi.user.export-slip', [
-                            'user' => $user->id,
-                            'filter_type' => request('filter_type', 'all'),
-                            'month' => request('month', now()->month),
-                            'year' => request('year', now()->year),
-                            'start_date' => request('start_date'), // ⬅️ Kirim start_date
-                            'end_date' => request('end_date')      // ⬅️ Kirim end_date
-                        ]) }}"
-                       class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]">
-                        <i class="fas fa-file-invoice-dollar"></i> Export Slip Gaji
-                    </a>
+                    <div class="flex items-center">
+                        <button type="submit" class="ui-button-primary w-full">
+                            <i class="fas fa-filter"></i>
+                            <span>Terapkan</span>
+                        </button>
+                    </div>
                 </form>
             </div>
 
             {{-- Summary --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 fade-in">
                 {{-- Total Hadir --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Hadir</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['hadir'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Hadir</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['hadir'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-check-circle text-xl text-green-600 dark:text-green-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-lg text-green-600 dark:text-green-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Telat --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Telat</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['telat'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Telat</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['telat'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-clock text-xl text-orange-600 dark:text-orange-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-lg text-orange-600 dark:text-orange-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Izin --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Izin</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['izin'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Izin</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['izin'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-sticky-note text-xl text-yellow-600 dark:text-yellow-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-sticky-note text-lg text-yellow-600 dark:text-yellow-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Sakit --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Sakit</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['sakit'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Sakit</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['sakit'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-medkit text-xl text-red-600 dark:text-red-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-medkit text-lg text-red-600 dark:text-red-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Lembur --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Lembur</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['lembur'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Lembur</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['lembur'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-clock text-xl text-purple-600 dark:text-purple-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-lg text-purple-600 dark:text-purple-400"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 🆕 KOTAK BARU: RINGKASAN GAJI (SESUAI REQUEST LO) -->
+            <!-- 🆕 KOTAK BARU: RINGKASAN GAJI -->
             @if($user->employment_type !== 'organik')
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 fade-in">
 
                 <!-- Card Potongan Telat -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-red-50 dark:bg-red-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-red-50/60 dark:bg-red-900/10 shadow-sm border border-red-100 dark:border-red-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Potongan Telat</p>
-                            <p class="text-red-700 dark:text-red-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Potongan Telat</p>
+                            <p class="text-red-700 dark:text-red-300 text-xl font-bold">
                                 -Rp {{ number_format($absensiStats['total_potongan'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-arrow-circle-down text-xl text-red-600 dark:text-red-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-circle-down text-lg text-red-600 dark:text-red-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Lembur -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-purple-50 dark:bg-purple-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-900/10 shadow-sm border border-purple-100 dark:border-purple-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Lembur</p>
-                            <p class="text-purple-700 dark:text-purple-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Lembur</p>
+                            <p class="text-purple-700 dark:text-purple-300 text-xl font-bold">
                                 +Rp {{ number_format($absensiStats['total_gaji_lembur'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-arrow-circle-up text-xl text-purple-600 dark:text-purple-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-circle-up text-lg text-purple-600 dark:text-purple-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Pokok -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-green-50 dark:bg-green-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-green-50/60 dark:bg-green-900/10 shadow-sm border border-green-100 dark:border-green-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Pokok</p>
-                            <p class="text-green-700 dark:text-green-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Pokok</p>
+                            <p class="text-green-700 dark:text-green-300 text-xl font-bold">
                                 Rp {{ number_format($absensiStats['total_gaji_pokok'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-plus-circle text-xl text-green-600 dark:text-green-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-plus-circle text-lg text-green-600 dark:text-green-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Bersih -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-blue-50 dark:bg-blue-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-blue-50/60 dark:bg-blue-900/10 shadow-sm border border-blue-100 dark:border-blue-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Bersih</p>
-                            <p class="text-blue-700 dark:text-blue-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Bersih</p>
+                            <p class="text-blue-700 dark:text-blue-300 text-xl font-bold">
                                 Rp {{ number_format($absensiStats['total_gaji_bersih'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-equals text-xl text-blue-600 dark:text-blue-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-equals text-lg text-blue-600 dark:text-blue-400"></i>
                         </div>
                     </div>
                 </div>
@@ -254,50 +255,59 @@
             @endif
             <!-- 🆕 END RINGKASAN GAJI -->
 
-          {{-- Tombol Export --}}
-<div class="flex justify-end mb-4 gap-4">
+          {{-- Tombol Export Action Bar --}}
+          <div class="premium-card p-4 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
+                      <i class="fas fa-download text-base"></i>
+                  </div>
+                  <div>
+                      <h4 class="text-sm font-bold text-gray-900 dark:text-white">Pusat Export Laporan</h4>
+                      <p class="text-xs text-gray-500 dark:text-gray-400">Unduh slip gaji atau rekapitulasi absensi</p>
+                  </div>
+              </div>
+              <div class="flex flex-wrap items-center gap-3">
+                  {{-- 📄 Tombol Export Slip Gaji (EXCEL) --}}
+                  <a href="{{ route('admin.absensi.user.export-slip', [
+                          'user' => $user->id,
+                          'filter_type' => request('filter_type', 'all'),
+                          'month' => request('month', now()->month),
+                          'year' => request('year', now()->year),
+                          'start_date' => request('start_date'),
+                          'end_date' => request('end_date')
+                      ]) }}"
+                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200">
+                      <i class="fas fa-file-excel"></i> Slip Gaji (Excel)
+                  </a>
 
-    {{-- 📄 Tombol Export Slip Gaji (EXCEL - Bisa Diedit) --}}
-    <a href="{{ route('admin.absensi.user.export-slip', [
-            'user' => $user->id,
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date')
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]">
-        <i class="fas fa-file-excel"></i> Export Slip Gaji (Excel)
-    </a>
+                  {{-- 🆕 Tombol Export Slip Gaji (PDF) --}}
+                  <a href="{{ route('admin.absensi.user.export-slip-pdf', [
+                          'id' => $user->id,
+                          'filter_type' => request('filter_type', 'all'),
+                          'month' => request('month', now()->month),
+                          'year' => request('year', now()->year),
+                          'start_date' => request('start_date'),
+                          'end_date' => request('end_date')
+                      ]) }}"
+                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200"
+                     title="Format PDF - Tidak bisa diedit">
+                      <i class="fas fa-file-pdf"></i> Slip Gaji (PDF) 🔒
+                  </a>
 
-    {{-- 🆕 Tombol Export Slip Gaji (PDF - GA BISA DIEDIT) --}}
-   <a href="{{ route('admin.absensi.user.export-slip-pdf', [
-            'id' => $user->id,  {{-- ⚠️ GANTI DARI 'user' JADI 'id' --}}
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date')
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]"
-       title="Format PDF - Tidak bisa diedit">
-        <i class="fas fa-file-pdf"></i> Export Slip Gaji (PDF) 🔒
-    </a>
-
-    {{-- Tombol Export Detail (LAMA) --}}
-    <a href="{{ route('admin.absensi.user.export', [
-            'id' => $user->id,
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date'),
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200">
-        <i class="fas fa-file-excel"></i>
-        Export Detail (Tabel)
-    </a>
-</div>
+                  {{-- Tombol Export Detail (Tabel) --}}
+                  <a href="{{ route('admin.absensi.user.export', [
+                          'id' => $user->id,
+                          'filter_type' => request('filter_type', 'all'),
+                          'month' => request('month', now()->month),
+                          'year' => request('year', now()->year),
+                          'start_date' => request('start_date'),
+                          'end_date' => request('end_date'),
+                      ]) }}"
+                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200">
+                      <i class="fas fa-file-excel"></i> Detail Absensi (Excel)
+                  </a>
+              </div>
+          </div>
 
             {{-- Tabel --}}
             <div class="premium-card p-6 rounded-2xl fade-in">
@@ -311,18 +321,24 @@
                     </div>
                 </div>
 
-                <div class="ui-table-shell overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700">
-                    <table class="ui-table min-w-[1800px] [&_th]:whitespace-nowrap [&_th]:px-4 [&_th]:py-3 [&_td]:px-4 [&_td]:py-3 [&_td]:align-middle">
+                <div class="ui-table-shell overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+                    <table class="premium-table">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Check-in</th>
                                 <th>Telat</th>
+                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Pokok</th>
                                 <th>Potongan</th>
                                 <th>Gaji Bersih</th>
+                                @endif
+                                <!-- 🆕 TAMBAH 2 HEADER INI -->
                                 <th>Menit Lembur</th>
+                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Lembur</th>
+                                @endif
+                                <!-- ------------------- -->
                                 <th>Check-out</th>
                                 <th>Status</th>
                                 <th>Tipe</th>
@@ -374,11 +390,10 @@
                                         @endif
                                     </td>
 
+                                    @if($user->employment_type !== 'organik')
                                     {{-- Gaji Pokok --}}
                                     <td>
-                                        @if($user->employment_type === 'organik')
-                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
-                                        @elseif($item->base_salary)
+                                        @if($item->base_salary)
                                             <span class="px-2.5 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 rounded-lg text-xs font-semibold">
                                                 Rp {{ number_format($item->base_salary, 0, ',', '.') }}
                                             </span>
@@ -389,9 +404,7 @@
 
                                     {{-- Potongan Telat --}}
                                     <td>
-                                        @if($user->employment_type === 'organik')
-                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
-                                        @elseif($item->late_penalty && $item->late_penalty > 0)
+                                        @if($item->late_penalty && $item->late_penalty > 0)
                                             <div class="flex flex-col gap-1">
                                                 <span class="px-2.5 py-1 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 rounded-lg text-xs font-semibold">
                                                     -Rp {{ number_format($item->late_penalty, 0, ',', '.') }}
@@ -407,9 +420,7 @@
 
                                     {{-- Gaji Bersih --}}
                                     <td>
-                                        @if($user->employment_type === 'organik')
-                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
-                                        @elseif($item->final_salary)
+                                        @if($item->final_salary)
                                             <span class="px-3 py-1.5 bg-blue-100 dark:bg-blue-900/30 text-blue-900 dark:text-blue-200 rounded-lg text-sm font-bold">
                                                 Rp {{ number_format($item->final_salary, 0, ',', '.') }}
                                             </span>
@@ -417,7 +428,9 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
+                                    @endif
 
+                                    <!-- 🆕 TAMBAH 2 KOLOM INI -->
                                     <td>
                                         @if($item->overtime_minutes > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -427,10 +440,9 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
+                                    @if($user->employment_type !== 'organik')
                                     <td>
-                                        @if($user->employment_type === 'organik')
-                                            <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
-                                        @elseif($item->overtime_pay > 0)
+                                        @if($item->overtime_pay > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
                                                 Rp {{ number_format($item->overtime_pay, 0, ',', '.') }}
                                             </span>
@@ -438,6 +450,8 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
+                                    @endif
+                                    <!-- ------------------- -->
 
                                     {{-- Check-out --}}
                                     <td>
@@ -599,7 +613,8 @@
                                 </tr>
                             @empty
                                 <tr>
-                                <td colspan="18" class="ui-empty-state">
+                                    <!-- 🆕 UPDATE COLSPAN (15 + 2 = 17) -->
+                                    <td colspan="17" class="ui-empty-state">
                                         <div class="flex flex-col items-center gap-3">
                                             <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                                                 <i class="fas fa-inbox text-gray-400 dark:text-gray-500 text-2xl"></i>
