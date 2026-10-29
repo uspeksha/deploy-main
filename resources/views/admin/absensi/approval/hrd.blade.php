@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div class="min-h-screen">
+    <div class="min-h-screen" x-data="{ section: @js($errors->has('name') || $errors->has('id_karyawan') || $errors->has('email') ? 'accounts' : 'approvals') }">
         <div class="ui-page">
             @foreach (['success', 'warning', 'error'] as $flashType)
                 @if (session($flashType))
@@ -20,8 +20,29 @@
                 @endif
             @endforeach
 
+            <div class="flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800"
+                 role="tablist" aria-label="Bagian approval HRD">
+                <button type="button" role="tab" id="hrd-tab-approvals" aria-controls="hrd-panel-approvals"
+                        :aria-selected="section === 'approvals'"
+                        @click="section = 'approvals'"
+                        :class="{ 'bg-emerald-700 text-white hover:bg-emerald-800 dark:text-white': section === 'approvals' }"
+                        class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                    <i class="fas fa-clipboard-check"></i>
+                    <span>Persetujuan</span>
+                </button>
+                <button type="button" role="tab" id="hrd-tab-accounts" aria-controls="hrd-panel-accounts"
+                        :aria-selected="section === 'accounts'"
+                        @click="section = 'accounts'"
+                        :class="{ 'bg-emerald-700 text-white hover:bg-emerald-800 dark:text-white': section === 'accounts' }"
+                        class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                    <i class="fas fa-user-plus"></i>
+                    <span>Buat akun karyawan</span>
+                </button>
+            </div>
+
             @if (auth()->user()->role === 'hrd')
-                <section class="ui-panel mb-6">
+                <section id="hrd-panel-accounts" x-show="section === 'accounts'" x-cloak role="tabpanel"
+                         aria-labelledby="hrd-tab-accounts" class="ui-panel">
                     <div class="mb-5">
                         <h3 class="text-lg font-bold text-gray-900 dark:text-white">Buat akun karyawan baru</h3>
                         <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
@@ -120,6 +141,8 @@
                 </section>
             @endif
 
+            <div id="hrd-panel-approvals" x-show="section === 'approvals'" x-cloak role="tabpanel"
+                 aria-labelledby="hrd-tab-approvals">
             <div class="ui-panel flex flex-wrap items-center gap-2 mb-8 w-fit">
                 @foreach(['pending' => 'Menunggu', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $filter => $label)
                     <a href="{{ request()->fullUrlWithQuery(['status' => $filter]) }}"
@@ -138,6 +161,7 @@
                 @include('admin.absensi.approval.partials.scheduled-lembur-table')
                 @include('admin.absensi.approval.partials.izin-keluar-table')
             @endif
+            </div>
         </div>
     </div>
 

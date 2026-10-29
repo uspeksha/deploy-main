@@ -255,60 +255,6 @@
             @endif
             <!-- 🆕 END RINGKASAN GAJI -->
 
-          {{-- Tombol Export Action Bar --}}
-          <div class="premium-card p-4 rounded-2xl shadow-sm flex flex-wrap items-center justify-between gap-4">
-              <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center text-blue-600 dark:text-blue-400">
-                      <i class="fas fa-download text-base"></i>
-                  </div>
-                  <div>
-                      <h4 class="text-sm font-bold text-gray-900 dark:text-white">Pusat Export Laporan</h4>
-                      <p class="text-xs text-gray-500 dark:text-gray-400">Unduh slip gaji atau rekapitulasi absensi</p>
-                  </div>
-              </div>
-              <div class="flex flex-wrap items-center gap-3">
-                  {{-- 📄 Tombol Export Slip Gaji (EXCEL) --}}
-                  <a href="{{ route('admin.absensi.user.export-slip', [
-                          'user' => $user->id,
-                          'filter_type' => request('filter_type', 'all'),
-                          'month' => request('month', now()->month),
-                          'year' => request('year', now()->year),
-                          'start_date' => request('start_date'),
-                          'end_date' => request('end_date')
-                      ]) }}"
-                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200">
-                      <i class="fas fa-file-excel"></i> Slip Gaji (Excel)
-                  </a>
-
-                  {{-- 🆕 Tombol Export Slip Gaji (PDF) --}}
-                  <a href="{{ route('admin.absensi.user.export-slip-pdf', [
-                          'id' => $user->id,
-                          'filter_type' => request('filter_type', 'all'),
-                          'month' => request('month', now()->month),
-                          'year' => request('year', now()->year),
-                          'start_date' => request('start_date'),
-                          'end_date' => request('end_date')
-                      ]) }}"
-                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200"
-                     title="Format PDF - Tidak bisa diedit">
-                      <i class="fas fa-file-pdf"></i> Slip Gaji (PDF) 🔒
-                  </a>
-
-                  {{-- Tombol Export Detail (Tabel) --}}
-                  <a href="{{ route('admin.absensi.user.export', [
-                          'id' => $user->id,
-                          'filter_type' => request('filter_type', 'all'),
-                          'month' => request('month', now()->month),
-                          'year' => request('year', now()->year),
-                          'start_date' => request('start_date'),
-                          'end_date' => request('end_date'),
-                      ]) }}"
-                     class="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-semibold shadow-sm transition-all duration-200">
-                      <i class="fas fa-file-excel"></i> Detail Absensi (Excel)
-                  </a>
-              </div>
-          </div>
-
             {{-- Tabel --}}
             <div class="premium-card p-6 rounded-2xl fade-in">
                 <div class="ui-section-heading mb-6">
@@ -328,17 +274,11 @@
                                 <th>Tanggal</th>
                                 <th>Check-in</th>
                                 <th>Telat</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Pokok</th>
                                 <th>Potongan</th>
                                 <th>Gaji Bersih</th>
-                                @endif
-                                <!-- 🆕 TAMBAH 2 HEADER INI -->
                                 <th>Menit Lembur</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Lembur</th>
-                                @endif
-                                <!-- ------------------- -->
                                 <th>Check-out</th>
                                 <th>Status</th>
                                 <th>Tipe</th>
@@ -390,7 +330,6 @@
                                         @endif
                                     </td>
 
-                                    @if($user->employment_type !== 'organik')
                                     {{-- Gaji Pokok --}}
                                     <td>
                                         @if($item->base_salary)
@@ -428,9 +367,7 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
 
-                                    <!-- 🆕 TAMBAH 2 KOLOM INI -->
                                     <td>
                                         @if($item->overtime_minutes > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -440,7 +377,6 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @if($user->employment_type !== 'organik')
                                     <td>
                                         @if($item->overtime_pay > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -450,7 +386,6 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
                                     <!-- ------------------- -->
 
                                     {{-- Check-out --}}

@@ -30,6 +30,8 @@ it('lets HRD create an active employee account and emails temporary credentials'
         ->get(route('admin.absensi.approval.hrd'))
         ->assertOk()
         ->assertSee('Buat akun karyawan baru')
+        ->assertSee('id="hrd-panel-accounts"', false)
+        ->assertSee('id="hrd-tab-approvals"', false)
         ->assertSee('kirim akses lewat email');
 
     $this->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload())

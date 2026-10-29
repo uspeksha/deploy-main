@@ -157,11 +157,15 @@ it('shows only freelance attendance on the dashboard and attendance overview', f
 
     $this->get(route('admin.absensi.index'))
         ->assertOk()
+        ->assertSee(route('admin.absensi.index', absolute: false), false)
+        ->assertDontSee('href="' . route('admin.absensi.freelance', absolute: false) . '"', false)
         ->assertSee('Dashboard Absensi Karyawan Freelance')
-        ->assertSee('Status Karyawan Freelance Hari Ini')
+        ->assertSee('Status Absen Karyawan Hari Ini')
+        ->assertDontSee('Status Karyawan Freelance Hari Ini')
         ->assertDontSee('id="tabel-organik"')
         ->assertDontSee('id="tabel-borongan"')
         ->assertDontSee('id="tabel-magang"')
+        ->assertDontSee('id="tabel-freelance"')
         ->assertDontSee('Semua Status');
 });
 

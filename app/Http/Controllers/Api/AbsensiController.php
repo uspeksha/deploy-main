@@ -426,7 +426,14 @@ class AbsensiController extends Controller
 
             ActivityLog::log('Absen Pulang', "User: {$user->name}", "Melakukan absen pulang tipe: {$request->tipe}");
 
-            return response()->json(['message' => 'Absensi pulang berhasil', 'data' => $absensi]);
+            return response()->json([
+                'message' => 'Terima kasih telah bekerja keras bersama PT Follow Me!',
+                'checkout_confirmation' => [
+                    'message' => 'Terima kasih telah bekerja keras bersama PT Follow Me!',
+                    'image_url' => asset('images/checkout-cat.png'),
+                ],
+                'data' => $absensi,
+            ]);
 
         } catch (ValidationException $e) {
             return response()->json(['message' => 'Validation error', 'errors' => $e->errors()], 422);

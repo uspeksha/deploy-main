@@ -1,38 +1,143 @@
-<nav x-data="{ open: false }" class="bg-dustyLatte-400 border-b border-dustyLatte-500 shadow-sm  transition-colors duration-500"> {{-- Ganti dengan dustyLatte --}}
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<style nonce="{{ config('app.csp_nonce') }}">
+    .fm-nav {
+        position: sticky; top: 0; z-index: 40;
+        background: linear-gradient(100deg, var(--sb-top, #0a3a31), var(--sb-bottom, #05201b));
+        border-bottom: 1px solid rgba(255, 255, 255, .06);
+        transition: box-shadow .25s ease;
+    }
+    .fm-nav::before {
+        content: ""; position: absolute; inset: 0; pointer-events: none;
+        background: radial-gradient(420px 120px at 0% 0%, rgba(52, 211, 153, .2), transparent 70%);
+    }
+    .fm-nav::after {
+        content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 2px;
+        background: linear-gradient(90deg, transparent, #10b981, #14b8a6, #22d3ee, transparent);
+        opacity: .75;
+    }
+    .fm-nav.is-scrolled { box-shadow: 0 12px 30px -16px rgba(2, 44, 34, .7); }
+    [x-cloak] { display: none !important; }
+
+    /* Brand */
+    .fm-brand-tile { transition: transform .4s cubic-bezier(.3, 1.6, .5, 1); }
+    .fm-brand:hover .fm-brand-tile { transform: rotate(-8deg) scale(1.08); }
+
+    /* Link desktop (menimpa style bawaan x-nav-link) */
+    .fm-nav .fm-link {
+        position: relative; color: rgba(209, 250, 229, .75) !important;
+        border: 0 !important; font-weight: 500; transition: color .2s ease;
+    }
+    .fm-nav .fm-link::after {
+        content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 3px;
+        border-radius: 3px 3px 0 0; background: #34d399;
+        box-shadow: 0 0 14px 2px rgba(52, 211, 153, .65);
+        transform: scaleX(0); transform-origin: center; transition: transform .3s cubic-bezier(.2, .8, .2, 1);
+    }
+    .fm-nav .fm-link:hover { color: #fff !important; }
+    .fm-nav .fm-link:hover::after { transform: scaleX(.55); }
+    .fm-nav .fm-link.is-active { color: #fff !important; }
+    .fm-nav .fm-link.is-active::after { transform: scaleX(1); }
+
+    /* Tombol ikon */
+    .fm-btn {
+        display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: .75rem;
+        color: rgba(209, 250, 229, .8); transition: background-color .2s ease, color .2s ease, transform .2s ease;
+    }
+    .fm-btn:hover { background: rgba(255, 255, 255, .1); color: #fff; }
+    .fm-btn:active { transform: scale(.92); }
+    .fm-nav button:focus-visible, .fm-nav a:focus-visible { outline: 2px solid #34d399 !important; outline-offset: 2px; }
+
+    /* Toggle tema: ikon dibuat ulang oleh JS, animasi ikut berjalan lagi */
+    #theme-toggle { color: #6ee7b7; padding: 0; margin-right: .75rem; }
+    #theme-toggle:hover { background: rgba(255, 255, 255, .1); }
+    #theme-toggle svg { animation: fmPop .45s cubic-bezier(.3, 1.6, .5, 1); }
+    #theme-toggle-light-icon { color: #fbbf24; }
+    @keyframes fmPop {
+        from { transform: rotate(-120deg) scale(.4); opacity: 0; }
+        to   { transform: rotate(0) scale(1); opacity: 1; }
+    }
+
+    /* Chip user */
+    .fm-user {
+        display: flex; align-items: center; gap: .6rem; padding: .3rem .7rem .3rem .3rem;
+        border-radius: 9999px; border: 1px solid rgba(255, 255, 255, .1);
+        background: rgba(255, 255, 255, .06); color: #ecfdf5;
+        transition: background-color .2s ease, border-color .2s ease;
+    }
+    .fm-user:hover { background: rgba(255, 255, 255, .12); border-color: rgba(52, 211, 153, .45); }
+    .fm-avatar {
+        position: relative; display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 9999px;
+        background: linear-gradient(135deg, #34d399, #0d9488); color: #fff; font-size: .8rem; font-weight: 700;
+    }
+    .fm-avatar::after {
+        content: ""; position: absolute; right: -1px; bottom: -1px; width: 9px; height: 9px;
+        border-radius: 9999px; background: #34d399; border: 2px solid #0a3a31;
+    }
+    .fm-chevron { transition: transform .25s ease; }
+    [aria-expanded="true"] .fm-chevron { transform: rotate(180deg); }
+
+    /* Isi dropdown */
+    .fm-nav .fm-dd-link { transition: background-color .15s ease, color .15s ease, padding-left .2s ease; }
+    .fm-nav .fm-dd-link:hover {
+        background: rgba(16, 185, 129, .12) !important; color: #047857 !important; padding-left: 1.25rem;
+    }
+    .dark .fm-nav .fm-dd-link:hover { color: #6ee7b7 !important; background: rgba(16, 185, 129, .18) !important; }
+
+    /* Menu mobile */
+    .fm-mobile { background: var(--sb-bottom, #05201b); border-top: 1px solid rgba(255, 255, 255, .08); }
+    .fm-nav .fm-rlink {
+        color: rgba(209, 250, 229, .8) !important; border-color: transparent !important;
+        border-left-width: 4px; transition: background-color .2s ease, color .2s ease, padding-left .2s ease;
+    }
+    .fm-nav .fm-rlink:hover { background: rgba(255, 255, 255, .07) !important; color: #fff !important; padding-left: 1.5rem; }
+    .fm-nav .fm-rlink.is-active {
+        background: linear-gradient(90deg, rgba(52, 211, 153, .25), transparent) !important;
+        color: #fff !important; border-color: #34d399 !important;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #theme-toggle svg { animation: none; }
+        .fm-brand-tile, .fm-link::after, .fm-btn, .fm-chevron, .fm-dd-link, .fm-rlink { transition: none !important; }
+    }
+</style>
+
+<nav x-data="{ open: false, scrolled: false }"
+     @scroll.window.passive="scrolled = window.scrollY > 4"
+     @keydown.escape.window="open = false"
+     :class="{ 'is-scrolled': scrolled }"
+     class="fm-nav">
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
             <div class="flex">
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('dashboard') }}">
-                        {{-- Sesuaikan logo agar terlihat di background dustyLatte --}}
-                        <img src="{{ asset('images/logo-followme.png') }}" class="block h-12 w-auto fill-current text-gray-800 dark:text-gray-200 filter contrast-125 dark:filter-none" alt="Logo PT Followme">
+                <div class="fm-brand flex items-center gap-3">
+                    <a href="{{ route('dashboard') }}" class="fm-brand-tile grid place-items-center w-10 h-10 rounded-xl bg-white shadow-lg shadow-emerald-950/40">
+                        <img src="{{ asset('images/logo-followme.png') }}" class="block h-7 w-auto" alt="Logo PT Followme">
                     </a>
-                    {{-- Sesuaikan warna teks jika logo aslinya gelap dan background nav jadi terang --}}
-                    <span class="font-bold text-lg text-black">PT. Followme</span>
+                    <span class="font-bold text-lg text-white">PT. Followme</span>
                 </div>
             </div>
 
             <div class="hidden space-x-8 sm:-my-px sm:ml-10 sm:flex">
-                <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class=" dark:text-black  ">
+                <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')"
+                            class="fm-link {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
                     {{ __('Dashboard') }}
                 </x-nav-link>
                 {{-- Tambahkan link navigasi lain di sini jika ada --}}
             </div>
 
             <div class="hidden sm:flex sm:items-center sm:ml-6">
-                {{-- Pastikan ini konsisten dengan script dark mode di app.blade.php atau guest.blade.php --}}
-                <button id="theme-toggle" type="button" class="text-gray-500 dark:text-gray-400 focus:outline-none focus:ring-4 focus:ring-gray-200 rounded-lg text-sm p-2.5 mr-4 transition-colors duration-300">
+                <button id="theme-toggle" type="button" aria-label="Ganti tema"
+                        class="fm-btn focus:outline-none rounded-lg text-sm">
                     {{-- Icons will be set by JS --}}
                 </button>
 
                 @auth
                     <x-dropdown align="right" width="48">
                         <x-slot name="trigger">
-                            {{-- Sesuaikan warna teks dropdown trigger --}}
-                            <button class="flex items-center text-sm font-medium text-gray-700 hover:text-gray-900 focus:outline-none dark:text-gray-300 dark:hover:text-gray-100 dark:focus:text-gray-100 transition duration-150 ease-in-out">
+                            <button class="fm-user text-sm font-medium focus:outline-none">
+                                <span class="fm-avatar">{{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}</span>
                                 <div>{{ Auth::user()->name }}</div>
-                                <div class="ml-1">
-                                    <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+                                <div>
+                                    <svg class="fm-chevron fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
                                         <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
                                     </svg>
                                 </div>
@@ -40,7 +145,7 @@
                         </x-slot>
 
                         <x-slot name="content">
-                            <x-dropdown-link :href="route('profile.edit')" class="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                            <x-dropdown-link :href="route('profile.edit')" class="fm-dd-link text-gray-700 dark:text-gray-300">
                                 {{ __('Profile') }}
                             </x-dropdown-link>
 
@@ -48,7 +153,7 @@
                                 @csrf
                                 <x-dropdown-link :href="route('logout')"
                                         data-action="submit-logout-form"
-                                        class="text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
+                                        class="fm-dd-link text-gray-700 dark:text-gray-300">
                                     {{ __('Log Out') }}
                                 </x-dropdown-link>
                             </form>
@@ -58,7 +163,8 @@
             </div>
 
             <div class="-mr-2 flex items-center sm:hidden">
-                <button @click="open = ! open" class="inline-flex items-center justify-center p-2 rounded-md text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-600 dark:text-gray-400 dark:hover:text-gray-300 dark:hover:bg-gray-700 dark:focus:bg-gray-700 dark:focus:text-gray-300 transition duration-150 ease-in-out">
+                <button @click="open = ! open" class="fm-btn focus:outline-none"
+                        :aria-expanded="open.toString()" aria-label="Buka atau tutup menu">
                     <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
                         <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -68,23 +174,34 @@
         </div>
     </div>
 
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden bg-dustyLatte-300 border-t border-dustyLatte-400 dark:bg-gray-900 dark:border-gray-700"> {{-- Ganti dengan dustyLatte --}}
+    <div x-show="open" x-cloak style="display: none;"
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0 -translate-y-2"
+         x-transition:enter-end="opacity-100 translate-y-0"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100 translate-y-0"
+         x-transition:leave-end="opacity-0 -translate-y-2"
+         class="fm-mobile relative sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')" class="text-gray-700 hover:bg-dustyLatte-400 dark:text-gray-300 dark:hover:bg-gray-800"> {{-- Sesuaikan warna hover --}}
+            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')"
+                                   class="fm-rlink {{ request()->routeIs('dashboard') ? 'is-active' : '' }}">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             {{-- Tambahkan responsive link lain di sini --}}
         </div>
 
         @auth
-            <div class="pt-4 pb-1 border-t border-dustyLatte-400 dark:border-gray-700"> {{-- Ganti dengan dustyLatte --}}
-                <div class="px-4">
-                    <div class="font-medium text-base text-gray-800 dark:text-gray-200">{{ Auth::user()->name }}</div>
-                    <div class="font-medium text-sm text-gray-500 dark:text-gray-400">{{ Auth::user()->email }}</div>
+            <div class="pt-4 pb-2 border-t border-white/10">
+                <div class="px-4 flex items-center gap-3">
+                    <span class="fm-avatar w-10 h-10">{{ strtoupper(substr(Auth::user()->name ?? 'U', 0, 1)) }}</span>
+                    <div class="min-w-0">
+                        <div class="font-medium text-base text-white truncate">{{ Auth::user()->name }}</div>
+                        <div class="font-medium text-sm text-emerald-200/60 truncate">{{ Auth::user()->email }}</div>
+                    </div>
                 </div>
 
                 <div class="mt-3 space-y-1">
-                    <x-responsive-nav-link :href="route('profile.edit')" class="text-gray-700 hover:bg-dustyLatte-400 dark:text-gray-300 dark:hover:bg-gray-800">
+                    <x-responsive-nav-link :href="route('profile.edit')" class="fm-rlink">
                         {{ __('Profile') }}
                     </x-responsive-nav-link>
 
@@ -92,7 +209,7 @@
                         @csrf
                         <x-responsive-nav-link :href="route('logout')"
                                 data-action="submit-logout-form"
-                                class="text-gray-700 hover:bg-dustyLatte-400 dark:text-gray-300 dark:hover:bg-gray-800">
+                                class="fm-rlink">
                             {{ __('Log Out') }}
                         </x-responsive-nav-link>
                     </form>

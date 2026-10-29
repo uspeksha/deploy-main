@@ -27,7 +27,7 @@ class AuthenticatedSessionController extends Controller
     $request->authenticate();
     $request->session()->regenerate();
 
-    if (auth()->user()->isAnyAdmin()) {
+    if (auth()->user()->isSuperAdmin()) {
         return redirect()->route('admin.absensi.index');
     } else {
         auth()->logout();

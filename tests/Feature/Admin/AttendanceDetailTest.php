@@ -159,7 +159,10 @@ it('shows the same attendance history columns for organic and non-organic employ
             ->assertSee('Potongan')
             ->assertSee('Gaji Bersih')
             ->assertSee('Menit Lembur')
-            ->assertSee('Gaji Lembur');
+            ->assertSee('Gaji Lembur')
+            ->assertDontSee('Slip Gaji (Excel)')
+            ->assertDontSee('Slip Gaji (PDF)')
+            ->assertDontSee('Detail Absensi (Excel)');
     }
 });
 

@@ -6,7 +6,7 @@ it('returns a successful response', function () {
     $response
         ->assertStatus(200)
         ->assertSee('Masuk Akun')
-        ->assertSee('SISTEM ABSENSI PT FOLLOW ME')
+        ->assertSee('Sistem absensi PT Follow Me')
         ->assertSee('Kerja lebih')
         ->assertDontSee('Learn more');
 });

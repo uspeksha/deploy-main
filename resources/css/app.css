@@ -454,3 +454,517 @@
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400;
 }
+
+/* Shared application UI */
+[x-cloak] {
+  display: none !important;
+}
+
+.app-surface {
+  color: #1f2937;
+  background: #f4f6f8 !important;
+}
+
+.dark .app-surface {
+  color: #e5e7eb;
+  background: #111827 !important;
+}
+
+.app-surface main .ui-page {
+  display: flex;
+  width: 100%;
+  max-width: 1600px;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.5rem clamp(1rem, 2.5vw, 2rem);
+}
+
+.app-surface main .ui-page > :not([hidden]) {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+.app-surface main .ui-panel,
+.app-surface main .premium-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.dark .app-surface main .ui-panel,
+.dark .app-surface main .premium-card {
+  border-color: #374151;
+  background: #1f2937;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 16%);
+}
+
+.app-surface main .ui-section-heading {
+  align-items: center;
+}
+
+.app-surface main .ui-section-icon {
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
+.dark .app-surface main .ui-section-icon {
+  background: rgb(16 185 129 / 12%);
+  color: #6ee7b7;
+}
+
+.app-surface main .ui-control,
+.app-surface main .filter-select {
+  min-height: 2.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.625rem;
+  background-color: #fff;
+  color: #111827;
+  box-shadow: none;
+}
+
+.app-surface main .ui-control:focus,
+.app-surface main .filter-select:focus {
+  border-color: #059669;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgb(5 150 105 / 12%);
+}
+
+.dark .app-surface main .ui-control,
+.dark .app-surface main .filter-select {
+  border-color: #4b5563;
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+.app-surface main .ui-button-primary,
+.app-surface main .filter-btn {
+  min-height: 2.75rem;
+  border: 1px solid #047857;
+  border-radius: 0.625rem;
+  background: #047857;
+  color: #fff;
+  box-shadow: none;
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.app-surface main .ui-button-primary:hover,
+.app-surface main .filter-btn:hover {
+  transform: none;
+  border-color: #065f46;
+  background: #065f46;
+  box-shadow: none;
+  filter: none;
+}
+
+.app-surface main .ui-button-secondary {
+  min-height: 2.75rem;
+  border-radius: 0.625rem;
+  box-shadow: none;
+}
+
+.app-surface main .ui-button-danger {
+  min-height: 2.5rem;
+  border-radius: 0.625rem;
+}
+
+.app-surface main .ui-table-shell {
+  border-color: #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.dark .app-surface main .ui-table-shell {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.app-surface main .ui-table thead {
+  background: #f9fafb;
+  color: #4b5563;
+}
+
+.dark .app-surface main .ui-table thead {
+  background: #111827;
+  color: #d1d5db;
+}
+
+.app-surface main .ui-table thead th {
+  padding-top: 0.8rem;
+  padding-bottom: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.025em;
+}
+
+.app-surface main .ui-table tbody tr:hover {
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.dark .app-surface main .ui-table tbody tr:hover {
+  background: #273449;
+}
+
+.app-surface main .premium-table thead th {
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #4b5563;
+}
+
+.dark .app-surface main .premium-table thead th {
+  border-bottom-color: #374151;
+  background: #111827;
+  color: #d1d5db;
+}
+
+.app-surface main .premium-table tbody tr {
+  background: #fff;
+}
+
+.dark .app-surface main .premium-table tbody tr {
+  background: #1f2937;
+}
+
+.app-surface main .premium-table tbody tr:hover {
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.dark .app-surface main .premium-table tbody tr:hover {
+  background: #273449;
+}
+
+.app-surface main .premium-table tbody td {
+  color: #374151;
+}
+
+.dark .app-surface main .premium-table tbody td {
+  color: #d1d5db;
+}
+
+.app-surface main .ui-empty-state {
+  border-color: #d1d5db;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+}
+
+.dark .app-surface main .ui-empty-state {
+  border-color: #4b5563;
+  background: #111827;
+}
+
+/* Keep summary cards consistent across dashboard and approval pages. */
+.app-surface main .dash .ui-panel {
+  border-color: #e5e7eb;
+  border-radius: 0.875rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.dark .app-surface main .dash .ui-panel {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.app-surface main .dash .ui-section-icon {
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
+.app-surface main .dash .ui-section-icon[data-tone] {
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
+.app-surface main .dash .stat-card {
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  animation: none;
+}
+
+.dark .app-surface main .dash .stat-card {
+  border-color: #374151;
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+.app-surface main .dash .stat-card::after,
+.app-surface main .dash .stat-orb {
+  display: none;
+}
+
+.app-surface main .dash .stat-label,
+.app-surface main .dash .stat-sub {
+  color: #6b7280;
+}
+
+.dark .app-surface main .dash .stat-label,
+.dark .app-surface main .dash .stat-sub {
+  color: #9ca3af;
+}
+
+.app-surface main .dash .stat-value {
+  color: #111827;
+  font-weight: 700;
+}
+
+.dark .app-surface main .dash .stat-value {
+  color: #f9fafb;
+}
+
+.app-surface main .dash .stat-icon {
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
+.app-surface main .dash .stat-icon i {
+  color: #047857 !important;
+}
+
+.app-surface main .dash .cmp-card {
+  border-color: #e5e7eb;
+  border-radius: 0.75rem;
+  background: #f9fafb;
+  box-shadow: none;
+}
+
+.dark .app-surface main .dash .cmp-card {
+  border-color: #374151;
+  background: #111827;
+}
+
+.app-surface main .dash .cmp-card:hover,
+.app-surface main .dash .presence:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+.app-surface main .dash .tabbar {
+  border-color: #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: none;
+}
+
+.dark .app-surface main .dash .tabbar {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.app-surface main .dash .tab-pill {
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+.app-surface main .dash .tab-pill:hover,
+.app-surface main .dash .tab-pill:active {
+  transform: none;
+}
+
+.app-surface main .dash .tab-pill.is-active,
+.dark .app-surface main .dash .tab-pill.is-active {
+  background: #047857;
+  box-shadow: none;
+}
+
+.app-surface main .hero {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.dark .app-surface main .hero {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.app-surface main .hero::before,
+.app-surface main .hero-orb {
+  display: none;
+}
+
+.app-surface main .hero .text-white {
+  color: #111827;
+}
+
+.app-surface main .hero .text-emerald-200\/80,
+.app-surface main .hero .text-emerald-100\/75 {
+  color: #6b7280;
+}
+
+.dark .app-surface main .hero .text-white {
+  color: #f9fafb;
+}
+
+.dark .app-surface main .hero .text-emerald-200\/80,
+.dark .app-surface main .hero .text-emerald-100\/75 {
+  color: #9ca3af;
+}
+
+.app-surface main .quick {
+  border-color: #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.dark .app-surface main .quick {
+  border-color: #374151;
+  background: #1f2937;
+}
+
+.app-surface main .quick::before {
+  display: none;
+}
+
+.app-surface main .quick:hover,
+.app-surface main .quick:active {
+  transform: none;
+  border-color: #d1d5db;
+  box-shadow: 0 2px 6px rgb(15 23 42 / 6%);
+}
+
+.dark .app-surface main .quick:hover,
+.dark .app-surface main .quick:active {
+  border-color: #4b5563;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 16%);
+}
+
+.app-surface main .quick-icon,
+.app-surface main .quick-danger .quick-icon {
+  border-radius: 0.75rem;
+  background: #ecfdf5;
+  color: #047857;
+  box-shadow: none;
+}
+
+.dark .app-surface main .quick-icon,
+.dark .app-surface main .quick-danger .quick-icon {
+  background: rgb(16 185 129 / 12%);
+  color: #6ee7b7;
+}
+
+.app-surface main .quick-title {
+  color: #111827;
+}
+
+.app-surface main .quick-desc {
+  color: #6b7280;
+}
+
+.dark .app-surface main .quick-title {
+  color: #f9fafb;
+}
+
+.dark .app-surface main .quick-desc {
+  color: #9ca3af;
+}
+
+.app-surface main .quick-go {
+  opacity: 1;
+  transform: none;
+}
+
+/* Calm down gradient summary tiles used by approval and monitoring pages. */
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] {
+  border: 1px solid #e5e7eb;
+  border-radius: 0.875rem;
+  background-color: #fff;
+  background-image: none;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 4%);
+}
+
+.dark .app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] {
+  border-color: #374151;
+  background-color: #1f2937;
+}
+
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] .text-white {
+  color: #111827;
+}
+
+.dark .app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] .text-white {
+  color: #f9fafb;
+}
+
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="text-"][class*="-100"],
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="text-"][class*="-200"] {
+  color: #6b7280;
+}
+
+.dark .app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="text-"][class*="-100"],
+.dark .app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="text-"][class*="-200"] {
+  color: #9ca3af;
+}
+
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="bg-white/"] {
+  background: #ecfdf5;
+}
+
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="bg-white/"] i,
+.app-surface main .ui-page > .grid > [class*="bg-gradient-to-"] [class*="bg-white/"] svg {
+  color: #047857;
+}
+
+@media (max-width: 640px) {
+  .app-surface main .ui-page {
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .app-surface main .ui-page > .grid {
+    gap: 1rem;
+  }
+
+  .app-surface main .ui-panel,
+  .app-surface main .premium-card {
+    padding: 1rem;
+  }
+
+  .app-surface main .ui-table-shell {
+    max-width: 100%;
+  }
+}
+
+.login-page {
+  background: #f4f6f8;
+}
+
+.login-layout {
+  border-color: #e5e7eb;
+  border-radius: 1rem;
+  box-shadow: 0 8px 30px rgb(15 23 42 / 7%);
+}
+
+.login-submit {
+  border-radius: 0.625rem;
+  background: #047857;
+}
+
+.login-submit:hover {
+  background: #065f46;
+}
+
+.login-field input {
+  border-radius: 0.625rem;
+}
+
+.login-field input:focus {
+  border-color: #059669;
+  box-shadow: 0 0 0 3px rgb(5 150 105 / 12%);
+}
