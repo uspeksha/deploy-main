@@ -203,6 +203,7 @@
 
     @include('admin.absensi.approval.partials.izin-keluar-table')
     @include('admin.absensi.approval.partials.reject-modal')
+    @include('admin.absensi.approval.partials.image-preview-modal')
 
     <style nonce="{{ config('app.csp_nonce') }}">
         @keyframes fade-in {

@@ -133,10 +133,10 @@
                     <div class="flex flex-wrap gap-2">
                         @if ($submission->tipe === 'sakit' || $submission->tipe === 'izin' || $submission->tipe === 'telat')
                             @if ($submission->file_bukti)
-                                <a href="{{ asset('storage/' . $submission->file_bukti) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
+                                <button type="button" data-image-url="{{ route('admin.storage.file', ['path' => $submission->file_bukti]) }}" class="preview-image-btn inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                     Lihat File
-                                </a>
+                                </button>
                             @else
                                 <span class="text-xs text-gray-400 dark:text-gray-600 italic">Tidak ada lampiran</span>
                             @endif
@@ -148,9 +148,9 @@
                                 ]));
                             @endphp
                             @forelse($allFotos as $i => $foto)
-                                <a href="{{ asset('storage/' . $foto) }}" target="_blank" class="inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
+                                <button type="button" data-image-url="{{ route('admin.storage.file', ['path' => $foto]) }}" class="preview-image-btn inline-flex items-center gap-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:text-emerald-800 bg-emerald-50 dark:bg-emerald-950/50 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition-colors">
                                     Foto {{ $i + 1 }}
-                                </a>
+                                </button>
                             @empty
                                 <span class="text-xs text-gray-400 dark:text-gray-600 italic">Tidak ada foto</span>
                             @endforelse

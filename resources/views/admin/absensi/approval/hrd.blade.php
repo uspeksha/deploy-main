@@ -142,4 +142,5 @@
     </div>
 
     @include('admin.absensi.approval.partials.reject-modal')
+    @include('admin.absensi.approval.partials.image-preview-modal')
 </x-app-layout>

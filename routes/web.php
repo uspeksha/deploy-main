@@ -114,6 +114,15 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
             ->name('admin.absensi.approval.employees.resend');
     });
 
+    // --- SECURE STORAGE FILE STREAM ROUTE ---
+    Route::get('/storage-file/{path}', function ($path) {
+        $path = urldecode($path);
+        if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+        return \Illuminate\Support\Facades\Storage::disk('public')->response($path);
+    })->where('path', '.*')->name('admin.storage.file');
+
     // --- ABSENSI MANAGEMENT (Adjustment Gaji) ---
     Route::post('/absensi/{absensi}/adjustment', [AbsensiAdminController::class, 'updateAdjustment'])
         ->name('admin.absensi.update-adjustment');

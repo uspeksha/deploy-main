@@ -257,6 +257,7 @@
     </div>
 
     @include('admin.absensi.approval.partials.reject-modal')
+    @include('admin.absensi.approval.partials.image-preview-modal')
 
     {{-- TAB SWITCHING SCRIPT --}}
     <script nonce="{{ config('app.csp_nonce') }}">
