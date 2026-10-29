@@ -1346,7 +1346,7 @@ public function meAbsensi(Request $request)
                 'updated_at' => now(),
             ];
 
-            $absensi->update($updateData);
+            $absensi->forceFill($updateData)->save();
 
             
             Absensi::where('parent_id', $absensi->id)->delete();
@@ -1392,6 +1392,13 @@ public function meAbsensi(Request $request)
 
             return response()->json(['success' => true, 'message' => "Pengajuan {$type} berhasil direvisi dan diajukan ulang.", 'data' => $absensi], 200);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation error',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -1496,7 +1503,7 @@ public function meAbsensi(Request $request)
                 $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
             );
 
-            $absensi->update(array_merge($newPaths, [
+            $absensi->forceFill(array_merge($newPaths, [
             'lokasi_pulang'         => $lokasiPulang,
             'lembur_start'          => $lemburStart,
             'lembur_end'            => $lemburEnd,
@@ -1519,7 +1526,7 @@ public function meAbsensi(Request $request)
             'late_penalty'          => $absensi->late_penalty ?? $salaryData['late_penalty'],
             'final_salary'          => $absensi->final_salary ?? $salaryData['final_salary'],
             'is_weekend_overtime'   => $isWeekendOvertime,
-        ]));
+        ]))->save();
 
         $absensi->load('user');
         $absensi->foto_pulang_url = Storage::url($absensi->foto_pulang);
