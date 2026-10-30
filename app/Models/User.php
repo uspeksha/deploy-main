@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Carbon\Carbon;
 
 class User extends Authenticatable
 {
@@ -82,6 +84,26 @@ public static function cutiYangMemotong(): array
     public function absensis()
     {
         return $this->hasMany(Absensi::class);
+    }
+
+    public function salaryRates(): HasMany
+    {
+        return $this->hasMany(EmployeeSalaryRate::class);
+    }
+
+    public function dailyRateAt(Carbon|string|null $date = null): int
+    {
+        $effectiveAt = $date instanceof Carbon ? $date : Carbon::parse($date ?? now());
+        $rates = $this->relationLoaded('salaryRates')
+            ? $this->salaryRates
+            : $this->salaryRates()->get();
+
+        $rate = $rates
+            ->filter(fn (EmployeeSalaryRate $rate): bool => $rate->effective_at->lte($effectiveAt))
+            ->sortByDesc('effective_at')
+            ->first();
+
+        return (int) ($rate?->daily_rate ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
     }
 
     public function isSuperAdmin(): bool

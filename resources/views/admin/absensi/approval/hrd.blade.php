@@ -6,7 +6,7 @@
         </div>
     </x-slot>
 
-    <div class="min-h-screen" x-data="{ section: @js($errors->has('name') || $errors->has('id_karyawan') || $errors->has('email') ? 'accounts' : 'approvals') }">
+    <div class="min-h-screen" x-data="{ section: @js(request('section') === 'accounts' || $errors->has('name') || $errors->has('id_karyawan') || $errors->has('email') || $errors->has('daily_rate') || $errors->has('effective_at') ? 'accounts' : 'approvals') }">
         <div class="ui-page">
             @foreach (['success', 'warning', 'error'] as $flashType)
                 @if (session($flashType))
@@ -83,6 +83,11 @@
                             <x-input-error :messages="$errors->get('employment_type')" class="mt-2" />
                         </div>
                         <div>
+                            <x-input-label for="employee_daily_rate" value="Tarif harian freelance (Rp)" />
+                            <x-text-input id="employee_daily_rate" name="daily_rate" type="number" min="1" max="100000000" class="mt-1 ui-control" :value="old('daily_rate', \App\Models\EmployeeSalaryRate::LEGACY_DAILY_RATE)" />
+                            <x-input-error :messages="$errors->get('daily_rate')" class="mt-2" />
+                        </div>
+                        <div>
                             <x-input-label for="employee_work_location" value="Lokasi kerja" />
                             <select id="employee_work_location" name="work_location" required class="ui-control">
                                 <option value="">Pilih lokasi kerja</option>
@@ -117,6 +122,56 @@
                             </button>
                         </div>
                     </form>
+
+                    <div class="mt-8 border-t border-gray-200 pt-5 dark:border-gray-700">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Tarif gaji karyawan freelance</h3>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                            Perubahan hanya berlaku mulai tanggal yang dipilih. Tarif dan payroll lama tetap tersimpan.
+                        </p>
+
+                        @forelse ($freelanceEmployees as $account)
+                            <div class="mt-4 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                                <div class="flex flex-wrap items-start justify-between gap-3">
+                                    <div>
+                                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ $account->name }}</h4>
+                                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                                            {{ $account->id_karyawan }} · {{ $account->departemen }} · Tarif berlaku sekarang:
+                                            <strong>Rp {{ number_format($account->dailyRateAt(), 0, ',', '.') }}</strong>
+                                        </p>
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.absensi.approval.employees.salary-rates.store', $account) }}"
+                                          class="grid w-full gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end lg:w-auto">
+                                        @csrf
+                                        <div>
+                                            <x-input-label for="daily_rate_{{ $account->id }}" value="Tarif harian baru (Rp)" />
+                                            <x-text-input id="daily_rate_{{ $account->id }}" name="daily_rate" type="number" min="1" max="100000000" class="mt-1 ui-control" :value="old('daily_rate', $account->dailyRateAt())" required />
+                                            <x-input-error :messages="$errors->get('daily_rate')" class="mt-2" />
+                                        </div>
+                                        <div>
+                                            <x-input-label for="effective_at_{{ $account->id }}" value="Berlaku mulai" />
+                                            <x-text-input id="effective_at_{{ $account->id }}" name="effective_at" type="datetime-local" class="mt-1 ui-control" :value="old('effective_at', now()->addMinute()->format('Y-m-d\TH:i'))" required />
+                                            <x-input-error :messages="$errors->get('effective_at')" class="mt-2" />
+                                        </div>
+                                        <button type="submit" class="ui-button-primary">Simpan tarif</button>
+                                    </form>
+                                </div>
+
+                                <details class="mt-3 text-sm">
+                                    <summary class="cursor-pointer font-medium text-emerald-700 dark:text-emerald-300">Lihat riwayat tarif</summary>
+                                    <ul class="mt-2 space-y-1 text-gray-600 dark:text-gray-400">
+                                        @foreach ($account->salaryRates->sortByDesc('effective_at') as $rate)
+                                            <li>
+                                                Rp {{ number_format($rate->daily_rate, 0, ',', '.') }}
+                                                · berlaku {{ $rate->effective_at->format('d/m/Y H:i') }}
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </details>
+                            </div>
+                        @empty
+                            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Belum ada akun karyawan freelance aktif.</p>
+                        @endforelse
+                    </div>
 
                     @if ($pendingAccounts->isNotEmpty())
                         <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">

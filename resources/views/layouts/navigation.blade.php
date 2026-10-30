@@ -1,4 +1,3 @@
-{{-- Dashboard --}}
 <a href="{{ route('admin.absensi.index') }}"
    class="nav-item {{ request()->routeIs('admin.absensi.index', 'admin.absensi.freelance') ? 'active' : '' }}">
     <div class="nav-icon"><i class="fas fa-grid-2"></i></div>
@@ -7,8 +6,8 @@
 
 @auth
 @if (Auth::user()->role === 'hrd')
-<div class="px-6 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-    Payroll & Finance
+<div class="nav-section-label">
+    Payroll
 </div>
 <a href="{{ route('admin.payroll.index') }}"
    class="nav-item {{ request()->routeIs('admin.payroll.*') ? 'active' : '' }}">
@@ -16,7 +15,7 @@
     <span>Payroll Freelance</span>
 </a>
 
-<div class="px-6 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+<div class="nav-section-label">
     Approvals
 </div>
 <a href="{{ route('admin.absensi.approval.hrd') }}"
@@ -29,7 +28,7 @@
 
 @auth
 @if (Auth::user()->isAnyAdmin())
-<div class="px-6 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
+<div class="nav-section-label">
     Management
 </div>
 <a href="{{ route('admin.holidays.index') }}"
@@ -48,8 +47,8 @@
 @endif
 @endauth
 
-<div class="px-6 pt-4 pb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">
-    Reports
+<div class="nav-section-label">
+    Laporan
 </div>
 <a href="{{ route('admin.absensi.recap') }}"
    class="nav-item {{ request()->routeIs('admin.absensi.recap') ? 'active' : '' }}">

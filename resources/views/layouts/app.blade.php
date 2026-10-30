@@ -50,7 +50,7 @@
                 </div>
 
                 <!-- Navigation -->
-                <nav class="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+                <nav aria-label="Menu utama" class="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
                     @include('layouts.navigation')
                 </nav>
 
@@ -73,7 +73,7 @@
         </aside>
 
         <!-- Main Content -->
-        <main class="flex-1 lg:ml-80 p-4 lg:p-8">
+        <main class="min-w-0 flex-1 lg:ml-80 p-4 lg:p-8">
             <!-- Top Header -->
             <header class="flex items-center justify-between mb-8">
                 <div class="flex items-center gap-4 lg:hidden">
@@ -106,7 +106,7 @@
             </header>
 
             <!-- Page Content -->
-            <div class="animate-fade-in-up">
+            <div class="min-w-0 animate-fade-in-up">
                 {{ $slot }}
             </div>
         </main>

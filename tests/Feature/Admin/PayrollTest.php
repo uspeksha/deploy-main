@@ -113,6 +113,7 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
 
     $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
         ->assertOk()
+        ->assertSee('min-w-0 flex-1 lg:ml-80', false)
         ->assertSee('Rincian Payroll')
         ->assertSee(route('admin.payroll.index', ['period_id' => $period->id]).'#rincian-payroll')
         ->assertSee('Ajukan Persetujuan')
@@ -146,6 +147,52 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
     expect(PayrollPeriod::count())->toBe(1)
         ->and(PayrollItem::where('payroll_period_id', $period->id)->count())->toBe(2)
         ->and($item->fresh()->work_days)->toBe(6);
+});
+
+it('uses each attendance date rate in payroll snapshots and leaves generated payroll unchanged after later rate updates', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create([
+        'employment_type' => 'freelance',
+        'registration_status' => 'approved',
+        'is_active' => true,
+        'id_karyawan' => 'AMB-RATE-001',
+    ]);
+    $employee->salaryRates()->create([
+        'daily_rate' => 100000,
+        'effective_at' => '2026-10-01 00:00:00',
+        'recorded_by' => $hrd->id,
+    ]);
+    $employee->salaryRates()->create([
+        'daily_rate' => 150000,
+        'effective_at' => '2026-10-03 00:00:00',
+        'recorded_by' => $hrd->id,
+    ]);
+    createPayrollAttendance($employee, '2026-10-01');
+    createPayrollAttendance($employee, '2026-10-03');
+
+    $this->actingAs($hrd)
+        ->post(route('admin.payroll.store'), [
+            'year' => 2026,
+            'month' => 10,
+            'period_number' => 1,
+        ])
+        ->assertRedirect();
+
+    $period = PayrollPeriod::query()->where('year', 2026)->where('month', 10)->where('period_number', 1)->firstOrFail();
+    $item = $period->items()->where('user_id', $employee->id)->firstOrFail();
+    $originalSnapshot = $item->attendance_snapshot;
+
+    expect($item->gross_pay)->toBe(250000)
+        ->and($item->daily_rate_summary)->toBe('Bervariasi')
+        ->and(array_column($item->attendance_snapshot['daily_details'], 'daily_rate'))->toBe([100000, 150000]);
+
+    $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
+        'daily_rate' => 175000,
+        'effective_at' => '2026-10-05T00:00',
+    ])->assertSessionHas('success');
+
+    expect($item->fresh()->gross_pay)->toBe(250000)
+        ->and($item->fresh()->attendance_snapshot)->toBe($originalSnapshot);
 });
 
 it('excludes the lunch break from payroll lateness even for older stored attendance minutes', function () {
@@ -788,10 +835,11 @@ it('prevents a user from downloading another payroll slip', function () {
 it('exports the saved payroll snapshot to Excel and a branded PDF slip', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
     $employee = User::factory()->create([
+        'name' => 'Zoe Zulu',
         'employment_type' => 'freelance',
         'registration_status' => 'approved',
         'departemen' => 'Operasional',
-        'bank_name' => 'Bank Contoh',
+        'bank_name' => 'BCA',
         'bank_account_number' => '001234567890',
         'bank_account_name' => 'Nama Penerima',
     ]);
@@ -824,7 +872,7 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
         'lembur_end' => '2026-10-03 19:00:00',
         'lembur_rest' => false,
         'overtime_minutes' => 120,
-        'overtime_pay' => 30000,
+        'overtime_pay' => 30000.0,
         'status_approval' => 'approved',
         'created_at' => now(),
         'updated_at' => now(),
@@ -847,9 +895,49 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
         'attendance_snapshot' => [
             'attendance_ids' => [$attendanceId],
             'work_dates' => ['2026-10-03'],
+            'daily_details' => [
+                [
+                    'work_date' => '2026-10-03',
+                    'attendance_status' => 'hadir',
+                    'check_in_at' => '2026-10-03 08:30:00',
+                    'check_out_at' => '2026-10-03 17:00:00',
+                    'late_minutes' => 30,
+                    'overtime_status' => 'approved',
+                    'overtime_start' => ['2026-10-03 17:00:00'],
+                    'overtime_end' => ['2026-10-03 19:00:00'],
+                    'overtime_rest' => false,
+                    'overtime_minutes' => 120,
+                    'overtime_pay' => 30000,
+                ],
+            ],
         ],
         'slip_number' => 'FM-202610-W1-'.$employee->id,
     ]);
+    foreach ([
+        ['name' => 'Ada Alpha', 'bank_name' => 'Bank Central Asia (BCA)', 'bank_account_number' => '000000000001'],
+        ['name' => 'Budi Beta', 'bank_name' => 'BRI', 'bank_account_number' => '000000000002'],
+    ] as $employeeAttributes) {
+        $groupedEmployee = User::factory()->create($employeeAttributes + [
+            'employment_type' => 'freelance',
+            'registration_status' => 'approved',
+        ]);
+        $period->items()->create([
+            'user_id' => $groupedEmployee->id,
+            'employee_id' => $groupedEmployee->id_karyawan,
+            'employee_name' => $groupedEmployee->name,
+            'employment_type' => 'freelance',
+            'work_days' => 1,
+            'daily_rate' => 120000,
+            'gross_pay' => 120000,
+            'late_occurrences' => 0,
+            'total_late_minutes' => 0,
+            'late_deduction' => 0,
+            'other_deductions' => 0,
+            'net_pay' => 120000,
+            'attendance_snapshot' => ['attendance_ids' => [], 'work_dates' => [], 'daily_details' => []],
+            'slip_number' => 'FM-202610-W1-'.$groupedEmployee->id,
+        ]);
+    }
     $item->latenessDetails()->create([
         'attendance_id' => $attendanceId,
         'work_date' => '2026-10-03',
@@ -879,34 +967,36 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
         ));
         $spreadsheet = IOFactory::load($temporaryFile);
         $worksheet = $spreadsheet->getActiveSheet();
-        $dailyWorksheet = $spreadsheet->getSheetByName('Rincian Harian');
 
-        expect($worksheet->getCell('A1')->getValue())->toBe('FOLLOWME | REKAP PAYROLL KARYAWAN FREELANCE')
-            ->and($worksheet->getCell('A4')->getValue())->toBe('ID Karyawan')
-            ->and($worksheet->getCell('B4')->getValue())->toBe('Nama')
-            ->and($worksheet->getCell('P4')->getValue())->toBe('Bank')
-            ->and($worksheet->getCell('Q4')->getValue())->toBe('Nomor Rekening')
-            ->and($worksheet->getCell('R4')->getValue())->toBe('Nama Pemilik Rekening')
-            ->and($worksheet->getCell('P5')->getValue())->toBe('Bank Contoh')
-            ->and($worksheet->getCell('Q5')->getValue())->toBe('001234567890')
-            ->and($worksheet->getCell('Q5')->getDataType())->toBe('s')
-            ->and($worksheet->getCell('R5')->getValue())->toBe('Nama Penerima')
-            ->and($worksheet->getCell('F5')->getValue())->toBe(120000)
-            ->and($worksheet->getCell('F5')->getStyle()->getNumberFormat()->getFormatCode())->toBe('"Rp" #,##0;[Red]-"Rp" #,##0')
-            ->and($worksheet->getCell('L5')->getValue())->toBe(1192500)
-            ->and($worksheet->getCell('B6')->getValue())->toBe('TOTAL')
-            ->and($worksheet->getCell('L6')->getValue())->toBe(1192500)
+        expect($worksheet->getCell('A1')->getValue())->toBe('PT. Followme Indonesia')
+            ->and($worksheet->getCell('A2')->getValue())->toBe('Salary Report (1-15 Oktober 2026)')
+            ->and($worksheet->getCell('D3')->getValue())->toBe('Allowance')
+            ->and($worksheet->getCell('A4')->getValue())->toBe('Employee ID')
+            ->and($worksheet->getCell('B4')->getValue())->toBe('Full Name')
+            ->and($worksheet->getCell('C4')->getValue())->toBe('No. Rekening')
+            ->and($worksheet->getCell('A5')->getValue())->toBe('REKENING BCA')
+            ->and($worksheet->getCell('B6')->getValue())->toBe('Ada Alpha')
+            ->and($worksheet->getCell('C6')->getValue())->toBe('000000000001')
+            ->and($worksheet->getCell('C6')->getDataType())->toBe('s')
+            ->and($worksheet->getCell('B7')->getValue())->toBe('Zoe Zulu')
+            ->and($worksheet->getCell('C7')->getValue())->toBe('001234567890')
+            ->and($worksheet->getCell('C7')->getDataType())->toBe('s')
+            ->and($worksheet->getCell('D7')->getValue())->toBe(120000)
+            ->and($worksheet->getCell('D7')->getStyle()->getNumberFormat()->getFormatCode())->toBe('"Rp" #,##0;[Red]-"Rp" #,##0;"Rp" -')
+            ->and($worksheet->getCell('G7')->getValue())->toBe(1200000)
+            ->and($worksheet->getCell('J7')->getValue())->toBe(30000.0)
+            ->and($worksheet->getCell('K7')->getValue())->toBe(1230000.0)
+            ->and($worksheet->getCell('M7')->getValue())->toBe(1222500.0)
+            ->and($worksheet->getCell('A8')->getValue())->toBe('REKENING BRI')
+            ->and($worksheet->getCell('B9')->getValue())->toBe('Budi Beta')
+            ->and($worksheet->getCell('B10')->getValue())->toBe('GRAND TOTAL')
+            ->and($worksheet->getCell('K10')->getValue())->toBe(1470000.0)
+            ->and($worksheet->getCell('M10')->getValue())->toBe(1462500.0)
+            ->and($worksheet->getStyle('A5')->getFill()->getStartColor()->getRGB())->toBe('5B9BD5')
             ->and($worksheet->getFreezePane())->toBe('A5')
-            ->and($dailyWorksheet)->not->toBeNull()
-            ->and($dailyWorksheet->getCell('A1')->getValue())->toBe('ID Karyawan')
-            ->and($dailyWorksheet->getCell('D2')->getValue())->toBe('2026-10-03')
-            ->and($dailyWorksheet->getCell('F2')->getValue())->toBe('08:30')
-            ->and($dailyWorksheet->getCell('G2')->getValue())->toBe('17:00')
-            ->and($dailyWorksheet->getCell('H2')->getValue())->toBe(30)
-            ->and($dailyWorksheet->getCell('J2')->getValue())->toBe(7500)
-            ->and($dailyWorksheet->getCell('K2')->getValue())->toBe('Disetujui')
-            ->and($dailyWorksheet->getCell('O2')->getValue())->toBe(120)
-            ->and($dailyWorksheet->getCell('P2')->getValue())->toBe(30000.0);
+            ->and($worksheet->getAutoFilter()->getRange())->toBe('')
+            ->and($spreadsheet->getSheetCount())->toBe(1)
+            ->and($spreadsheet->getSheetByName('Rincian Harian'))->toBeNull();
 
         $spreadsheet->disconnectWorksheets();
     } finally {

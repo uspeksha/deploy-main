@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\EmployeeRegistrationMail;
+use App\Services\EmployeeRegistrationMailer;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -67,7 +68,10 @@ it('lets HRD create an active employee account and emails temporary credentials'
 
 it('keeps an account inactive if email fails and lets HRD resend credentials', function () {
     Mail::fake();
-    config(['mail.default' => 'array']);
+    $this->mock(EmployeeRegistrationMailer::class)
+        ->shouldReceive('sendTemporaryPassword')
+        ->once()
+        ->andReturn(false);
     $hrd = User::factory()->create(['role' => 'hrd']);
 
     $this->actingAs($hrd)
@@ -79,6 +83,7 @@ it('keeps an account inactive if email fails and lets HRD resend credentials', f
     expect($employee->registration_status)->toBe('pending')
         ->and($employee->is_active)->toBeFalse();
 
+    $this->app->forgetInstance(EmployeeRegistrationMailer::class);
     config(['mail.default' => 'smtp']);
     $this->post(route('admin.absensi.approval.employees.resend', $employee))
         ->assertRedirect()
@@ -87,6 +92,51 @@ it('keeps an account inactive if email fails and lets HRD resend credentials', f
     expect($employee->fresh()->registration_status)->toBe('approved')
         ->and($employee->fresh()->is_active)->toBeTrue();
     Mail::assertSent(EmployeeRegistrationMail::class, 1);
+});
+
+it('records the starting freelance rate and adds salary changes without deleting history', function () {
+    Mail::fake();
+    config(['mail.default' => 'smtp']);
+    $hrd = User::factory()->create(['role' => 'hrd']);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload([
+            'employment_type' => 'freelance',
+            'daily_rate' => 135000,
+        ]))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $employee = User::where('email', 'new.employee@example.com')->firstOrFail();
+    expect($employee->salaryRates()->count())->toBe(1)
+        ->and($employee->dailyRateAt())->toBe(135000);
+
+    $firstRate = $employee->salaryRates()->firstOrFail();
+    $effectiveAt = $firstRate->effective_at->copy()->addDay()->format('Y-m-d\TH:i');
+
+    $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
+        'daily_rate' => 150000,
+        'effective_at' => $effectiveAt,
+    ])
+        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'accounts']))
+        ->assertSessionHas('success');
+
+    expect($employee->salaryRates()->count())->toBe(2)
+        ->and($employee->dailyRateAt($firstRate->effective_at))->toBe(135000)
+        ->and($employee->dailyRateAt($effectiveAt))->toBe(150000);
+
+    $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
+        'daily_rate' => 160000,
+        'effective_at' => $firstRate->effective_at->copy()->addHours(1)->format('Y-m-d\TH:i'),
+    ])->assertSessionHasErrors('effective_at');
+
+    $admin = User::factory()->create(['role' => 'admin']);
+    $this->actingAs($admin)
+        ->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
+            'daily_rate' => 160000,
+            'effective_at' => now()->addYear()->format('Y-m-d\TH:i'),
+        ])
+        ->assertForbidden();
 });
 
 it('only allows exact HRD role to create accounts and keeps employees out of web admin', function () {

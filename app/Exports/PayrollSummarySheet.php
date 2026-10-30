@@ -24,116 +24,140 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
 
     public function collection()
     {
-        $items = $this->period->items()
-            ->with('employee:id,bank_name,bank_account_number,bank_account_name')
-            ->orderBy('employee_name')
+        $employeeRows = $this->period->items()
+            ->with('employee:id,bank_name,bank_account_number')
             ->get([
                 'user_id',
                 'employee_id',
                 'employee_name',
-                'employment_type',
-                'department',
-                'work_days',
                 'daily_rate',
                 'gross_pay',
-                'late_occurrences',
-                'total_late_minutes',
                 'late_deduction',
                 'other_deductions',
-                'net_pay',
-                'slip_number',
+                'attendance_snapshot',
             ])
-            ->map(fn ($item) => [
-                $item->employee_id,
-                $item->employee_name,
-                $item->department,
-                $item->employment_type,
-                $item->work_days,
-                $item->daily_rate,
-                $item->gross_pay,
-                $item->late_occurrences,
-                $item->total_late_minutes,
-                $item->late_deduction,
-                $item->other_deductions,
-                $item->net_pay,
-                $item->slip_number,
-                $this->period->label,
-                $this->period->status,
-                $item->employee?->bank_name,
-                $item->employee?->bank_account_number,
-                $item->employee?->bank_account_name,
-            ]);
+            ->map(function ($item): array {
+                $overtimePay = collect($item->attendance_snapshot['daily_details'] ?? [])
+                    ->sum(fn (array $day): float => (float) ($day['overtime_pay'] ?? 0));
+                $productionAllowance = 0;
+                $weeklyAllowance = 0;
+                $incompleteAttendanceDeduction = 0;
+                $totalAllowance = (float) $item->gross_pay
+                    + $productionAllowance
+                    + $weeklyAllowance
+                    + $overtimePay;
 
-        $totals = $items->reduce(function (array $totals, array $row): array {
-            $totals['work_days'] += $row[4];
-            $totals['gross_pay'] += $row[6];
-            $totals['late_occurrences'] += $row[7];
-            $totals['late_minutes'] += $row[8];
-            $totals['late_deduction'] += $row[9];
-            $totals['other_deductions'] += $row[10];
-            $totals['net_pay'] += $row[11];
+                return [
+                    'bank' => $this->bankGroup($item->employee?->bank_name),
+                    'name' => $item->employee_name,
+                    'values' => [
+                        $item->employee_id,
+                        $item->employee_name,
+                        $item->employee?->bank_account_number,
+                        $item->daily_rate_summary,
+                        $productionAllowance,
+                        $weeklyAllowance,
+                        $item->gross_pay,
+                        $item->late_deduction,
+                        $incompleteAttendanceDeduction,
+                        $overtimePay,
+                        $totalAllowance,
+                        $item->other_deductions,
+                        $totalAllowance
+                            - (float) $item->late_deduction
+                            - $incompleteAttendanceDeduction
+                            - (float) $item->other_deductions,
+                    ],
+                ];
+            });
+
+        $totals = $employeeRows->reduce(function (array $totals, array $employee): array {
+            $row = $employee['values'];
+            foreach ([4, 5, 6, 7, 8, 9, 10, 11, 12] as $column) {
+                $totals[$column] += (float) ($row[$column] ?? 0);
+            }
 
             return $totals;
-        }, [
-            'work_days' => 0,
-            'gross_pay' => 0,
-            'late_occurrences' => 0,
-            'late_minutes' => 0,
-            'late_deduction' => 0,
-            'other_deductions' => 0,
-            'net_pay' => 0,
-        ]);
+        }, array_fill(0, 13, 0));
+
+        $items = collect();
+        $bankGroups = $employeeRows
+            ->groupBy('bank')
+            ->sortKeysUsing(fn (string $left, string $right): int => $this->compareBanks($left, $right));
+
+        foreach ($bankGroups as $bank => $employees) {
+            $items->push(array_merge(["REKENING {$bank}"], array_fill(0, 12, null)));
+
+            foreach ($employees->sort(fn (array $left, array $right): int => strnatcasecmp($left['name'], $right['name'])) as $employee) {
+                $items->push($employee['values']);
+            }
+        }
 
         $items->push([
             null,
-            'TOTAL',
+            'GRAND TOTAL',
             null,
             null,
-            $totals['work_days'],
-            null,
-            $totals['gross_pay'],
-            $totals['late_occurrences'],
-            $totals['late_minutes'],
-            $totals['late_deduction'],
-            $totals['other_deductions'],
-            $totals['net_pay'],
-            null,
-            $this->period->label,
-            $this->period->status,
-            null,
-            null,
+            $totals[4],
+            $totals[5],
+            $totals[6],
+            $totals[7],
+            $totals[8],
+            $totals[9],
+            $totals[10],
+            $totals[11],
+            $totals[12],
         ]);
 
         return $items;
     }
 
+    private function bankGroup(?string $bankName): string
+    {
+        $bankName = mb_strtoupper(trim((string) $bankName));
+
+        if (str_contains($bankName, 'BCA')) {
+            return 'BCA';
+        }
+
+        if (str_contains($bankName, 'BRI')) {
+            return 'BRI';
+        }
+
+        return $bankName !== '' ? $bankName : 'BANK BELUM DIISI';
+    }
+
+    private function compareBanks(string $left, string $right): int
+    {
+        $order = ['BCA' => 0, 'BRI' => 1, 'BANK BELUM DIISI' => 3];
+        $leftOrder = $order[$left] ?? 2;
+        $rightOrder = $order[$right] ?? 2;
+
+        return $leftOrder <=> $rightOrder ?: strnatcasecmp($left, $right);
+    }
+
     public function headings(): array
     {
         return [
-            'ID Karyawan',
-            'Nama',
-            'Departemen',
-            'Jenis Karyawan',
-            'Hari Kerja',
-            'Tarif Harian',
-            'Gaji Kotor',
-            'Kejadian Terlambat',
-            'Total Menit Terlambat',
+            'Employee ID',
+            'Full Name',
+            'No. Rekening',
+            'Upah Harian',
+            'Tunjangan Produksi',
+            'Tunjangan Mingguan',
+            'Gaji Harian Periode',
             'Potongan Terlambat',
-            'Potongan Lainnya',
-            'Gaji Bersih',
-            'Nomor Slip',
-            'Periode',
-            'Status',
-            'Bank',
-            'Nomor Rekening',
-            'Nama Pemilik Rekening',
+            'Potongan Absen Tidak Lengkap',
+            'Lemburan',
+            'Total Allowance',
+            'Potongan Lain (Kasbon)',
+            'Take Home Pay',
         ];
     }
 
     public function bindValue(Cell $cell, mixed $value): bool
     {
-        if ($cell->getColumn() === 'Q' && $cell->getRow() > 1 && $value !== null) {
+        if ($cell->getColumn() === 'C' && $cell->getRow() > 4 && $value !== null) {
             $cell->setValueExplicit((string) $value, DataType::TYPE_STRING);
 
             return true;
@@ -144,105 +168,121 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
 
     public function columnFormats(): array
     {
-        $rupiahFormat = '"Rp" #,##0;[Red]-"Rp" #,##0';
+        $rupiahFormat = '"Rp" #,##0;[Red]-"Rp" #,##0;"Rp" -';
 
         return [
+            'D' => $rupiahFormat,
+            'E' => $rupiahFormat,
             'F' => $rupiahFormat,
             'G' => $rupiahFormat,
+            'H' => $rupiahFormat,
+            'I' => $rupiahFormat,
             'J' => $rupiahFormat,
             'K' => $rupiahFormat,
             'L' => $rupiahFormat,
+            'M' => $rupiahFormat,
         ];
     }
 
     public function columnWidths(): array
     {
         return [
-            'A' => 15,
+            'A' => 16,
             'B' => 28,
             'C' => 22,
             'D' => 18,
-            'E' => 12,
-            'F' => 20,
-            'G' => 20,
-            'H' => 18,
-            'I' => 20,
-            'J' => 23,
-            'K' => 22,
-            'L' => 20,
-            'M' => 28,
-            'N' => 44,
-            'O' => 22,
-            'P' => 18,
-            'Q' => 22,
-            'R' => 26,
+            'E' => 21,
+            'F' => 21,
+            'G' => 22,
+            'H' => 20,
+            'I' => 25,
+            'J' => 18,
+            'K' => 21,
+            'L' => 23,
+            'M' => 21,
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         $sheet->insertNewRowBefore(1, 3);
-        $sheet->mergeCells('A1:R1');
-        $sheet->mergeCells('A2:R2');
-        $sheet->mergeCells('A3:R3');
-        $sheet->setCellValue('A1', 'FOLLOWME | REKAP PAYROLL KARYAWAN FREELANCE');
-        $sheet->setCellValue('A2', 'Periode: '.$this->period->label);
-        $sheet->setCellValue('A3', 'Tarif Rp120.000 per hari | Potongan Rp7.500 per 30 menit penuh per tanggal | Status: '.strtoupper(str_replace('_', ' ', $this->period->status)));
+        $sheet->mergeCells('A1:M1');
+        $sheet->mergeCells('A2:M2');
+        $startDate = $this->period->start_date->locale('id');
+        $endDate = $this->period->end_date->locale('id');
+        $periodRange = sprintf(
+            '%s-%s %s %d',
+            $startDate->format('j'),
+            $endDate->format('j'),
+            $startDate->translatedFormat('F'),
+            $this->period->year,
+        );
+        $sheet->setCellValue('A1', 'PT. Followme Indonesia');
+        $sheet->setCellValue('A2', 'Salary Report ('.$periodRange.')');
+        $sheet->mergeCells('D3:J3');
+        $sheet->setCellValue('D3', 'Allowance');
 
         $lastDataRow = $sheet->getHighestRow();
         $totalRow = $lastDataRow;
         $sheet->setShowGridlines(false);
         $sheet->freezePane('A5');
-        $sheet->setAutoFilter('A4:R'.($totalRow - 1));
 
-        $sheet->getStyle('A1:R1')->applyFromArray([
+        $sheet->getStyle('A1:M1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '047857']],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '385D8A']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getStyle('A2:R3')->applyFromArray([
-            'font' => ['size' => 10, 'color' => ['rgb' => '374151']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'ECFDF5']],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+        $sheet->getStyle('A2:M2')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '385D8A']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getStyle('A4:R4')->applyFromArray([
-            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '334155']],
+        $sheet->getStyle('A3:M4')->applyFromArray([
+            'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '1F2937']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCE6F1']],
             'alignment' => [
                 'horizontal' => Alignment::HORIZONTAL_CENTER,
                 'vertical' => Alignment::VERTICAL_CENTER,
                 'wrapText' => true,
             ],
         ]);
-        $sheet->getStyle("A4:R{$totalRow}")->applyFromArray([
+        $sheet->getStyle("A3:M{$totalRow}")->applyFromArray([
             'borders' => [
-                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'D1D5DB']],
+                'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '808080']],
             ],
         ]);
-        if ($totalRow > 5) {
-            for ($row = 5; $row < $totalRow; $row++) {
-                $sheet->getRowDimension($row)->setRowHeight(22);
-                if (($row - 5) % 2 === 1) {
-                    $sheet->getStyle("A{$row}:R{$row}")->getFill()
-                        ->setFillType(Fill::FILL_SOLID)
-                        ->getStartColor()
-                        ->setRGB('F8FAFC');
-                }
+        for ($row = 5; $row < $totalRow; $row++) {
+            $sheet->getRowDimension($row)->setRowHeight(21);
+            $firstCell = (string) $sheet->getCell("A{$row}")->getValue();
+            if (str_starts_with($firstCell, 'REKENING ')) {
+                $sheet->mergeCells("A{$row}:M{$row}");
+                $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+                    'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '5B9BD5']],
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                ]);
+
+                continue;
+            }
+
+            if (($row - 5) % 2 === 1) {
+                $sheet->getStyle("A{$row}:M{$row}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)
+                    ->getStartColor()
+                    ->setRGB('F3F6FA');
             }
         }
-        $sheet->getStyle("A5:R{$totalRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle("E5:E{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("H5:I{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("F5:G{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("J5:L{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("M5:O{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        $sheet->getStyle("P5:R{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        $sheet->getStyle("A{$totalRow}:R{$totalRow}")->applyFromArray([
+        $sheet->getStyle("A5:M{$totalRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle("D5:M{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("A5:C{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("A{$totalRow}:M{$totalRow}")->applyFromArray([
             'font' => ['bold' => true],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'D1FAE5']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'BFBFBF']],
         ]);
-        $sheet->getRowDimension(1)->setRowHeight(28);
-        $sheet->getRowDimension(4)->setRowHeight(34);
+        $sheet->getRowDimension(1)->setRowHeight(25);
+        $sheet->getRowDimension(2)->setRowHeight(23);
+        $sheet->getRowDimension(3)->setRowHeight(22);
+        $sheet->getRowDimension(4)->setRowHeight(42);
 
         return [];
     }

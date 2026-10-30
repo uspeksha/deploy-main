@@ -106,7 +106,7 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                 $date = Carbon::parse($detail['work_date'])->toDateString();
                 $lateness = $latenessByDate->get($date);
                 $lateDeduction = (int) ($lateness?->deduction_amount ?? 0);
-                $dailyRate = (int) $item->daily_rate;
+                $dailyRate = (int) ($detail['daily_rate'] ?? $item->daily_rate);
                 $overtimeStatus = match ($detail['overtime_status'] ?? null) {
                     'approved' => 'Disetujui',
                     'pending' => 'Belum disetujui',

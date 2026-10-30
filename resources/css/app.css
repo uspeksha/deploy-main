@@ -148,25 +148,29 @@
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-medium transition-all duration-300 mx-2;
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 mx-2;
     color: var(--text-muted);
   }
   
   .nav-item:hover {
-    @apply bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 translate-x-1;
+    @apply bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white;
   }
   
   .nav-item.active {
-    @apply bg-emerald-500 text-white shadow-lg shadow-emerald-500/20;
+    @apply bg-emerald-600 text-white shadow-sm shadow-emerald-900/10;
   }
 
   .nav-icon {
-    @apply flex items-center justify-center w-8 h-8 rounded-xl transition-all duration-300;
+    @apply flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200;
     background: rgba(var(--brand-emerald), 0.1);
   }
   
   .nav-item.active .nav-icon {
     @apply bg-white/20;
+  }
+
+  .nav-section-label {
+    @apply px-4 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500;
   }
 
   /* UI System (Unified Admin & User Components) */

@@ -103,7 +103,9 @@ class AbsensiController extends Controller
                     $isWeekend,
                     $checkInTime,
                     null,
-                    $kategori
+                    $kategori,
+                    false,
+                    $user->dailyRateAt($checkInTime),
                 );
 
 
@@ -176,7 +178,9 @@ class AbsensiController extends Controller
     $isWeekend,
     $checkInTime,
     null,
-    $kategori
+    $kategori,
+    false,
+    $user->dailyRateAt($checkInTime),
 );
 
         $absensi = Absensi::create([
@@ -375,7 +379,8 @@ class AbsensiController extends Controller
                 $absensi->check_in_at,
                 $checkOutTime,
                 $kategori,
-                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                $absensi->user->dailyRateAt($absensi->check_in_at),
             );
 
             if ($request->tipe === 'lembur') {
@@ -920,7 +925,8 @@ public function meAbsensi(Request $request)
                 $absensi->check_in_at,
                 now(),
                 $kategori,
-                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                $user->dailyRateAt($absensi->check_in_at),
             );
 
             $employment = strtolower($user->work_location ?? 'office');
@@ -1081,7 +1087,8 @@ public function meAbsensi(Request $request)
                 $absensi->check_in_at,
                 now(),
                 $kategori,
-                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                $user->dailyRateAt($absensi->check_in_at),
             );
 
             $employment = strtolower($user->work_location ?? 'office');
@@ -1496,7 +1503,8 @@ public function meAbsensi(Request $request)
                 $absensi->check_in_at,
                 $absensi->check_out_at ?? now(),
                 $kategori,
-                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                $absensi->user->dailyRateAt($absensi->check_in_at),
             );
 
             $absensi->forceFill(array_merge($newPaths, [

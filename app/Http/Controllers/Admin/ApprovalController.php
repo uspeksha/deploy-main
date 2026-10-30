@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
+use App\Models\EmployeeSalaryRate;
 use App\Models\Notification;
 use App\Models\ScheduledLembur;
 use App\Models\IzinKeluar;
@@ -79,6 +80,22 @@ class ApprovalController extends Controller
                 ->orderBy('created_at')
                 ->get()
             : collect();
+        $freelanceEmployees = auth()->user()->role === 'hrd'
+            ? User::query()
+                ->with('salaryRates')
+                ->where('registration_status', 'approved')
+                ->where('employment_type', 'freelance')
+                ->where(function ($query) {
+                    $query->whereNull('id_karyawan')
+                        ->orWhere(function ($query) {
+                            $query->where('id_karyawan', 'not like', 'CS-AMB%')
+                                ->where('id_karyawan', 'not like', 'MG-AMB%');
+                        });
+                })
+                ->whereNotIn('role', ['hrd', 'admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl'])
+                ->orderBy('name')
+                ->get()
+            : collect();
 
         return view('admin.absensi.approval.hrd', compact(
             'submissions',
@@ -86,6 +103,7 @@ class ApprovalController extends Controller
             'izinKeluar',
             'status',
             'pendingAccounts',
+            'freelanceEmployees',
         ));
     }
 
@@ -106,6 +124,7 @@ class ApprovalController extends Controller
             'bank_name' => ['required', 'string', 'max:100'],
             'bank_account_number' => ['required', 'string', 'max:40'],
             'bank_account_name' => ['required', 'string', 'max:255'],
+            'daily_rate' => ['required_if:employment_type,freelance', 'nullable', 'integer', 'min:1', 'max:100000000'],
         ]);
 
         if ($validator->fails()) {
@@ -120,14 +139,28 @@ class ApprovalController extends Controller
         }
 
         $validated = $validator->validated();
+        $dailyRate = (int) ($validated['daily_rate'] ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
+        unset($validated['daily_rate']);
         $temporaryPassword = Str::password(8, true, true, true, false);
-        $user = User::create([
-            ...$validated,
-            'password' => Hash::make($temporaryPassword),
-            'role' => 'user',
-            'registration_status' => 'pending',
-            'is_active' => false,
-        ]);
+        $user = DB::transaction(function () use ($validated, $dailyRate, $temporaryPassword): User {
+            $user = User::create([
+                ...$validated,
+                'password' => Hash::make($temporaryPassword),
+                'role' => 'user',
+                'registration_status' => 'pending',
+                'is_active' => false,
+            ]);
+
+            if ($user->employment_type === 'freelance') {
+                $user->salaryRates()->create([
+                    'daily_rate' => $dailyRate,
+                    'effective_at' => now(),
+                    'recorded_by' => auth()->id(),
+                ]);
+            }
+
+            return $user;
+        });
 
         $emailSent = $registrationMailer->sendTemporaryPassword($user, $temporaryPassword);
         if ($emailSent) {
@@ -151,6 +184,48 @@ class ApprovalController extends Controller
                 ? 'Akun berhasil dibuat dan password sementara dikirim ke email karyawan.'
                 : 'Akun tersimpan tetapi belum aktif karena email gagal dikirim. Konfigurasi SMTP lalu gunakan tombol kirim ulang.',
         );
+    }
+
+    public function updateEmployeeSalaryRate(Request $request, User $user)
+    {
+        $this->ensureHrdApprover();
+        abort_unless(
+            $user->registration_status === 'approved'
+                && $user->kategori_absensi === 'freelance',
+            404,
+        );
+
+        $validated = $request->validate([
+            'daily_rate' => ['required', 'integer', 'min:1', 'max:100000000'],
+            'effective_at' => ['required', 'date_format:Y-m-d\TH:i'],
+        ]);
+        $effectiveAt = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['effective_at']);
+        $latestRate = $user->salaryRates()->latest('effective_at')->first();
+
+        if ($latestRate && $effectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
+            return back()
+                ->withErrors(['effective_at' => 'Tanggal berlaku harus setelah perubahan gaji terakhir.'])
+                ->withInput($request->except(['daily_rate']));
+        }
+
+        $user->salaryRates()->create([
+            'daily_rate' => $validated['daily_rate'],
+            'effective_at' => $effectiveAt,
+            'recorded_by' => auth()->id(),
+        ]);
+
+        ActivityLog::log(
+            'Update Employee Daily Rate',
+            "User: {$user->name}",
+            [
+                'daily_rate' => (int) $validated['daily_rate'],
+                'effective_at' => $effectiveAt->toDateTimeString(),
+            ],
+        );
+
+        return redirect()
+            ->route('admin.absensi.approval.hrd', ['section' => 'accounts'])
+            ->with('success', "Tarif harian {$user->name} berhasil diperbarui. Riwayat tarif sebelumnya tetap tersimpan.");
     }
 
     public function resendEmployeeCredentials(
@@ -263,7 +338,12 @@ class ApprovalController extends Controller
                 $absensi->late_minutes ?? 0,
                 $absensi->status,
                 null, // Bukan lembur
-                $absensi->is_weekend_overtime ?? false
+                $absensi->is_weekend_overtime ?? false,
+                $absensi->check_in_at,
+                $absensi->check_out_at,
+                $absensi->user->kategori_absensi,
+                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                $absensi->user->dailyRateAt($absensi->check_in_at),
             );
 
             $baseSalary = $salaryData['base_salary'];
@@ -390,7 +470,8 @@ class ApprovalController extends Controller
                                     $absensi->check_in_at,
                                     $absensi->check_out_at,
                                     $absensi->user->employment_type,
-                                    $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                                    $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                                    $absensi->user->dailyRateAt($absensi->check_in_at),
                                 );
                                 $updateData['base_salary'] = $salaryData['base_salary'];
                                 $updateData['final_salary'] = $salaryData['final_salary'];
@@ -459,7 +540,8 @@ class ApprovalController extends Controller
                                 $absensi->check_in_at,
                                 $checkOutDateTime,
                                 $absensi->user->kategori_absensi,
-                                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                                $absensi->user->dailyRateAt($absensi->check_in_at),
                             );
                             
                             $updateData['status'] = 'hadir'; // Ubah status jadi hadir tapi durasi kurang
@@ -539,7 +621,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                             $absensi->check_in_at,
                             $absensi->check_out_at,
                             $kategori,
-                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                            $absensi->user->dailyRateAt($absensi->check_in_at),
                         );
                         $absensi->base_salary = $salaryData['base_salary'];
                         $absensi->late_penalty = $salaryData['late_penalty'];
@@ -882,7 +965,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                             $checkIn,
                             $checkOut,
                             $kategori,
-                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN'
+                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                            $absensi->user->dailyRateAt($checkIn),
                         );
                         
                         $updateData['base_salary'] = $salaryData['base_salary'];
@@ -944,7 +1028,17 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                 elseif (strpos($idKaryawan, 'AMB') === 0) $kategori = 'freelance';
 
                 if ($absensi->base_salary === null) {
-                    $salaryData = Absensi::calculateSalary($absensi->late_minutes ?? 0, $absensi->status, $absensi->tipe, false, $absensi->check_in_at, $absensi->check_out_at, $kategori, $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN');
+                    $salaryData = Absensi::calculateSalary(
+                        $absensi->late_minutes ?? 0,
+                        $absensi->status,
+                        $absensi->tipe,
+                        false,
+                        $absensi->check_in_at,
+                        $absensi->check_out_at,
+                        $kategori,
+                        $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                        $absensi->user->dailyRateAt($absensi->check_in_at),
+                    );
                     $absensi->base_salary = $salaryData['base_salary'];
                     $absensi->late_penalty = $salaryData['late_penalty'];
                     $absensi->save();

@@ -34,6 +34,21 @@ class PayrollItem extends Model
         ];
     }
 
+    public function getDailyRateSummaryAttribute(): int|string
+    {
+        $rates = collect($this->attendance_snapshot['daily_details'] ?? [])
+            ->pluck('daily_rate')
+            ->filter(fn ($rate): bool => $rate !== null)
+            ->unique()
+            ->values();
+
+        return match ($rates->count()) {
+            0 => (int) $this->daily_rate,
+            1 => (int) $rates->first(),
+            default => 'Bervariasi',
+        };
+    }
+
     public function period(): BelongsTo
     {
         return $this->belongsTo(PayrollPeriod::class, 'payroll_period_id');

@@ -148,8 +148,18 @@ it('lets HRD approve leave and reject a late-excuse request', function () {
         ->and($lateExcuse->fresh()->catatan_admin)->toBe('Bukti tidak memenuhi ketentuan.');
 });
 
-it('shows only freelance attendance on the dashboard and attendance overview', function () {
+it('shows only freelance employees on the dashboard and marks missing check-ins correctly', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
+    foreach ([
+        ['name' => 'Karyawan Freelance Belum Absen', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-001'],
+        ['name' => 'Karyawan Organik Tersembunyi', 'employment_type' => 'organik', 'id_karyawan' => 'ORG-001'],
+        ['name' => 'Karyawan Magang Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'MG-AMB-001'],
+        ['name' => 'Karyawan Borongan Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'CS-AMB-001'],
+    ] as $employeeAttributes) {
+        User::factory()->create($employeeAttributes + [
+            'registration_status' => 'approved',
+        ]);
+    }
 
     $this->actingAs($hrd)
         ->get('/dashboard')
@@ -157,16 +167,22 @@ it('shows only freelance attendance on the dashboard and attendance overview', f
 
     $this->get(route('admin.absensi.index'))
         ->assertOk()
-        ->assertSee(route('admin.absensi.index', absolute: false), false)
-        ->assertDontSee('href="' . route('admin.absensi.freelance', absolute: false) . '"', false)
-        ->assertSee('Dashboard Absensi Karyawan Freelance')
-        ->assertSee('Status Absen Karyawan Hari Ini')
-        ->assertDontSee('Status Karyawan Freelance Hari Ini')
-        ->assertDontSee('id="tabel-organik"')
-        ->assertDontSee('id="tabel-borongan"')
-        ->assertDontSee('id="tabel-magang"')
-        ->assertDontSee('id="tabel-freelance"')
-        ->assertDontSee('Semua Status');
+        ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Organik Tersembunyi')
+        ->assertDontSee('Karyawan Magang Tersembunyi')
+        ->assertDontSee('Karyawan Borongan Tersembunyi')
+        ->assertSee('Karyawan Freelance')
+        ->assertSee('Belum Absen')
+        ->assertDontSee('On Time')
+        ->assertDontSee('Perbandingan Status Pegawai')
+        ->assertDontSee('Produksi')
+        ->assertDontSee('Office')
+        ->assertDontSee('data-aos="fade-up"');
+
+    $this->get(route('admin.absensi.freelance'))
+        ->assertOk()
+        ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Organik Tersembunyi');
 });
 
 it('rejects non-HRD roles from web login', function () {

@@ -61,7 +61,13 @@
     <table class="earnings">
         <thead><tr><th>Rincian</th><th class="amount">Jumlah</th></tr></thead>
         <tbody>
-            <tr><td>Hari kerja valid × {{ $money($item->daily_rate) }}</td><td class="amount">{{ $item->work_days }} hari</td></tr>
+            <tr><td>
+                @if (is_numeric($item->daily_rate_summary))
+                    Hari kerja valid × {{ $money($item->daily_rate_summary) }}
+                @else
+                    Tarif berubah selama periode
+                @endif
+            </td><td class="amount">{{ $item->work_days }} hari</td></tr>
             <tr><td>Total gaji kotor</td><td class="amount">{{ $money($item->gross_pay) }}</td></tr>
         </tbody>
     </table>

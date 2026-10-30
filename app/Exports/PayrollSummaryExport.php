@@ -11,9 +11,6 @@ class PayrollSummaryExport implements WithMultipleSheets
 
     public function sheets(): array
     {
-        return [
-            new PayrollSummarySheet($this->period),
-            new PayrollDailyDetailSheet($this->period),
-        ];
+        return [new PayrollSummarySheet($this->period)];
     }
 }

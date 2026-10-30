@@ -63,50 +63,38 @@ class AbsensiAdminController extends Controller
 
     public function index(Request $request)
     {
-        return $this->indexByEmploymentType($request, 'freelance');
+        return $this->indexFreelanceDashboard($request);
     }
 
     public function indexFreelance(Request $request)
     {
-        return $this->indexByEmploymentType($request, 'freelance');
+        return $this->indexFreelanceDashboard($request);
     }
 
     /**
-     * 🔥 V5: Helper Dashboard dengan 4 KATEGORI 🔥
+     * Build the freelance attendance dashboard.
      */
-    private function indexByEmploymentType(Request $request, ?string $type)
+    private function indexFreelanceDashboard(Request $request)
     {
         $month = $request->input('month', Carbon::now()->month);
         $year = $request->input('year', Carbon::now()->year);
 
-        $userFilter = function (Builder $query) use ($type) {
-            $query->where('registration_status', 'approved');
-            if ($type) {
-                $query->where('employment_type', $type);
-            }
-            $query->whereNotIn('role', ['supervisor', 'manager', 'hrga', 'hrd', 'admin', 'super_admin', 'pkl']);
+        $userFilter = function (Builder $query): void {
+            $query->where('registration_status', 'approved')
+                ->where('employment_type', 'freelance')
+                ->where(function (Builder $query) {
+                    $query->whereNull('id_karyawan')
+                        ->orWhere(function (Builder $query) {
+                            $query->where('id_karyawan', 'not like', 'CS-AMB%')
+                                ->where('id_karyawan', 'not like', 'MG-AMB%');
+                        });
+                })
+                ->whereNotIn('role', ['supervisor', 'manager', 'hrga', 'hrd', 'admin', 'super_admin', 'pkl']);
         };
 
-        $dashboardTitle = match ($type) {
-            'organik'   => 'Dashboard Absensi Karyawan Organik',
-            'freelance' => 'Dashboard Absensi Karyawan Freelance',
-            default     => 'Dashboard Absensi Semua Karyawan',
-        };
-
-        $pendingApprovals = collect([]);
         $today = Carbon::today();
         $users = User::where($userFilter)->get();
-
-        // 🔥 ARRAY BARU: 4 Kategori
-        $dailyStatuses = [];
-        $dailyStatusesOrganik = [];
         $dailyStatusesFreelance = [];
-        $dailyStatusesBorongan = [];
-        $dailyStatusesMagang = [];
-
-        // 🔥 STATS PRODUKSI VS OFFICE
-        $statsProduksi = ['total' => 0, 'hadir' => 0];
-        $statsOffice = ['total' => 0, 'hadir' => 0];
 
         foreach ($users as $user) {
             $absensiTodayApproved = Absensi::where('user_id', $user->id)
@@ -151,19 +139,6 @@ class AbsensiAdminController extends Controller
                 }
             }
 
-            // 🔥 HITUNG STATS PRODUKSI VS OFFICE
-            if ($user->work_location === 'produksi') {
-                $statsProduksi['total']++;
-                if (str_starts_with($statusHariIni, 'Hadir')) {
-                    $statsProduksi['hadir']++;
-                }
-            } else {
-                $statsOffice['total']++;
-                if (str_starts_with($statusHariIni, 'Hadir')) {
-                    $statsOffice['hadir']++;
-                }
-            }
-
             $dailyData = [
                 'user' => $user,
                 'status' => $statusHariIni,
@@ -174,49 +149,14 @@ class AbsensiAdminController extends Controller
                 'late_minutes' => $lateMinutes,
             ];
 
-            $dailyStatuses[] = $dailyData;
-
-            // 🔥 PISAHKAN BERDASARKAN KATEGORI
-            $kategori = $this->detectKategori($user);
-
-            if ($kategori === 'organik') {
-                $dailyStatusesOrganik[] = $dailyData;
-            } elseif ($kategori === 'freelance') {
-                $dailyStatusesFreelance[] = $dailyData;
-            } elseif ($kategori === 'borongan') {
-                $dailyStatusesBorongan[] = $dailyData;
-            } elseif ($kategori === 'magang') {
-                $dailyStatusesMagang[] = $dailyData;
-            }
+            $dailyStatusesFreelance[] = $dailyData;
         }
 
-        // 🔥 FILTER PENCARIAN (4 Kategori)
-        $searchOrganik = $request->input('search_organik');
         $searchFreelance = $request->input('search_freelance');
-        $searchBorongan = $request->input('search_borongan');
-        $searchMagang = $request->input('search_magang');
-
-        if ($searchOrganik) {
-            $dailyStatusesOrganik = array_filter($dailyStatusesOrganik, function($daily) use ($searchOrganik) {
-                return stripos($daily['user']->name, $searchOrganik) !== false;
-            });
-        }
 
         if ($searchFreelance) {
             $dailyStatusesFreelance = array_filter($dailyStatusesFreelance, function($daily) use ($searchFreelance) {
                 return stripos($daily['user']->name, $searchFreelance) !== false;
-            });
-        }
-
-        if ($searchBorongan) {
-            $dailyStatusesBorongan = array_filter($dailyStatusesBorongan, function($daily) use ($searchBorongan) {
-                return stripos($daily['user']->name, $searchBorongan) !== false;
-            });
-        }
-
-        if ($searchMagang) {
-            $dailyStatusesMagang = array_filter($dailyStatusesMagang, function($daily) use ($searchMagang) {
-                return stripos($daily['user']->name, $searchMagang) !== false;
             });
         }
 
@@ -260,80 +200,6 @@ class AbsensiAdminController extends Controller
             ->where($absensiQueryFilter)
             ->count();
 
-        $comparison = null;
-        if (!$type) {
-            $comparison = [
-                'organik' => [
-                    'hadir' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'organik'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'hadir')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'izin' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'organik'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'izin')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'sakit' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'organik'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'sakit')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'lembur' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'organik'))
-                        ->where('status_approval', 'approved')
-                        ->where('tipe', 'lembur')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                ],
-                'freelance' => [
-                    'hadir' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'freelance'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'hadir')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'izin' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'freelance'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'izin')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'sakit' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'freelance'))
-                        ->where('status_approval', 'approved')
-                        ->where('status', 'sakit')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                    'lembur' => Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'freelance'))
-                        ->where('status_approval', 'approved')
-                        ->where('tipe', 'lembur')
-                        ->whereYear('check_in_at', $year)
-                        ->whereMonth('check_in_at', $month)
-                        ->count(),
-                ],
-            ];
-        }
-
-        $grafikBulananOrganik = [];
-        $grafikBulananFreelance = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $grafikBulananOrganik[$m] = Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'organik'))
-                ->where('status_approval', 'approved')
-                ->whereYear('check_in_at', $year)
-                ->whereMonth('check_in_at', $m)
-                ->count();
-
-            $grafikBulananFreelance[$m] = Absensi::whereHas('user', fn($q) => $q->where('employment_type', 'freelance'))
-                ->where('status_approval', 'approved')
-                ->whereYear('check_in_at', $year)
-                ->whereMonth('check_in_at', $m)
-                ->count();
-        }
-
         $grafikBulanan = [];
         for ($m = 1; $m <= 12; $m++) {
             $grafikBulanan[$m] = Absensi::whereYear('check_in_at', $year)
@@ -343,35 +209,19 @@ class AbsensiAdminController extends Controller
                 ->count();
         }
 
-        usort($dailyStatuses, fn($a, $b) => $a['user']->name <=> $b['user']->name);
-        usort($dailyStatusesOrganik, fn($a, $b) => $a['user']->name <=> $b['user']->name);
         usort($dailyStatusesFreelance, fn($a, $b) => $a['user']->name <=> $b['user']->name);
-        usort($dailyStatusesBorongan, fn($a, $b) => $a['user']->name <=> $b['user']->name);
-        usort($dailyStatusesMagang, fn($a, $b) => $a['user']->name <=> $b['user']->name);
 
         return view('admin.absensi.index', compact(
-            'users',
             'month',
             'year',
             'grafikBulanan',
-            'grafikBulananOrganik',
-            'grafikBulananFreelance',
-            'pendingApprovals',
-            'dailyStatuses',
-            'dailyStatusesOrganik',
             'dailyStatusesFreelance',
-            'dailyStatusesBorongan',
-            'dailyStatusesMagang',
             'totalHadir',
             'totalIzin',
             'totalSakit',
             'totalLembur',
-            'totalTelat',
-            'dashboardTitle',
-            'comparison',
-            'statsProduksi',
-            'statsOffice'
-        ))->with('currentStatus', $type ?? 'semua');
+            'totalTelat'
+        ));
     }
 
     public function show(Request $request, User $user)
@@ -1142,6 +992,7 @@ public function updateCheckIn(Request $request, $id)
             $absensi->check_out_at,
             $user->kategori_absensi,
             $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+            $user->dailyRateAt($newCheckIn),
         );
         $baseSalary = $salary['base_salary'];
         $roundedLateMinutes = $salary['rounded_late_minutes'];

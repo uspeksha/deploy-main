@@ -44,6 +44,7 @@ class PayrollGenerationService
             ]);
 
             User::query()
+                ->with('salaryRates')
                 ->where('employment_type', 'freelance')
                 ->where('registration_status', 'approved')
                 ->whereNotIn('role', ['hrd', 'admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl'])
@@ -87,7 +88,7 @@ class PayrollGenerationService
      *     net_pay: int
      * }
      */
-    public function calculateTotals(int $workDays, array $lateMinutesByWorkday): array
+    public function calculateTotals(int $workDays, array $lateMinutesByWorkday, array $dailyRates = []): array
     {
         $lateMinutesByWorkday = array_map(fn (int $minutes): int => max(0, $minutes), $lateMinutesByWorkday);
         $lateOccurrences = count(array_filter($lateMinutesByWorkday, fn (int $minutes): bool => $minutes > 0));
@@ -96,8 +97,20 @@ class PayrollGenerationService
             fn (int $minutes): int => FreelancePayrollCalculator::calculateDay($minutes)['penalty_blocks'],
             $lateMinutesByWorkday,
         ));
-        $grossPay = $workDays * self::DAILY_RATE;
+        $grossPay = $dailyRates !== []
+            ? array_sum($dailyRates)
+            : $workDays * self::DAILY_RATE;
         $lateDeduction = $totalPenaltyBlocks * self::LATE_BLOCK_AMOUNT;
+        $netPay = count($dailyRates) === count($lateMinutesByWorkday)
+            ? array_sum(array_map(
+                fn (int $dailyRate, int $lateMinutes): int => max(
+                    0,
+                    $dailyRate - FreelancePayrollCalculator::calculateDay($lateMinutes)['late_deduction'],
+                ),
+                $dailyRates,
+                $lateMinutesByWorkday,
+            ))
+            : max(0, $grossPay - $lateDeduction);
 
         return [
             'gross_pay' => $grossPay,
@@ -106,7 +119,7 @@ class PayrollGenerationService
             'total_penalty_blocks' => $totalPenaltyBlocks,
             'late_deduction' => $lateDeduction,
             'other_deductions' => 0,
-            'net_pay' => $grossPay - $lateDeduction,
+            'net_pay' => $netPay,
         ];
     }
 
@@ -134,6 +147,7 @@ class PayrollGenerationService
         $dailyDetails = [];
         $lateRows = [];
         $lateMinutesByWorkday = [];
+        $dailyRates = [];
 
         foreach ($attendances as $attendance) {
             $workDate = Carbon::parse($attendance->check_in_at)
@@ -142,8 +156,11 @@ class PayrollGenerationService
             $lateMinutes = FreelancePayrollCalculator::lateMinutesFromCheckIn(
                 Carbon::parse($attendance->check_in_at)->timezone(config('app.timezone')),
             );
+            $dailyRate = $employee->dailyRateAt($attendance->check_in_at);
 
             $attendanceDates[] = $workDate;
+            $dailyRates[] = $dailyRate;
+            $lateMinutesByWorkday[] = $lateMinutes;
             $overtimeRecords = $attendance->children
                 ->where('tipe', 'lembur');
             $approvedOvertime = $overtimeRecords
@@ -154,6 +171,7 @@ class PayrollGenerationService
                 'attendance_status' => $attendance->status,
                 'check_in_at' => $attendance->check_in_at?->toDateTimeString(),
                 'check_out_at' => $attendance->check_out_at?->toDateTimeString(),
+                'daily_rate' => $dailyRate,
                 'late_minutes' => $lateMinutes,
                 'overtime_status' => $approvedOvertime->isNotEmpty()
                     ? 'approved'
@@ -174,7 +192,6 @@ class PayrollGenerationService
             }
 
             $penaltyBlocks = intdiv($lateMinutes, self::LATE_BLOCK_MINUTES);
-            $lateMinutesByWorkday[] = $lateMinutes;
             $lateRows[] = [
                 'attendance_id' => $attendance->id,
                 'work_date' => $workDate,
@@ -186,7 +203,7 @@ class PayrollGenerationService
         }
 
         $workDays = count($attendanceDates);
-        $totals = $this->calculateTotals($workDays, $lateMinutesByWorkday);
+        $totals = $this->calculateTotals($workDays, $lateMinutesByWorkday, $dailyRates);
         $slipNumber = sprintf(
             'FM-%04d%02d-W%d-%06d',
             $period->year,
@@ -206,7 +223,7 @@ class PayrollGenerationService
             'employment_type' => $employee->employment_type,
             'department' => $employee->departemen,
             'work_days' => $workDays,
-            'daily_rate' => self::DAILY_RATE,
+            'daily_rate' => $dailyRates !== [] ? $dailyRates[array_key_last($dailyRates)] : $employee->dailyRateAt($period->start_date),
             'gross_pay' => $totals['gross_pay'],
             'late_occurrences' => $totals['late_occurrences'],
             'total_late_minutes' => $totals['total_late_minutes'],

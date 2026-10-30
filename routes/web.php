@@ -112,6 +112,8 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
             ->name('admin.absensi.approval.employees.store');
         Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
             ->name('admin.absensi.approval.employees.resend');
+        Route::post('/employees/{user}/salary-rates', [ApprovalController::class, 'updateEmployeeSalaryRate'])
+            ->name('admin.absensi.approval.employees.salary-rates.store');
     });
 
     // --- SECURE STORAGE FILE STREAM ROUTE ---

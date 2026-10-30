@@ -38,17 +38,17 @@ class FreelancePayrollCalculator
      *     net_pay: int
      * }
      */
-    public static function calculateDay(int $lateMinutes): array
+    public static function calculateDay(int $lateMinutes, int $dailyRate = self::DAILY_RATE): array
     {
         $penaltyBlocks = intdiv(max(0, $lateMinutes), self::LATE_BLOCK_MINUTES);
         $lateDeduction = $penaltyBlocks * self::LATE_BLOCK_AMOUNT;
 
         return [
-            'gross_pay' => self::DAILY_RATE,
+            'gross_pay' => $dailyRate,
             'penalty_blocks' => $penaltyBlocks,
             'charged_late_minutes' => $penaltyBlocks * self::LATE_BLOCK_MINUTES,
             'late_deduction' => $lateDeduction,
-            'net_pay' => max(0, self::DAILY_RATE - $lateDeduction),
+            'net_pay' => max(0, $dailyRate - $lateDeduction),
         ];
     }
 }

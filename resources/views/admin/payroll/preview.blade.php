@@ -53,7 +53,16 @@
             <div class="mt-3 overflow-x-auto">
                 <table class="w-full text-sm">
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
-                        <tr><td class="py-2">{{ $item->work_days }} hari kerja × {{ $money($item->daily_rate) }}</td><td class="py-2 text-right">{{ $money($item->gross_pay) }}</td></tr>
+                        <tr>
+                            <td class="py-2">
+                                @if (is_numeric($item->daily_rate_summary))
+                                    {{ $item->work_days }} hari kerja × {{ $money($item->daily_rate_summary) }}
+                                @else
+                                    Tarif berubah selama periode
+                                @endif
+                            </td>
+                            <td class="py-2 text-right">{{ $money($item->gross_pay) }}</td>
+                        </tr>
                         <tr><td colspan="2" class="py-2 font-semibold">Rincian keterlambatan</td></tr>
                         @forelse ($item->latenessDetails as $detail)
                             <tr>

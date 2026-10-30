@@ -47,8 +47,8 @@
         $defaultPeriodNumber = $canRecreatePeriod ? $selectedPeriod->period_number : 1;
     @endphp
 
-    <div class="ui-page">
-        <div class="space-y-6">
+    <div class="ui-page min-w-0 w-full">
+        <div class="min-w-0 space-y-6">
             @foreach (['success' => 'emerald', 'warning' => 'amber', 'error' => 'rose'] as $flash => $color)
                 @if (session($flash))
                     <div class="rounded-xl border px-4 py-3 text-sm {{ $flashClasses[$flash] }}" role="status">
@@ -158,7 +158,7 @@
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Buat draft dari absensi aktual untuk memulai.</p>
                     </div>
                 @else
-                    <div class="ui-table-shell">
+                    <div class="ui-table-shell min-w-0 max-w-full">
                         <table class="ui-table">
                             <thead class="bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-500 dark:bg-gray-900/70 dark:text-gray-400">
                                 <tr>
@@ -396,7 +396,9 @@
                                             </td>
                                             <td class="px-3 py-3 text-gray-600 dark:text-gray-300">{{ ucfirst($item->employment_type) }}<br>{{ $item->department ?? '-' }}</td>
                                             <td class="px-3 py-3">{{ $item->work_days }}</td>
-                                            <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->daily_rate) }}</td>
+                                            <td class="px-3 py-3 whitespace-nowrap">
+                                                {{ is_numeric($item->daily_rate_summary) ? $money($item->daily_rate_summary) : $item->daily_rate_summary }}
+                                            </td>
                                             <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->gross_pay) }}</td>
                                             <td class="px-3 py-3">{{ $item->late_occurrences }}x</td>
                                             <td class="px-3 py-3">{{ $item->total_late_minutes }}</td>
@@ -415,7 +417,11 @@
                                                     <details class="max-w-72 rounded-lg">
                                                         <summary class="cursor-pointer rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">Rincian hitung</summary>
                                                         <p class="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/60 dark:text-gray-300">
-                                                            {{ $item->work_days }} hari × {{ $money($item->daily_rate) }} = {{ $money($item->gross_pay) }}.
+                                                            @if (is_numeric($item->daily_rate_summary))
+                                                                {{ $item->work_days }} hari × {{ $money($item->daily_rate_summary) }} = {{ $money($item->gross_pay) }}.
+                                                            @else
+                                                                Tarif berubah selama periode; total gaji kotor merupakan penjumlahan tarif harian yang tercatat.
+                                                            @endif
                                                             {{ $item->total_late_minutes }} menit total keterlambatan; potongan tiap tanggal dibulatkan ke bawah per 30 menit penuh.
                                                         </p>
                                                         @if ($item->latenessDetails->isNotEmpty())

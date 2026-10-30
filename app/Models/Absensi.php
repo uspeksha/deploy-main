@@ -138,7 +138,8 @@ class Absensi extends Model
     ?\Carbon\Carbon $checkIn = null,
     ?\Carbon\Carbon $checkOut = null,
     string $kategori = 'organik',
-    bool $autoCheckoutForgot = false
+    bool $autoCheckoutForgot = false,
+    ?int $freelanceDailyRate = null,
 ): array
 {
     $baseSalary = 0;
@@ -187,7 +188,10 @@ class Absensi extends Model
         $workRatio = min(1, $workedMinutes / $expectedMinutes); // Max 1 (100%)
 
         if ($isFreelance) {
-            $dailyPay = FreelancePayrollCalculator::calculateDay($actualLateMinutes);
+            $dailyPay = FreelancePayrollCalculator::calculateDay(
+                $actualLateMinutes,
+                $freelanceDailyRate ?? FreelancePayrollCalculator::DAILY_RATE,
+            );
             $baseSalary = $dailyPay['gross_pay'];
             $roundedLateMinutes = $dailyPay['charged_late_minutes'];
             $latePenalty = $dailyPay['late_deduction'];
