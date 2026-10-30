@@ -120,7 +120,7 @@ class ApprovalController extends Controller
         }
 
         $validated = $validator->validated();
-        $temporaryPassword = Str::random(32);
+        $temporaryPassword = Str::password(8, true, true, true, false);
         $user = User::create([
             ...$validated,
             'password' => Hash::make($temporaryPassword),
@@ -163,7 +163,7 @@ class ApprovalController extends Controller
             return back()->with('error', 'Akun ini tidak menunggu pengiriman akses.');
         }
 
-        $temporaryPassword = Str::random(32);
+        $temporaryPassword = Str::password(8, true, true, true, false);
         $user->update(['password' => Hash::make($temporaryPassword)]);
 
         if (!$registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {

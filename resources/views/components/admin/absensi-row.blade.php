@@ -130,14 +130,12 @@
         @php
             $lateMinutes = $daily['late_minutes'] ?? 0;
         @endphp
-        @if($type === 'organik')
-            <span class="text-gray-400 text-sm">-</span>
-        @elseif($belumAbsen)
+        @if($belumAbsen)
             <span class="text-red-600 dark:text-red-400 text-sm font-bold">
                 <i class="fas fa-exclamation-circle"></i> -
             </span>
         @elseif($lateMinutes > 0)
-            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                 <i class="fas fa-clock"></i>
                 @if($lateMinutes < 60)
                     {{ $lateMinutes }} menit

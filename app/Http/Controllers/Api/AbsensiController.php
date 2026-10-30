@@ -93,11 +93,7 @@ class AbsensiController extends Controller
 
                 if ($request->status === 'hadir') {
                     $kategori = $user->kategori_absensi;
-
-
-                    if ($kategori !== 'organik' && $kategori !== 'magang') {
-                        $lateMinutes = $this->calculateLateMinutes($checkInTime);
-                    }
+                    $lateMinutes = $this->calculateLateMinutes($checkInTime);
                 }
 
                     $salaryData = Absensi::calculateSalary(

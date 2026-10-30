@@ -1,113 +1,115 @@
 <x-guest-layout>
     <main class="login-page">
-        <div class="login-layout">
-            <section class="login-card" aria-labelledby="login-heading">
-                <a href="/" class="login-brand" aria-label="Followme - Beranda">FOLLOWME</a>
+        {{-- Decorative Glow --}}
+        <div class="absolute top-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2"></div>
+        <div class="absolute bottom-0 right-0 w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] translate-x-1/4 translate-y-1/4"></div>
 
-                <div class="login-heading">
-                    <h1 id="login-heading">Selamat datang kembali!</h1>
-                    <p>Masuk untuk mengelola aktivitas dan kehadiran kerjamu.</p>
+        <div class="login-layout">
+            <section class="login-card">
+                <div class="mb-12">
+                    <a href="/" class="flex items-center gap-3 group w-fit">
+                        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform">
+                            <i class="fas fa-bolt text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-black tracking-tighter">Presensi<span class="text-emerald-500">Pro</span></span>
+                    </a>
+                </div>
+
+                <div class="mb-10">
+                    <h1 class="text-4xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Selamat Datang!</h1>
+                    <p class="text-slate-500 dark:text-slate-400">Silakan masuk untuk mengelola aktivitas dan kehadiran Anda hari ini.</p>
                 </div>
 
                 @if(session('status'))
-                    <div class="login-status" role="status">
+                    <div class="mb-6 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-600 text-sm font-bold">
                         {{ session('status') }}
                     </div>
                 @endif
 
-                <form method="POST" action="{{ route('login') }}" class="login-form">
+                <form method="POST" action="{{ route('login') }}" class="space-y-6">
                     @csrf
 
-                    <div class="login-field">
-                        <label class="sr-only" for="email">Alamat email</label>
-                        <input
-                            id="email"
-                            type="email"
-                            name="email"
-                            value="{{ old('email') }}"
-                            required
-                            autocomplete="username"
-                            placeholder="nama@perusahaan.com"
-                        >
-                        @error('email')
-                            <span class="login-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    <div class="login-field">
-                        <label class="sr-only" for="password">Kata sandi</label>
-                        <input
-                            id="password"
-                            type="password"
-                            name="password"
-                            required
-                            autocomplete="current-password"
-                            placeholder="Masukkan kata sandi"
-                        >
-                        @error('password')
-                            <span class="login-error">{{ $message }}</span>
-                        @enderror
-                    </div>
-
-                    @if (Route::has('password.request'))
-                        <div class="login-forgot">
-                            <a href="{{ route('password.request') }}">Lupa kata sandi?</a>
+                    <div class="space-y-2">
+                        <label for="email" class="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">Email Karyawan</label>
+                        <div class="relative">
+                            <input
+                                id="email"
+                                type="email"
+                                name="email"
+                                value="{{ old('email') }}"
+                                required
+                                class="lucent-input pl-11"
+                                placeholder="nama@perusahaan.com"
+                            >
+                            <i class="fas fa-envelope absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         </div>
-                    @endif
+                        @error('email')
+                            <p class="text-rose-500 text-xs font-bold mt-1 ml-1">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                    <label class="login-remember" for="remember_me">
-                        <input id="remember_me" type="checkbox" name="remember">
-                        <span>Ingat saya</span>
-                    </label>
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center px-1">
+                            <label for="password" class="text-xs font-bold text-slate-500 uppercase tracking-widest">Kata Sandi</label>
+                            @if (Route::has('password.request'))
+                                <a href="{{ route('password.request') }}" class="text-[10px] font-bold text-emerald-600 hover:text-emerald-500 uppercase tracking-tighter">Lupa sandi?</a>
+                            @endif
+                        </div>
+                        <div class="relative">
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                required
+                                class="lucent-input pl-11"
+                                placeholder="••••••••"
+                            >
+                            <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                        @error('password')
+                            <p class="text-rose-500 text-xs font-bold mt-1 ml-1">{{ $message }}</p>
+                        @enderror
+                    </div>
 
-                    <button type="submit" class="login-submit">
-                        Masuk ke akun
-                        <span aria-hidden="true">→</span>
+                    <div class="flex items-center px-1">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input id="remember_me" type="checkbox" name="remember" class="w-4 h-4 rounded border-slate-300 text-emerald-500 focus:ring-emerald-500/20">
+                            <span class="text-xs font-bold text-slate-500 group-hover:text-slate-700 transition-colors uppercase tracking-widest">Ingat Saya</span>
+                        </label>
+                    </div>
+
+                    <button type="submit" class="btn-premium w-full py-4 text-lg">
+                        <span>Masuk Sekarang</span>
+                        <i class="fas fa-arrow-right text-xs"></i>
                     </button>
                 </form>
-
             </section>
 
-            <section class="login-visual" aria-label="Ilustrasi karyawan melakukan absensi kerja">
-                <svg class="login-illustration" viewBox="0 0 620 430" fill="none" role="img" aria-label="Karyawan mencatat kehadiran menggunakan perangkat absensi">
-                    <ellipse cx="335" cy="372" rx="247" ry="31" fill="#C2A8F4" opacity=".55"/>
-                    <circle cx="475" cy="116" r="63" fill="#FFE3AE"/>
-                    <circle cx="475" cy="116" r="44" fill="#FFF9EF"/>
-                    <path d="M475 87v31l22 13" stroke="#F4A44E" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="475" cy="116" r="5" fill="#F4A44E"/>
-                    <g class="illustration-float">
-                        <rect x="100" y="125" width="106" height="76" rx="18" fill="#fff" transform="rotate(-10 100 125)"/>
-                        <path d="m129 160 13 13 30-34" stroke="#48B98A" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
-                    </g>
-                    <path d="M94 330h434l-39 36H127l-33-36Z" fill="#9271D6"/>
-                    <path d="M128 366h361v18H128z" fill="#7959C0"/>
-                    <rect x="405" y="197" width="111" height="143" rx="16" fill="#4B3B77"/>
-                    <rect x="415" y="209" width="91" height="111" rx="10" fill="#F5F1FF"/>
-                    <rect x="427" y="222" width="66" height="9" rx="4.5" fill="#D8CCF3"/>
-                    <circle cx="460" cy="263" r="22" fill="#D9F4E8"/>
-                    <path d="m450 263 7 7 14-16" stroke="#28A878" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-                    <rect x="447" y="326" width="28" height="5" rx="2.5" fill="#C8BAE9"/>
-                    <g class="illustration-worker">
-                        <path d="M238 323c2-51 15-87 47-101 19-8 49-8 69 2 27 14 39 51 39 99H238Z" fill="#3D93A2"/>
-                        <path d="M269 236c8 18 22 27 39 27 18 0 31-9 39-27l-18-21h-42l-18 21Z" fill="#F2A77D"/>
-                        <path d="M279 202c0-25 13-42 31-42s31 17 31 42v11c0 21-14 38-31 38s-31-17-31-38v-11Z" fill="#F6B88F"/>
-                        <path d="M274 197c0-30 15-49 38-49 24 0 39 19 39 49v8c-10-3-19-11-25-20-14 13-31 19-52 18v-6Z" fill="#34435E"/>
-                        <path d="M274 192c5-23 19-36 41-36 23 0 35 14 39 36h-80Z" fill="#F2B943"/>
-                        <path d="M301 222c6 5 14 5 20 0" stroke="#A9584F" stroke-width="3" stroke-linecap="round"/>
-                        <path d="M280 280c-18 6-33 20-42 41l-18-2c-8 0-13 8-10 15 3 6 11 8 18 5l32 4 30-40-10-23Z" fill="#F6B88F"/>
-                        <path d="M369 272c13 5 24 16 34 31l38-22c9-6 20 2 18 12l-3 6-41 34c-10 8-24 7-33-1l-33-27 20-33Z" fill="#F6B88F"/>
-                        <path d="M238 323h155l-6 16H237l1-16Z" fill="#F2B943"/>
-                    </g>
-                    <g class="illustration-sparkle">
-                        <path d="M190 252v20m-10-10h20" stroke="#F1A543" stroke-width="4" stroke-linecap="round"/>
-                        <path d="M555 272v16m-8-8h16" stroke="#E98F9A" stroke-width="4" stroke-linecap="round"/>
-                    </g>
-                </svg>
-                <div class="visual-caption">
-                    <span><strong>Bekerja lebih mudah dan terorganisir</strong><small>Absensi dan aktivitas kerja dalam satu tempat</small></span>
+            <section class="login-visual">
+                <div class="relative z-10 text-center space-y-8 animate-float">
+                    <div class="w-32 h-32 bg-white dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl mx-auto">
+                        🏢
+                    </div>
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-4">Efisiensi Dalam Genggaman</h2>
+                        <p class="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Sistem absensi modern yang dirancang untuk produktivitas tim Anda.</p>
+                    </div>
+                    
+                    <div class="flex gap-2 justify-center">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-300"></span>
+                        <span class="w-2 h-2 rounded-full bg-emerald-100"></span>
+                    </div>
                 </div>
+                
+                {{-- Decorative circles --}}
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] border border-emerald-500/5 rounded-full pointer-events-none"></div>
+                <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[90%] h-[90%] border border-emerald-500/10 rounded-full pointer-events-none"></div>
             </section>
         </div>
-        <footer class="login-footer">© {{ date('Y') }} PT. Followme <span>·</span> Sistem Absensi Digital</footer>
+        
+        <footer class="absolute bottom-8 left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] z-20">
+            © {{ date('Y') }} PT. Followme · Digital Attendance System
+        </footer>
     </main>
 </x-guest-layout>

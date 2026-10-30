@@ -252,6 +252,14 @@ class AbsensiAdminController extends Controller
             ->where($absensiQueryFilter)
             ->count();
 
+        $totalTelat = Absensi::where('status_approval', 'approved')
+            ->where('status', 'hadir')
+            ->where('late_minutes', '>', 0)
+            ->whereYear('check_in_at', $year)
+            ->whereMonth('check_in_at', $month)
+            ->where($absensiQueryFilter)
+            ->count();
+
         $comparison = null;
         if (!$type) {
             $comparison = [
@@ -358,6 +366,7 @@ class AbsensiAdminController extends Controller
             'totalIzin',
             'totalSakit',
             'totalLembur',
+            'totalTelat',
             'dashboardTitle',
             'comparison',
             'statsProduksi',
