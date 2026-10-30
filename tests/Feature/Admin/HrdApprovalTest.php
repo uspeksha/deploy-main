@@ -150,16 +150,41 @@ it('lets HRD approve leave and reject a late-excuse request', function () {
 
 it('shows only freelance employees on the dashboard and marks missing check-ins correctly', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
+    $freelanceEmployee = null;
     foreach ([
         ['name' => 'Karyawan Freelance Belum Absen', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-001'],
         ['name' => 'Karyawan Organik Tersembunyi', 'employment_type' => 'organik', 'id_karyawan' => 'ORG-001'],
         ['name' => 'Karyawan Magang Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'MG-AMB-001'],
         ['name' => 'Karyawan Borongan Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'CS-AMB-001'],
     ] as $employeeAttributes) {
-        User::factory()->create($employeeAttributes + [
+        $employee = User::factory()->create($employeeAttributes + [
             'registration_status' => 'approved',
         ]);
+        if ($employeeAttributes['id_karyawan'] === 'FL-001') {
+            $freelanceEmployee = $employee;
+        }
     }
+    $attendanceDate = now()->startOfMonth()->addDays(1);
+    $attendance = Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'status' => 'hadir',
+        'check_in_at' => $attendanceDate->copy()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+    Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'check_in_at' => $attendanceDate->copy()->setTime(17, 0),
+        'status_approval' => 'approved',
+    ]);
+    Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'status' => 'izin',
+        'check_in_at' => $attendanceDate->copy()->addDay()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
 
     $this->actingAs($hrd)
         ->get('/dashboard')
@@ -173,6 +198,13 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         ->assertDontSee('Karyawan Borongan Tersembunyi')
         ->assertSee('Karyawan Freelance')
         ->assertSee('Belum Absen')
+        ->assertSee('Grafik tren kehadiran freelance per bulan')
+        ->assertSee('Grafik distribusi status absensi freelance')
+        ->assertSee('Status absensi freelance')
+        ->assertSee('space-y-8', false)
+        ->assertSee('attendance-area', false)
+        ->assertSee('>1</strong>', false)
+        ->assertSee('<svg', false)
         ->assertDontSee('On Time')
         ->assertDontSee('Perbandingan Status Pegawai')
         ->assertDontSee('Produksi')

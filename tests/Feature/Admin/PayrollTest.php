@@ -116,8 +116,8 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
         ->assertSee('min-w-0 flex-1 lg:ml-80', false)
         ->assertSee('Rincian Payroll')
         ->assertSee(route('admin.payroll.index', ['period_id' => $period->id]).'#rincian-payroll')
-        ->assertSee('Ajukan Persetujuan')
-        ->assertSee('Excel terkunci')
+        ->assertSee('Unduh Excel')
+        ->assertDontSee('Ajukan Persetujuan')
         ->assertSee('Opsi lainnya: batalkan payroll')
         ->assertSee($period->label);
 
@@ -127,13 +127,14 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
 
     $this->actingAs($hrd)
         ->get(route('admin.payroll.export', $period))
-        ->assertStatus(409);
+        ->assertOk()
+        ->assertDownload('payroll-2026-10-minggu-1.xlsx');
 
     $this->actingAs($unauthorized)
         ->post(route('admin.payroll.cancel', $period), ['reason' => 'Tidak berwenang'])
         ->assertForbidden();
 
-    expect($period->fresh()->status)->toBe(PayrollPeriod::STATUS_DRAFT);
+    expect($period->fresh()->status)->toBe(PayrollPeriod::STATUS_EXPORTED);
 
     createPayrollAttendance($employee, '2026-10-09', 120);
     $this->actingAs($hrd)
@@ -420,7 +421,7 @@ it('allows HRD to permanently delete payrolls in any status and their related re
         ->and(ActivityLog::query()->where('action', 'payroll.deleted')->count())->toBe(6);
 });
 
-it('requires HRD approval before Excel export and enforces payroll status transitions', function () {
+it('allows direct Excel export and preserves manual payroll transitions', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
     $period = PayrollPeriod::query()->create([
         'year' => 2026,
@@ -435,25 +436,18 @@ it('requires HRD approval before Excel export and enforces payroll status transi
     $this->actingAs($hrd)
         ->get(route('admin.payroll.index', ['period_id' => $period->id]))
         ->assertOk()
-        ->assertSee('Ajukan Persetujuan')
-        ->assertSee('Excel terkunci');
-    $this->get(route('admin.payroll.export', $period))
-        ->assertStatus(409);
-
-    $this->post(route('admin.payroll.submit', $period))
-        ->assertRedirect();
-    $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
-        ->assertOk()
-        ->assertSee('Setujui Payroll')
-        ->assertSee('Excel terkunci');
-    $this->get(route('admin.payroll.export', $period))
-        ->assertStatus(409);
-
-    $this->post(route('admin.payroll.approve', $period))
-        ->assertRedirect();
+        ->assertSee('Unduh Excel')
+        ->assertDontSee('Ajukan Persetujuan');
     $this->get(route('admin.payroll.export', $period))
         ->assertOk()
         ->assertDownload('payroll-2026-10-minggu-1.xlsx');
+    expect($period->fresh()->status)->toBe(PayrollPeriod::STATUS_EXPORTED);
+
+    $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
+        ->assertOk()
+        ->assertSee('Unduh Excel')
+        ->assertSee('Konfirmasi Dibayar')
+        ->assertDontSee('Setujui Payroll');
 
     $this->post(route('admin.payroll.paid', $period), ['payment_reference' => 'BUKTI-2026-001'])
         ->assertRedirect();
@@ -956,7 +950,7 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
 
     $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
         ->assertOk()
-        ->assertSee('Disetujui')
+        ->assertSee('Siap Dibayar')
         ->assertDontSee('Ajukan Persetujuan');
 
     $temporaryFile = tempnam(sys_get_temp_dir(), 'payroll-export-test');

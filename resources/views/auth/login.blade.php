@@ -16,7 +16,7 @@
                 </div>
 
                 <div class="mb-10">
-                    <h1 class="text-4xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Selamat Datang!</h1>
+                    <h1 class="text-4xl font-black text-slate-900 dark:text-white mb-3 tracking-tight">Selamat datang kembali!</h1>
                     <p class="text-slate-500 dark:text-slate-400">Silakan masuk untuk mengelola aktivitas dan kehadiran Anda hari ini.</p>
                 </div>
 
@@ -87,10 +87,11 @@
 
             <section class="login-visual">
                 <div class="relative z-10 text-center space-y-8 animate-float">
-                    <div class="w-32 h-32 bg-white dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl mx-auto">
+                    <div class="w-32 h-32 bg-white dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl mx-auto" aria-label="Ilustrasi karyawan melakukan absensi kerja">
                         🏢
                     </div>
                     <div>
+                        <p class="sr-only">Ilustrasi karyawan melakukan absensi kerja</p>
                         <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-4">Efisiensi Dalam Genggaman</h2>
                         <p class="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Sistem absensi modern yang dirancang untuk produktivitas tim Anda.</p>
                     </div>

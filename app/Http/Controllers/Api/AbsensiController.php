@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Validator;
 use App\Models\ActivityLog;
 use App\Http\Resources\AbsensiResource;
 use App\Services\FreelancePayrollCalculator;
+use App\Services\AttendanceGeofence;
 
 
 class AbsensiController extends Controller
@@ -40,18 +41,44 @@ class AbsensiController extends Controller
         return FreelancePayrollCalculator::lateMinutesFromCheckIn(Carbon::parse($checkInTime));
     }
 
-    public function absenMasuk(Request $request)
+    public function absenMasuk(Request $request, AttendanceGeofence $geofence)
 {
     try {
         $request->validate([
             'foto' => 'required|image|max:2048',
-            'lat' => 'required|numeric',
-            'lng' => 'required|numeric',
+                'lat' => 'required|numeric|between:-90,90',
+                'lng' => 'required|numeric|between:-180,180',
+                'accuracy_meters' => 'sometimes|nullable|numeric|gt:0|max:100',
             'status' => 'required|in:hadir,sakit,izin',
             'is_mocked' => 'nullable|boolean',
         ]);
 
         $user = Auth::user();
+
+            if ($request->boolean('is_mocked')) {
+                return response()->json([
+                    'message' => 'Absensi ditolak karena perangkat melaporkan lokasi palsu.',
+                ], 403);
+            }
+
+            if ($request->status === 'hadir') {
+                $distance = $geofence->distanceFromWorkplace(
+                    $user,
+                    (float) $request->input('lat'),
+                    (float) $request->input('lng'),
+                );
+
+                if (! $geofence->isWithinAllowedRadius(
+                    $distance,
+                    (float) ($request->input('accuracy_meters') ?? 0),
+                )) {
+                    return response()->json([
+                        'message' => 'Absensi ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
+                        'distance_meters' => (int) round($distance),
+                        'allowed_radius_meters' => (int) config('attendance.geofence.radius_meters'),
+                    ], 403);
+                }
+            }
 
         $today = Carbon::today();
 
@@ -220,7 +247,7 @@ class AbsensiController extends Controller
     }
 }
 
-   public function absenPulang(Request $request)
+   public function absenPulang(Request $request, AttendanceGeofence $geofence)
     {
         try {
             $request->validate([
@@ -231,8 +258,9 @@ class AbsensiController extends Controller
                 'foto_5' => 'nullable|image|max:2048',
                 'foto_6' => 'nullable|image|max:2048',
                 'keterangan_goals' => 'nullable|string|max:2000',
-                'lat' => 'required|numeric',
-                'lng' => 'required|numeric',
+                'lat' => 'required|numeric|between:-90,90',
+                'lng' => 'required|numeric|between:-180,180',
+                'accuracy_meters' => 'sometimes|nullable|numeric|gt:0|max:100',
                 'tipe' => 'nullable|in:lembur,cuti,sakit,izin',
                 'file_bukti' => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
                 'keterangan_izin_sakit' => 'nullable|string|max:500',
@@ -240,6 +268,29 @@ class AbsensiController extends Controller
             ]);
 
             $user = Auth::user();
+            if ($request->boolean('is_mocked')) {
+                return response()->json([
+                    'message' => 'Absensi pulang ditolak karena perangkat melaporkan lokasi palsu.',
+                ], 403);
+            }
+
+            $distance = $geofence->distanceFromWorkplace(
+                $user,
+                (float) $request->input('lat'),
+                (float) $request->input('lng'),
+            );
+
+            if (! $geofence->isWithinAllowedRadius(
+                $distance,
+                (float) ($request->input('accuracy_meters') ?? 0),
+            )) {
+                return response()->json([
+                    'message' => 'Absen pulang ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
+                    'distance_meters' => (int) round($distance),
+                    'allowed_radius_meters' => (int) config('attendance.geofence.radius_meters'),
+                ], 403);
+            }
+
             $today = Carbon::today();
 
             $absensi = Absensi::where('user_id', $user->id)

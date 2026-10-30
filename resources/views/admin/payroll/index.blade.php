@@ -8,7 +8,7 @@
                     </span>
                     <div>
                         <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Payroll Freelance</h2>
-                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Rekap berbasis absensi yang telah disetujui.</p>
+                        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Rekap payroll dari data absensi valid, siap diunduh langsung.</p>
                     </div>
                 </div>
             </div>
@@ -18,9 +18,9 @@
     @php
         $statusLabels = [
             'draft' => 'Draft',
-            'exported' => 'Perlu Persetujuan (ekspor lama)',
-            'pending_approval' => 'Menunggu Persetujuan',
-            'approved' => 'Disetujui',
+            'exported' => 'Excel Diunduh',
+            'pending_approval' => 'Siap Diekspor',
+            'approved' => 'Siap Dibayar',
             'paid' => 'Dibayarkan (manual)',
             'cancelled' => 'Dibatalkan',
         ];
@@ -72,9 +72,9 @@
                         <i class="fas fa-calculator"></i>
                     </span>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $canRecreatePeriod ? 'Buat Ulang Periode Payroll' : 'Buat Draft Payroll' }}</h3>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $canRecreatePeriod ? 'Buat Ulang Periode Payroll' : 'Buat Periode Payroll' }}</h3>
                         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        {{ $canRecreatePeriod ? 'Periode yang dibatalkan dipilih otomatis. Klik tombol untuk membuat draft baru dari absensi yang sudah disetujui.' : 'Nilai dihitung sekali dari data absensi yang disetujui dan disimpan sebagai snapshot.' }}
+                        {{ $canRecreatePeriod ? 'Periode yang dibatalkan dipilih otomatis. Buat periode baru, lalu unduh Excel langsung.' : 'Perhitungan tersimpan sebagai snapshot dan Excel bisa langsung diunduh setelah periode dibuat.' }}
                         </p>
                     </div>
                 </div>
@@ -121,7 +121,7 @@
                     </div>
                     <button type="submit" class="{{ $primaryButtonClasses }}">
                         <i class="fas fa-calculator"></i>
-                        {{ $canRecreatePeriod ? 'Buat Payroll Baru' : 'Hitung Draft' }}
+                        {{ $canRecreatePeriod ? 'Buat Payroll Baru' : 'Hitung Payroll' }}
                     </button>
                 </form>
                 <p class="mt-4 text-xs leading-5 text-gray-500 dark:text-gray-400">
@@ -219,31 +219,16 @@
                             </div>
                             <div class="flex flex-col gap-3 sm:items-end">
                                 <div class="flex flex-wrap gap-2">
-                                    @if (in_array($selectedPeriod->status, ['approved', 'paid'], true))
+                                    @if ($selectedPeriod->status !== 'cancelled')
                                         <a href="{{ route('admin.payroll.export', $selectedPeriod) }}" class="{{ $secondaryButtonClasses }}">
-                                            <i class="fas fa-file-excel text-emerald-600"></i> Ekspor Excel
+                                            <i class="fas fa-file-excel text-emerald-600"></i> Unduh Excel
                                         </a>
                                     @else
-                                        <button type="button" disabled title="Ekspor tersedia setelah payroll disetujui HRD" class="{{ $secondaryButtonClasses }} cursor-not-allowed opacity-50">
-                                            <i class="fas fa-lock"></i> Excel terkunci
+                                        <button type="button" disabled title="Payroll yang dibatalkan tidak dapat diekspor" class="{{ $secondaryButtonClasses }} cursor-not-allowed opacity-50">
+                                            <i class="fas fa-lock"></i> Excel tidak tersedia
                                         </button>
                                     @endif
-                                    @if (in_array($selectedPeriod->status, ['draft', 'exported'], true))
-                                        <form method="POST" action="{{ route('admin.payroll.submit', $selectedPeriod) }}" onsubmit="return confirm('Ajukan nominal payroll ini untuk persetujuan HRD?')">
-                                            @csrf
-                                            <button class="{{ $primaryButtonClasses }}">
-                                                <i class="fas fa-paper-plane"></i> Ajukan Persetujuan
-                                            </button>
-                                        </form>
-                                    @endif
-                                    @if ($selectedPeriod->status === 'pending_approval')
-                                        <form method="POST" action="{{ route('admin.payroll.approve', $selectedPeriod) }}" onsubmit="return confirm('Setujui nominal payroll yang tersimpan?')">
-                                            @csrf
-                                            <button class="{{ $primaryButtonClasses }}">
-                                                <i class="fas fa-check"></i> Setujui Payroll
-                                            </button>
-                                        </form>
-                                    @elseif ($selectedPeriod->status === 'approved')
+                                    @if (in_array($selectedPeriod->status, ['approved', 'exported'], true))
                                         <form method="POST" action="{{ route('admin.payroll.paid', $selectedPeriod) }}" class="flex flex-wrap gap-2" onsubmit="return confirm('Konfirmasi pembayaran manual untuk seluruh periode ini?')">
                                             @csrf
                                             <input name="payment_reference" required minlength="3" maxlength="100" placeholder="No. bukti/referensi pembayaran" class="{{ $fieldClasses }} min-w-56">
@@ -253,11 +238,6 @@
                                         </form>
                                     @endif
                                 </div>
-                                @if (in_array($selectedPeriod->status, ['draft', 'exported', 'pending_approval'], true))
-                                    <p class="text-xs text-amber-700 dark:text-amber-300">
-                                        <i class="fas fa-lock mr-1"></i> File Excel baru bisa diunduh setelah payroll disetujui HRD.
-                                    </p>
-                                @endif
                                 @if (in_array($selectedPeriod->status, ['draft', 'exported', 'pending_approval', 'approved'], true))
                                     <details class="w-full sm:w-auto">
                                         <summary class="cursor-pointer text-sm font-semibold text-gray-500 hover:text-rose-700 dark:text-gray-400 dark:hover:text-rose-300 sm:text-right">

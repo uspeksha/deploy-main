@@ -76,8 +76,13 @@ class AbsensiAdminController extends Controller
      */
     private function indexFreelanceDashboard(Request $request)
     {
-        $month = $request->input('month', Carbon::now()->month);
-        $year = $request->input('year', Carbon::now()->year);
+        $filters = $request->validate([
+            'month' => ['sometimes', 'integer', 'between:1,12'],
+            'year' => ['sometimes', 'integer', 'between:2020,2100'],
+            'search_freelance' => ['sometimes', 'nullable', 'string', 'max:255'],
+        ]);
+        $month = (int) ($filters['month'] ?? Carbon::now()->month);
+        $year = (int) ($filters['year'] ?? Carbon::now()->year);
 
         $userFilter = function (Builder $query): void {
             $query->where('registration_status', 'approved')
@@ -100,6 +105,8 @@ class AbsensiAdminController extends Controller
             $absensiTodayApproved = Absensi::where('user_id', $user->id)
                 ->whereDate('check_in_at', $today)
                 ->where('status_approval', 'approved')
+                ->whereNull('parent_id')
+                ->orderByDesc('check_in_at')
                 ->first();
 
             $statusHariIni = 'Belum Absen';
@@ -125,6 +132,8 @@ class AbsensiAdminController extends Controller
                 $pendingAbsensiToday = Absensi::where('user_id', $user->id)
                     ->whereDate('check_in_at', $today)
                     ->where('status_approval', 'pending')
+                    ->whereNull('parent_id')
+                    ->orderByDesc('check_in_at')
                     ->first();
 
                 if ($pendingAbsensiToday) {
@@ -152,64 +161,60 @@ class AbsensiAdminController extends Controller
             $dailyStatusesFreelance[] = $dailyData;
         }
 
-        $searchFreelance = $request->input('search_freelance');
+        $searchFreelance = $filters['search_freelance'] ?? null;
 
         if ($searchFreelance) {
-            $dailyStatusesFreelance = array_filter($dailyStatusesFreelance, function($daily) use ($searchFreelance) {
+            $dailyStatusesFreelance = array_filter($dailyStatusesFreelance, function ($daily) use ($searchFreelance) {
                 return stripos($daily['user']->name, $searchFreelance) !== false;
             });
         }
+        $dailyStatusesFreelance = array_values($dailyStatusesFreelance);
 
-        $absensiQueryFilter = function (Builder $query) use ($userFilter) {
-            $query->whereHas('user', $userFilter);
-        };
-
-        $totalHadir = Absensi::where('status_approval', 'approved')
-            ->where('status', 'hadir')
-            ->whereYear('check_in_at', $year)
-            ->whereMonth('check_in_at', $month)
-            ->where($absensiQueryFilter)
-            ->count();
-
-        $totalIzin = Absensi::where('status_approval', 'approved')
-            ->where('status', 'izin')
-            ->whereYear('check_in_at', $year)
-            ->whereMonth('check_in_at', $month)
-            ->where($absensiQueryFilter)
-            ->count();
-
-        $totalSakit = Absensi::where('status_approval', 'approved')
-            ->where('status', 'sakit')
-            ->whereYear('check_in_at', $year)
-            ->whereMonth('check_in_at', $month)
-            ->where($absensiQueryFilter)
-            ->count();
-
-        $totalLembur = Absensi::where('status_approval', 'approved')
-            ->where('tipe', 'lembur')
-            ->whereYear('check_in_at', $year)
-            ->whereMonth('check_in_at', $month)
-            ->where($absensiQueryFilter)
-            ->count();
-
-        $totalTelat = Absensi::where('status_approval', 'approved')
+        $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $periodEnd = $periodStart->copy()->endOfMonth();
+        $attendanceBaseQuery = Absensi::query()
+            ->whereNull('parent_id')
+            ->whereNotNull('check_in_at')
+            ->where('status_approval', 'approved')
+            ->whereHas('user', $userFilter);
+        $periodAttendanceQuery = (clone $attendanceBaseQuery)
+            ->whereBetween('check_in_at', [$periodStart, $periodEnd]);
+        $statusCounts = (clone $periodAttendanceQuery)
+            ->selectRaw('status, COUNT(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status');
+        $totalHadir = (int) ($statusCounts['hadir'] ?? 0);
+        $totalIzin = (int) ($statusCounts['izin'] ?? 0);
+        $totalSakit = (int) ($statusCounts['sakit'] ?? 0);
+        $totalLainnya = (int) $statusCounts
+            ->except(['hadir', 'izin', 'sakit'])
+            ->sum();
+        $totalTelat = (clone $periodAttendanceQuery)
             ->where('status', 'hadir')
             ->where('late_minutes', '>', 0)
-            ->whereYear('check_in_at', $year)
-            ->whereMonth('check_in_at', $month)
-            ->where($absensiQueryFilter)
+            ->count();
+        $totalLembur = Absensi::query()
+            ->where('status_approval', 'approved')
+            ->where('tipe', 'lembur')
+            ->whereBetween('check_in_at', [$periodStart, $periodEnd])
+            ->whereHas('user', $userFilter)
             ->count();
 
         $grafikBulanan = [];
-        for ($m = 1; $m <= 12; $m++) {
-            $grafikBulanan[$m] = Absensi::whereYear('check_in_at', $year)
-                ->whereMonth('check_in_at', $m)
-                ->where('status_approval', 'approved')
-                ->where($absensiQueryFilter)
+        for ($chartMonth = 1; $chartMonth <= 12; $chartMonth++) {
+            $chartStart = Carbon::create($year, $chartMonth, 1)->startOfMonth();
+            $grafikBulanan[$chartMonth] = (clone $attendanceBaseQuery)
+                ->whereBetween('check_in_at', [$chartStart, $chartStart->copy()->endOfMonth()])
+                ->where('status', 'hadir')
                 ->count();
         }
 
-        usort($dailyStatusesFreelance, fn($a, $b) => $a['user']->name <=> $b['user']->name);
+        $grafikStatus = [
+            'labels' => ['Hadir', 'Izin', 'Sakit', 'Lainnya'],
+            'values' => [$totalHadir, $totalIzin, $totalSakit, $totalLainnya],
+        ];
+
+        usort($dailyStatusesFreelance, fn ($a, $b) => strcasecmp($a['user']->name, $b['user']->name));
 
         return view('admin.absensi.index', compact(
             'month',
@@ -220,7 +225,9 @@ class AbsensiAdminController extends Controller
             'totalIzin',
             'totalSakit',
             'totalLembur',
-            'totalTelat'
+            'totalTelat',
+            'totalLainnya',
+            'grafikStatus',
         ));
     }
 

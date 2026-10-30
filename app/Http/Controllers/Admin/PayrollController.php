@@ -230,7 +230,10 @@ class PayrollController extends Controller
             'payment_reference' => ['required', 'string', 'min:3', 'max:100'],
         ]);
 
-        return $this->transition($period, PayrollPeriod::STATUS_APPROVED, PayrollPeriod::STATUS_PAID, function (PayrollPeriod $lockedPeriod) use ($validated): array {
+        return $this->transition($period, [
+            PayrollPeriod::STATUS_EXPORTED,
+            PayrollPeriod::STATUS_APPROVED,
+        ], PayrollPeriod::STATUS_PAID, function (PayrollPeriod $lockedPeriod) use ($validated): array {
             $lockedPeriod->paid_by = auth()->id();
             $lockedPeriod->paid_at = now();
             $lockedPeriod->payment_reference = trim($validated['payment_reference']);
@@ -383,10 +386,25 @@ class PayrollController extends Controller
     {
         $this->ensureHrd();
         abort_unless(
-            in_array($period->status, [PayrollPeriod::STATUS_APPROVED, PayrollPeriod::STATUS_PAID], true),
+            $period->status !== PayrollPeriod::STATUS_CANCELLED,
             409,
-            'Payroll hanya dapat diekspor setelah disetujui HRD.',
+            'Payroll yang dibatalkan tidak dapat diekspor.',
         );
+
+        $period = DB::transaction(function () use ($period): PayrollPeriod {
+            $lockedPeriod = PayrollPeriod::query()->lockForUpdate()->findOrFail($period->id);
+            abort_unless(
+                $lockedPeriod->status !== PayrollPeriod::STATUS_CANCELLED,
+                409,
+                'Payroll yang dibatalkan tidak dapat diekspor.',
+            );
+            if ($lockedPeriod->status === PayrollPeriod::STATUS_DRAFT) {
+                $lockedPeriod->status = PayrollPeriod::STATUS_EXPORTED;
+                $lockedPeriod->save();
+            }
+
+            return $lockedPeriod;
+        });
 
         $response = Excel::download(
             new PayrollSummaryExport($period),
