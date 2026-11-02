@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -77,7 +78,8 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
     $this->actingAs($hrd)
         ->get(route('admin.employees.edit', $employee))
         ->assertOk()
-        ->assertSee($employee->email);
+        ->assertSee($employee->email)
+        ->assertDontSee('name="profile_photo"', false);
 
     $this->put(route('admin.employees.update', $employee), [
         'name' => 'Nama Diperbarui',
@@ -211,6 +213,44 @@ it('requires an employee to be deactivated before permanent deletion', function 
 
     expect($employee->fresh())->not->toBeNull()
         ->and($employee->fresh()->is_active)->toBeTrue();
+});
+
+it('shows the employee selected profile photo in the HRD list', function () {
+    Storage::fake('public');
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $oldPhotoPath = 'profile-photos/old-photo.jpg';
+    Storage::disk('public')->put($oldPhotoPath, 'old photo');
+    $employee = employeeManagementUser(['profile_photo_path' => $oldPhotoPath]);
+
+    Sanctum::actingAs($employee);
+    $this->postJson('/api/v1/user/profile', [
+        'profile_photo' => UploadedFile::fake()->image('profile.jpg'),
+    ])->assertOk()
+        ->assertJsonPath('message', 'Profil berhasil diperbarui.');
+
+    $newPhotoPath = $employee->fresh()->profile_photo_path;
+    expect($newPhotoPath)->not->toBe($oldPhotoPath);
+    expect($employee->fresh()->name)->toBe($employee->name)
+        ->and($employee->fresh()->id_karyawan)->toBe($employee->id_karyawan)
+        ->and($employee->fresh()->departemen)->toBe($employee->departemen);
+    expect($employee->fresh()->profile_photo_url)->toBe(Storage::disk('public')->url($newPhotoPath));
+    Storage::disk('public')->assertExists($newPhotoPath);
+    Storage::disk('public')->assertMissing($oldPhotoPath);
+
+    $this->actingAs($hrd);
+    $this->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
+        ->assertOk()
+        ->assertSee(route('admin.storage.file', ['path' => $newPhotoPath]), false);
+
+    Sanctum::actingAs($employee->fresh());
+    $this->getJson('/api/v1/user')
+        ->assertOk()
+        ->assertJsonPath('profile_photo_path', $newPhotoPath)
+        ->assertJsonPath('profile_photo_url', Storage::disk('public')->url($newPhotoPath));
+
+    $this->getJson('/api/v1/user/profile')
+        ->assertOk()
+        ->assertJsonPath('profile_photo_url', Storage::disk('public')->url($newPhotoPath));
 });
 
 it('records freelance rate changes from the employee edit form', function () {
