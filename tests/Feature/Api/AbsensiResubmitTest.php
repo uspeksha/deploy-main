@@ -61,6 +61,10 @@ it('resubmits a rejected sickness application on the same record', function () {
 it('resubmits a rejected leave application on the same record', function () {
     Storage::fake('public');
     $user = User::factory()->create();
+    $startDate = now()->addDays(7);
+    while (Absensi::isWeekend($startDate)) {
+        $startDate->addDay();
+    }
     $absensi = createRejectedResubmission($user, [
         'status' => 'izin',
         'tipe' => 'izin',
@@ -72,6 +76,8 @@ it('resubmits a rejected leave application on the same record', function () {
         [
             'file_bukti' => UploadedFile::fake()->image('bukti-baru.jpg'),
             'keterangan_izin_sakit' => 'Alasan izin yang sudah diperbaiki',
+            'start_date' => $startDate->toDateString(),
+            'end_date' => $startDate->toDateString(),
         ],
     );
 

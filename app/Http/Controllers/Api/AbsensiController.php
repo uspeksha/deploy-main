@@ -553,6 +553,19 @@ public function meAbsensi(Request $request)
         return $this->handlePengajuanIzinSakit($request, 'izin');
     }
 
+    private function leaveNoticePeriodError(Carbon $startDate): ?\Illuminate\Http\JsonResponse
+    {
+        $minimumStartDate = Carbon::today()->addDays(7)->startOfDay();
+        if ($startDate->copy()->startOfDay()->greaterThanOrEqualTo($minimumStartDate)) {
+            return null;
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Pengajuan izin/cuti harus diajukan minimal H-7. Tanggal mulai paling cepat yang dapat dipilih adalah '.$minimumStartDate->format('d/m/Y').'.',
+        ], 422);
+    }
+
     
     private function handlePengajuanIzinSakit(Request $request, string $defaultStatus)
     {
@@ -572,6 +585,17 @@ public function meAbsensi(Request $request)
             $status = $request->status ?? $defaultStatus;
             $submissionType = $request->catatan_admin ?? null; 
             $jamPulangRencana = $request->jam_pulang_rencana;
+
+            if ($status === 'izin' && $submissionType !== 'izin_pulang_cepat') {
+                $leaveStartDate = $request->start_date
+                    ? Carbon::parse($request->start_date)
+                    : Carbon::today();
+                $noticePeriodError = $this->leaveNoticePeriodError($leaveStartDate);
+                if ($noticePeriodError) {
+                    DB::rollBack();
+                    return $noticePeriodError;
+                }
+            }
 
             
             if ($status !== 'lembur' && $submissionType !== 'izin_pulang_cepat') {
@@ -1209,6 +1233,14 @@ public function meAbsensi(Request $request)
             
             $startDateInput = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::parse($absensi->check_in_at)->startOfDay();
             $endDateInput = $request->end_date ? Carbon::parse($request->end_date)->startOfDay() : ($absensi->end_date ? Carbon::parse($absensi->end_date)->startOfDay() : $startDateInput->copy());
+
+            if ($type === 'izin' && $absensi->submission_type !== 'izin_pulang_cepat') {
+                $noticePeriodError = $this->leaveNoticePeriodError($startDateInput);
+                if ($noticePeriodError) {
+                    DB::rollBack();
+                    return $noticePeriodError;
+                }
+            }
 
             
             $calendarCutiTypes = ['cuti_melahirkan', 'cuti_keguguran', 'unpaid_leave'];
