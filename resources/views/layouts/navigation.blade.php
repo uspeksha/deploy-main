@@ -1,6 +1,6 @@
 <a href="{{ route('admin.absensi.index') }}"
    class="nav-item {{ request()->routeIs('admin.absensi.index', 'admin.absensi.freelance') ? 'active' : '' }}">
-    <div class="nav-icon"><i class="fas fa-grid-2"></i></div>
+    <div class="nav-icon"><i class="fas fa-house"></i></div>
     <span>Dashboard</span>
 </a>
 

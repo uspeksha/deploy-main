@@ -37,7 +37,7 @@ class AuthController extends Controller
                 Auth::logout();
 
                 $message = match (true) {
-                    ! $user->is_active => 'Akun Anda nonaktif. Silakan hubungi HRD.',
+                    ! $user->is_active => 'Maaf, akun Anda sudah dinonaktifkan dan tidak dapat melakukan absensi. Silakan hubungi HRD jika merasa ini keliru.',
                     $user->registration_status === 'rejected' => 'Pendaftaran akun Anda ditolak. Silakan hubungi HRD.',
                     default => 'Akun Anda masih menunggu persetujuan HRD.',
                 };

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Models\Holiday;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,10 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertSee($employee->name)
         ->assertSee($employee->email)
         ->assertSee('Aktif')
-        ->assertDontSee($inactiveEmployee->name)
+        ->assertSee($inactiveEmployee->name)
+        ->assertSee('Nonaktif')
+        ->assertSee('Hapus permanen')
+        ->assertSee('Nonaktifkan dulu untuk menghapus')
         ->assertSee('Buat akun karyawan');
 
     $this->get(route('admin.absensi.approval.hrd', [
@@ -54,6 +58,14 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertOk()
         ->assertSee($inactiveEmployee->name)
         ->assertSee('Hapus permanen');
+
+    $this->get(route('admin.absensi.approval.hrd', [
+        'section' => 'employees',
+        'employee_status' => 'active',
+    ]))
+        ->assertOk()
+        ->assertSee($employee->name)
+        ->assertDontSee($inactiveEmployee->name);
 });
 
 it('shows employee profile photos in the HRD employee list', function () {
@@ -112,7 +124,7 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
 it('deactivates without deleting employee data or attendance history', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
     $employee = employeeManagementUser();
-    $employee->createToken('test-device');
+    $token = $employee->createToken('test-device');
 
     $this->actingAs($hrd)
         ->delete(route('admin.employees.deactivate', $employee))
@@ -122,20 +134,43 @@ it('deactivates without deleting employee data or attendance history', function 
     expect($employee->fresh())->not->toBeNull()
         ->and($employee->fresh()->is_active)->toBeFalse()
         ->and($employee->fresh()->email)->toBe($employee->email)
-        ->and($employee->tokens()->count())->toBe(0);
+        ->and($employee->tokens()->count())->toBe(1);
 
     $this->postJson('/api/v1/login', [
         'email' => $employee->email,
         'password' => 'password',
     ])->assertForbidden()
-        ->assertJsonPath('message', 'Akun Anda nonaktif. Silakan hubungi HRD.');
+        ->assertJsonPath('message', 'Maaf, akun Anda sudah dinonaktifkan dan tidak dapat melakukan absensi. Silakan hubungi HRD jika merasa ini keliru.');
 
-    Sanctum::actingAs($employee->fresh());
-    $this->postJson('/api/v1/absensi/masuk')->assertForbidden();
+    Holiday::create([
+        'holiday_date' => today()->toDateString(),
+        'name' => 'Hari Libur Uji',
+        'is_national' => true,
+    ]);
+
+    $this->withToken($token->plainTextToken)
+        ->postJson('/api/v1/absensi/masuk')
+        ->assertForbidden()
+        ->assertJsonPath('message', 'Maaf, akun Anda sudah dinonaktifkan dan tidak dapat melakukan absensi. Silakan hubungi HRD jika merasa ini keliru.');
+
+    expect(DB::table('absensis')->where('user_id', $employee->id)->exists())->toBeFalse();
 
     $this->actingAs($employee->fresh())
         ->get('/profile')
         ->assertRedirect(route('login'));
+
+    $this->actingAs($hrd)
+        ->patch(route('admin.employees.activate', $employee))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($employee->fresh()->is_active)->toBeTrue()
+        ->and($employee->tokens()->count())->toBe(0);
+
+    Auth::forgetGuards();
+    $this->withToken($token->plainTextToken)
+        ->getJson('/api/v1/user')
+        ->assertUnauthorized();
 });
 
 it('permanently deletes inactive employees and their attendance and payroll history', function () {

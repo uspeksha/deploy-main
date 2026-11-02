@@ -61,6 +61,32 @@ it('shows only freelance employees on the monthly attendance recap', function ()
         ->assertDontSee('Karyawan Magang');
 });
 
+it('excludes inactive freelance accounts and their attendance from the active dashboard', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $activeFreelance = User::factory()->create([
+        'name' => 'Freelance Aktif Dashboard',
+        'role' => 'user',
+        'employment_type' => 'freelance',
+        'registration_status' => 'approved',
+        'is_active' => true,
+    ]);
+    $inactiveFreelance = User::factory()->create([
+        'name' => 'Freelance Nonaktif Dashboard',
+        'role' => 'user',
+        'employment_type' => 'freelance',
+        'registration_status' => 'approved',
+        'is_active' => false,
+    ]);
+    createAttendanceDetailRecord($inactiveFreelance, now()->toDateString());
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertSee($activeFreelance->name)
+        ->assertDontSee($inactiveFreelance->name)
+        ->assertViewHas('totalHadir', 0);
+});
+
 it('applies a valid custom date range to attendance details and their summary', function () {
     $hrd = User::factory()->create([
         'role' => 'hrd',

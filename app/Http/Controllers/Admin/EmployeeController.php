@@ -131,7 +131,6 @@ class EmployeeController extends Controller
 
         DB::transaction(function () use ($user): void {
             $user->update(['is_active' => false]);
-            $user->tokens()->delete();
             DB::table('sessions')->where('user_id', $user->id)->delete();
         });
 
@@ -149,7 +148,11 @@ class EmployeeController extends Controller
             return back()->with('error', 'Akun belum disetujui. Kirim ulang akses melalui halaman Data Karyawan terlebih dahulu.');
         }
 
-        $user->update(['is_active' => true]);
+        DB::transaction(function () use ($user): void {
+            $user->tokens()->delete();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+            $user->update(['is_active' => true]);
+        });
         ActivityLog::log('Reactivate Employee', "User: {$user->name}", 'HRD mengaktifkan kembali akun karyawan.');
 
         return back()->with('success', "Akun {$user->name} aktif kembali.");

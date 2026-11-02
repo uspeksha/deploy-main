@@ -101,13 +101,13 @@
             <div class="flex flex-col gap-4 border-b border-gray-200 p-5 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Daftar karyawan</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Akun nonaktif tidak bisa login atau melakukan absensi. Data tetap tersimpan sampai dihapus permanen.</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Semua karyawan, termasuk akun nonaktif, ditampilkan. Nonaktifkan untuk memblokir login tanpa menghapus riwayat; aktifkan kembali kapan saja. Hapus permanen menghapus akun beserta riwayat absensi dan payroll.</p>
                 </div>
                 <form method="GET" action="{{ route('admin.employees.index') }}" class="flex gap-2">
                     <select name="employee_status" class="ui-control min-w-36">
+                        <option value="all" @selected($employeeStatus === 'all')>Semua status</option>
                         <option value="active" @selected($employeeStatus === 'active')>Aktif & menunggu</option>
                         <option value="inactive" @selected($employeeStatus === 'inactive')>Nonaktif</option>
-                        <option value="all" @selected($employeeStatus === 'all')>Semua status</option>
                     </select>
                     <input type="search" name="employee_search" value="{{ request('employee_search') }}" placeholder="Cari nama, email, ID"
                            class="ui-control min-w-0 sm:w-64">
@@ -174,8 +174,8 @@
                                         <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Nonaktif</span>
                                     @endif
                                 </td>
-                                <td class="whitespace-nowrap px-5 py-4 text-right">
-                                    <div class="inline-flex items-center gap-2">
+                                <td class="px-5 py-4 text-right">
+                                    <div class="flex flex-wrap items-center justify-end gap-2">
                                         <a href="{{ route('admin.employees.edit', $employee) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
                                             <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', $employee) }}">
@@ -195,14 +195,22 @@
                                                 <button type="submit" class="ui-button-primary !px-3 !py-2">Aktifkan</button>
                                             </form>
                                         @endif
-                                        @unless ($employee->is_active)
+                                        @if (! $employee->is_active)
                                             <form method="POST" action="{{ route('admin.employees.destroy', $employee) }}"
                                                   onsubmit="return confirm('HAPUS PERMANEN akun ini, seluruh riwayat absensi, dan data payroll-nya? Tindakan ini tidak dapat dibatalkan.')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="ui-button-danger !px-3 !py-2">Hapus permanen</button>
                                             </form>
-                                        @endunless
+                                        @else
+                                            <div class="text-right">
+                                                <button type="button" disabled title="Nonaktifkan akun terlebih dahulu"
+                                                        class="ui-button-danger !px-3 !py-2 cursor-not-allowed opacity-50">
+                                                    Hapus permanen
+                                                </button>
+                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Nonaktifkan dulu untuk menghapus</p>
+                                            </div>
+                                        @endif
                                     </div>
                                 </td>
                             </tr>

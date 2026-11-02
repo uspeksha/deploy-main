@@ -41,9 +41,8 @@
             <div class="flex flex-col h-full py-6">
                 <!-- Brand -->
                 <div class="px-8 mb-8">
-                    <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
-                        <img src="{{ asset('images/followme-indonesia.png') }}" alt="Followme Indonesia" class="h-10 w-10 rounded-xl object-cover shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-105">
-                        <span class="text-xl font-bold tracking-tight">Followme</span>
+                    <a href="{{ route('dashboard') }}" class="inline-flex group">
+                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Logo Followme Indonesia" class="w-48 max-w-full h-auto rounded-xl object-contain shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-[1.03]">
                     </a>
                 </div>
 

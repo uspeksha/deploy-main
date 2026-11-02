@@ -16,7 +16,7 @@ class EnsureActiveAccount
         if ($user && $user->role === 'user' && $user->is_active === false) {
             if ($request->expectsJson() || $request->is('api/*')) {
                 return response()->json([
-                    'message' => 'Akun Anda nonaktif. Silakan hubungi HRD.',
+                    'message' => 'Maaf, akun Anda sudah dinonaktifkan dan tidak dapat melakukan absensi. Silakan hubungi HRD jika merasa ini keliru.',
                 ], 403);
             }
 
@@ -24,7 +24,10 @@ class EnsureActiveAccount
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
-            return redirect()->route('login')->with('error', 'Akun Anda nonaktif. Silakan hubungi HRD.');
+            return redirect()->route('login')->with(
+                'error',
+                'Maaf, akun Anda sudah dinonaktifkan dan tidak dapat melakukan absensi. Silakan hubungi HRD jika merasa ini keliru.',
+            );
         }
 
         return $next($request);

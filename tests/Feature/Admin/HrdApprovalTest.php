@@ -164,6 +164,7 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
     $freelanceEmployee = null;
     foreach ([
         ['name' => 'Karyawan Freelance Belum Absen', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-001'],
+        ['name' => 'Karyawan Freelance Nonaktif', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-INACTIVE', 'is_active' => false],
         ['name' => 'Karyawan Organik Tersembunyi', 'employment_type' => 'organik', 'id_karyawan' => 'ORG-001'],
         ['name' => 'Karyawan Magang Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'MG-AMB-001'],
         ['name' => 'Karyawan Borongan Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'CS-AMB-001'],
@@ -196,6 +197,13 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         'check_in_at' => $attendanceDate->copy()->addDay()->setTime(8, 0),
         'status_approval' => 'approved',
     ]);
+    $inactiveFreelance = User::where('name', 'Karyawan Freelance Nonaktif')->firstOrFail();
+    Absensi::create([
+        'user_id' => $inactiveFreelance->id,
+        'status' => 'hadir',
+        'check_in_at' => $attendanceDate->copy()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
 
     $this->actingAs($hrd)
         ->get('/dashboard')
@@ -203,7 +211,9 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
 
     $this->get(route('admin.absensi.index'))
         ->assertOk()
+        ->assertViewHas('totalHadir', 1)
         ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Freelance Nonaktif')
         ->assertDontSee('Karyawan Organik Tersembunyi')
         ->assertDontSee('Karyawan Magang Tersembunyi')
         ->assertDontSee('Karyawan Borongan Tersembunyi')
@@ -225,6 +235,7 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
     $this->get(route('admin.absensi.freelance'))
         ->assertOk()
         ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Freelance Nonaktif')
         ->assertDontSee('Karyawan Organik Tersembunyi');
 });
 

@@ -86,6 +86,7 @@ class AbsensiAdminController extends Controller
 
         $userFilter = function (Builder $query): void {
             $query->where('registration_status', 'approved')
+                ->where('is_active', true)
                 ->where('employment_type', 'freelance')
                 ->where('role', 'user')
                 ->where(function (Builder $query) {

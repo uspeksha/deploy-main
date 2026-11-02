@@ -7,9 +7,8 @@
         <div class="login-layout">
             <section class="login-card">
                 <div class="mb-12">
-                    <a href="/" class="flex items-center gap-3 group w-fit">
-                        <img src="{{ asset('images/followme-indonesia.png') }}" alt="Followme Indonesia" class="h-12 w-12 rounded-2xl object-cover shadow-xl shadow-emerald-500/20 transition-transform group-hover:scale-105">
-                        <span class="text-2xl font-black tracking-tighter">Followme</span>
+                    <a href="/" class="inline-flex w-fit group">
+                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Logo Followme Indonesia" class="w-52 max-w-full h-auto rounded-xl object-contain shadow-xl shadow-emerald-500/20 transition-transform group-hover:scale-[1.03]">
                     </a>
                 </div>
 

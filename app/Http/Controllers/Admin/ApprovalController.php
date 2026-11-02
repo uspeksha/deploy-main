@@ -64,9 +64,9 @@ class ApprovalController extends Controller
         $this->ensureHrdApprover();
         $status = $request->input('status', 'pending');
         $submissions = $this->getSubmissions($request, $status);
-        $employeeStatus = $request->input('employee_status', 'active');
+        $employeeStatus = $request->input('employee_status', 'all');
         if (! in_array($employeeStatus, ['active', 'inactive', 'all'], true)) {
-            $employeeStatus = 'active';
+            $employeeStatus = 'all';
         }
         $employees = User::query()
             ->where('role', 'user')
