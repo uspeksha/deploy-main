@@ -35,7 +35,7 @@
         usort($freelanceData, fn ($a, $b) => $a['user']->name <=> $b['user']->name);
         $totalGajiFreelance = array_sum(array_column($freelanceData, 'total_gaji'));
         $isPkl = auth()->user()->role === 'pkl';
-        $columnCount = $isPkl ? 9 : 13;
+        $columnCount = $isPkl ? 8 : 12;
     @endphp
 
     <div class="ui-page">
@@ -137,7 +137,6 @@
                                 <th class="px-4 py-3 text-right">Gaji OT</th>
                                 <th class="px-4 py-3 text-right">Total Gaji</th>
                             @endunless
-                            <th class="px-4 py-3 text-center">Izin Keluar</th>
                             <th class="px-4 py-3 text-center">Aksi</th>
                         </tr>
                     </thead>
@@ -160,12 +159,6 @@
                                     <td class="whitespace-nowrap px-4 py-3 text-right">Rp {{ number_format($data['total_gaji_lembur'] ?? 0, 0, ',', '.') }}</td>
                                     <td class="whitespace-nowrap px-4 py-3 text-right font-semibold">Rp {{ number_format($data['total_gaji'] ?? 0, 0, ',', '.') }}</td>
                                 @endunless
-                                <td class="px-4 py-3 text-center">
-                                    {{ $data['total_izin_keluar'] ?? 0 }}x
-                                    @if (($data['total_izin_keluar_ditolak'] ?? 0) > 0)
-                                        <div class="text-xs text-rose-600 dark:text-rose-400">{{ $data['total_izin_keluar_ditolak'] }} ditolak</div>
-                                    @endif
-                                </td>
                                 <td class="px-4 py-3 text-center">
                                     <a href="{{ route('admin.absensi.user', $data['user']->id) }}" class="ui-button-secondary min-h-9 px-3 py-1.5" aria-label="Lihat detail {{ $data['user']->name }}">
                                         <i class="fas fa-eye"></i> Detail

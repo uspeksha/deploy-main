@@ -274,7 +274,7 @@ class SlipGajiExport implements WithEvents
                 $row += 2;
 
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", "HRGA Division");
+                $sheet->setCellValue("A{$row}", "HRD Division");
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]

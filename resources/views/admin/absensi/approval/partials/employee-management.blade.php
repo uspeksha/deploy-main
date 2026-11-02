@@ -101,9 +101,14 @@
             <div class="flex flex-col gap-4 border-b border-gray-200 p-5 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Daftar karyawan</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Nonaktifkan akun tanpa menghapus riwayat absensi atau payroll.</p>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">Akun nonaktif tidak bisa login atau melakukan absensi. Data tetap tersimpan sampai dihapus permanen.</p>
                 </div>
                 <form method="GET" action="{{ route('admin.employees.index') }}" class="flex gap-2">
+                    <select name="employee_status" class="ui-control min-w-36">
+                        <option value="active" @selected($employeeStatus === 'active')>Aktif & menunggu</option>
+                        <option value="inactive" @selected($employeeStatus === 'inactive')>Nonaktif</option>
+                        <option value="all" @selected($employeeStatus === 'all')>Semua status</option>
+                    </select>
                     <input type="search" name="employee_search" value="{{ request('employee_search') }}" placeholder="Cari nama, email, ID"
                            class="ui-control min-w-0 sm:w-64">
                     <button type="submit" class="ui-button-secondary">Cari</button>
@@ -126,8 +131,22 @@
                         @forelse ($employees as $employee)
                             <tr>
                                 <td class="whitespace-nowrap px-5 py-4">
-                                    <div class="font-semibold text-gray-900 dark:text-white">{{ $employee->name }}</div>
-                                    <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $employee->id_karyawan }}</div>
+                                    <div class="flex items-center gap-3">
+                                        @if ($employee->profile_photo_path)
+                                            <img src="{{ route('admin.storage.file', ['path' => $employee->profile_photo_path]) }}"
+                                                 alt="Foto profil {{ $employee->name }}"
+                                                 class="h-11 w-11 rounded-full border border-gray-200 object-cover dark:border-gray-700">
+                                        @else
+                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300"
+                                                 aria-label="Belum ada foto profil">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        @endif
+                                        <div>
+                                            <div class="font-semibold text-gray-900 dark:text-white">{{ $employee->name }}</div>
+                                            <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $employee->id_karyawan }}</div>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="px-5 py-4">
                                     <div class="text-sm text-gray-800 dark:text-gray-200">{{ $employee->email }}</div>
@@ -176,6 +195,14 @@
                                                 <button type="submit" class="ui-button-primary !px-3 !py-2">Aktifkan</button>
                                             </form>
                                         @endif
+                                        @unless ($employee->is_active)
+                                            <form method="POST" action="{{ route('admin.employees.destroy', $employee) }}"
+                                                  onsubmit="return confirm('HAPUS PERMANEN akun ini, seluruh riwayat absensi, dan data payroll-nya? Tindakan ini tidak dapat dibatalkan.')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="ui-button-danger !px-3 !py-2">Hapus permanen</button>
+                                            </form>
+                                        @endunless
                                     </div>
                                 </td>
                             </tr>

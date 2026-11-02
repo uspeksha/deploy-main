@@ -52,7 +52,7 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
     // PROTECTED ROUTES (Harus Login)
     // ==========================================
 
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', 'active.account'])->group(function () {
         
         // ========== AUTH & PROFILE ==========
         Route::post('/logout', [AuthController::class, 'logout']);
@@ -77,9 +77,6 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
             Route::post('/absensi/telat', [AbsensiController::class, 'pengajuanTelat']);
             Route::post('/absensi/scheduled-lembur', [ScheduledLemburController::class, 'store']);
             
-            // IZIN KELUAR API
-            Route::post('/izin-keluar/start', [\App\Http\Controllers\Api\IzinKeluarApiController::class, 'startIzin']);
-            Route::post('/izin-keluar/end', [\App\Http\Controllers\Api\IzinKeluarApiController::class, 'endIzin']);
         });
         
         Route::get('/absensi/scheduled-lembur', [ScheduledLemburController::class, 'index']);
@@ -109,4 +106,3 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
     });
 
 });
-

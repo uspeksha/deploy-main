@@ -34,7 +34,7 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <span class="px-2 py-1 text-xs rounded-full 
-                                            @if(in_array(($log->user->role ?? ''), ['super_admin', 'manager', 'supervisor', 'hrga'])) bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300
+                                            @if(($log->user->role ?? '') === 'hrd') bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-300
                                             @else bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300 @endif
                                         ">
                                             {{ strtoupper($log->user->role ?? 'UNKNOWN') }}

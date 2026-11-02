@@ -87,14 +87,14 @@ class AbsensiAdminController extends Controller
         $userFilter = function (Builder $query): void {
             $query->where('registration_status', 'approved')
                 ->where('employment_type', 'freelance')
+                ->where('role', 'user')
                 ->where(function (Builder $query) {
                     $query->whereNull('id_karyawan')
                         ->orWhere(function (Builder $query) {
                             $query->where('id_karyawan', 'not like', 'CS-AMB%')
                                 ->where('id_karyawan', 'not like', 'MG-AMB%');
                         });
-                })
-                ->whereNotIn('role', ['supervisor', 'manager', 'hrga', 'hrd', 'admin', 'super_admin', 'pkl']);
+                });
         };
 
         $today = Carbon::today();
@@ -141,7 +141,6 @@ class AbsensiAdminController extends Controller
                     if ($pendingAbsensiToday->tipe) {
                         $statusHariIni .= ' (' . ucfirst($pendingAbsensiToday->tipe) . ')';
                     }
-                    $statusHariIni .= ' (Pending Lvl: ' . $pendingAbsensiToday->current_approval_level . ')';
                     $checkInTime = $pendingAbsensiToday->check_in_at;
                     $fotoCheckIn = $pendingAbsensiToday->foto_masuk;
                     $lateMinutes = $pendingAbsensiToday->late_minutes ?? 0;
@@ -367,14 +366,11 @@ class AbsensiAdminController extends Controller
     }
 
     $users = User::where('registration_status', 'approved')
-        ->whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'hrd', 'pkl'])
+        ->where('role', 'user')
         ->get()
         ->filter(fn (User $user) => $this->detectKategori($user) === 'freelance')
         ->values();
     $recapData = [];
-    $izinKeluarMonthStart = Carbon::create($year, $month, 1)->startOfMonth();
-    $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
-
     foreach ($users as $user) {
         // ✅ AMBIL SEMUA DATA (APPROVED + REJECTED)
         $absensiUser = Absensi::where('user_id', $user->id)
@@ -421,10 +417,6 @@ class AbsensiAdminController extends Controller
         $totalPotongan = $approvedAbsensi->sum('late_penalty') ?? 0;
         $kategori = $this->detectKategori($user);
 
-        $izinKeluarUser = \App\Models\IzinKeluar::where('user_id', $user->id)
-            ->whereBetween('waktu_keluar', [$izinKeluarMonthStart, $izinKeluarMonthEnd])
-            ->get();
-
         $totalHadir = $approvedAbsensi->where('status', 'hadir')->count();
         $totalIzin = $approvedAbsensi->where('status', 'izin')->count();
         $totalSakit = $approvedAbsensi->where('status', 'sakit')->count();
@@ -456,8 +448,6 @@ class AbsensiAdminController extends Controller
             'total_gaji' => $totalGaji,
             'total_potongan' => $totalPotongan,
             'keterangan_adj' => $approvedAbsensi->pluck('adjustment_reason')->filter()->unique()->implode('; '),
-            'total_izin_keluar' => $izinKeluarUser->count(),
-            'total_izin_keluar_ditolak' => $izinKeluarUser->where('status_approval', 'rejected')->count(),
         ];
     }
 
@@ -504,12 +494,9 @@ class AbsensiAdminController extends Controller
         }
 
         $users = User::where('registration_status', 'approved')
-            ->whereNotIn('role', ['super_admin', 'admin', 'manager', 'supervisor', 'hrga', 'hrd', 'pkl'])
+            ->where('role', 'user')
             ->get();
         $recapData = [];
-        $izinKeluarMonthStart = Carbon::create($year, $month, 1)->startOfMonth();
-        $izinKeluarMonthEnd = Carbon::create($year, $month, 1)->endOfMonth();
-
         foreach ($users as $user) {
             // Main payroll totals are based on parent attendance records only.
             $absensiUser = Absensi::where('user_id', $user->id)
@@ -546,10 +533,6 @@ class AbsensiAdminController extends Controller
             
             $kategori = $this->detectKategori($user);
 
-            $izinKeluarUser = \App\Models\IzinKeluar::where('user_id', $user->id)
-                ->whereBetween('waktu_keluar', [$izinKeluarMonthStart, $izinKeluarMonthEnd])
-                ->get();
-
             $recapData[] = [
                 'user' => $user,
                 'kategori' => $kategori,
@@ -570,8 +553,6 @@ class AbsensiAdminController extends Controller
                 'total_gaji' => $totalGaji,
                 'total_potongan' => $totalPotongan,
                 'keterangan_adj' => $approvedAbsensi->pluck('adjustment_reason')->filter()->unique()->implode('; '),
-                'total_izin_keluar' => $izinKeluarUser->count(),
-                'total_izin_keluar_ditolak' => $izinKeluarUser->where('status_approval', 'rejected')->count(),
                 'total_absensi' => $absensiUser->count(),
             ];
         }

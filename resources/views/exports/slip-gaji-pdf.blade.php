@@ -224,7 +224,7 @@
         <div class="footer">
             <div class="quote">"Keep Up The Good Work"</div>
             <div class="signature">
-                <div style="font-weight: bold;">HRGA Division</div>
+                <div style="font-weight: bold;">HRD Division</div>
                 <div style="font-weight: bold; margin-top: 5px;">PT. FOLLOWME</div>
             </div>
         </div>

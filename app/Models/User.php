@@ -124,7 +124,7 @@ public static function cutiYangMemotong(): array
 
     public function isAnyAdmin(): bool
     {
-        return in_array($this->role, ['hrd', 'hrga']);
+        return $this->role === 'hrd';
     }
 
     /**

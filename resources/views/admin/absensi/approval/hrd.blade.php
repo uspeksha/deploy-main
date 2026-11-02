@@ -62,7 +62,6 @@
 
             @if ($status === 'pending')
                 @include('admin.absensi.approval.partials.scheduled-lembur-table')
-                @include('admin.absensi.approval.partials.izin-keluar-table')
             @endif
         </section>
     </div>

@@ -7,6 +7,7 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -128,7 +129,12 @@ class EmployeeController extends Controller
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
 
-        $user->update(['is_active' => false]);
+        DB::transaction(function () use ($user): void {
+            $user->update(['is_active' => false]);
+            $user->tokens()->delete();
+            DB::table('sessions')->where('user_id', $user->id)->delete();
+        });
+
         ActivityLog::log('Deactivate Employee', "User: {$user->name}", 'Akun dinonaktifkan; data dan riwayat tetap disimpan.');
 
         return back()->with('success', "Akun {$user->name} dinonaktifkan. Data dan riwayatnya tetap tersimpan.");
@@ -147,5 +153,30 @@ class EmployeeController extends Controller
         ActivityLog::log('Reactivate Employee', "User: {$user->name}", 'HRD mengaktifkan kembali akun karyawan.');
 
         return back()->with('success', "Akun {$user->name} aktif kembali.");
+    }
+
+    public function destroy(User $user)
+    {
+        $this->ensureHrd();
+        abort_unless($user->role === 'user', 404);
+
+        if ($user->is_active) {
+            return back()->with('error', 'Nonaktifkan akun terlebih dahulu sebelum menghapusnya secara permanen.');
+        }
+
+        $employeeName = $user->name;
+        $employeeId = $user->id;
+
+        DB::transaction(function () use ($user, $employeeId): void {
+            $user->tokens()->delete();
+            DB::table('sessions')->where('user_id', $employeeId)->delete();
+            DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+            DB::table('payroll_items')->where('user_id', $employeeId)->delete();
+            $user->delete();
+        });
+
+        ActivityLog::log('Permanently Delete Employee', 'Employee account and related records permanently deleted.', 'HRD menghapus permanen akun dan riwayat terkait.');
+
+        return back()->with('success', "Akun {$employeeName} beserta riwayat absensi dan payroll berhasil dihapus permanen.");
     }
 }

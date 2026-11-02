@@ -12,6 +12,7 @@ Route::get('/', function () {
 
 Route::middleware([
     'auth',
+    'active.account',
     'admin',
     \App\Http\Middleware\ActivityLogMiddleware::class,
     'super_admin',
@@ -33,15 +34,15 @@ Route::middleware([
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.absensi.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'active.account', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.account'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'active.account', 'admin', \App\Http\Middleware\ActivityLogMiddleware::class])->prefix('admin')->group(function () {
 
     Route::prefix('absensi')->group(function () {
 
@@ -85,17 +86,9 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
         Route::post('/sync', [\App\Http\Controllers\Admin\HolidayController::class, 'sync'])->name('admin.holidays.sync');
     });
 
-    // IZIN KELUAR
-    Route::prefix('izin-keluar')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\IzinKeluarAdminController::class, 'index'])->name('admin.izin-keluar.index');
-    });
-
     // APPROVAL ABSENSI
     Route::prefix('approval')->group(function () {
         Route::get('/hrd', [ApprovalController::class, 'hrd'])->name('admin.absensi.approval.hrd');
-        Route::redirect('/supervisor', '/admin/approval/hrd');
-        Route::redirect('/manager', '/admin/approval/hrd');
-        Route::redirect('/hrga', '/admin/approval/hrd');
 
         Route::post('/{absensi}/{action}', [ApprovalController::class, 'handleAction'])
             ->name('admin.absensi.approval.action')
@@ -105,9 +98,6 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
 
         Route::post('/scheduled-lembur/{id}/{action}', [ApprovalController::class, 'handleScheduledLemburAction'])
             ->name('admin.absensi.approval.scheduled-lembur.action')
-            ->where('action', 'approve|reject');
-        Route::post('/izin-keluar/{id}/{action}', [ApprovalController::class, 'handleIzinKeluarAction'])
-            ->name('admin.absensi.approval.izin-keluar.action')
             ->where('action', 'approve|reject');
         Route::post('/employees/{user}/salary-rates', [ApprovalController::class, 'updateEmployeeSalaryRate'])
             ->name('admin.absensi.approval.employees.salary-rates.store');
@@ -121,6 +111,7 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
     Route::put('/employees/{user}', [EmployeeController::class, 'update'])->name('admin.employees.update');
     Route::patch('/employees/{user}/activate', [EmployeeController::class, 'activate'])->name('admin.employees.activate');
     Route::delete('/employees/{user}', [EmployeeController::class, 'deactivate'])->name('admin.employees.deactivate');
+    Route::delete('/employees/{user}/permanent', [EmployeeController::class, 'destroy'])->name('admin.employees.destroy');
 
     // --- SECURE STORAGE FILE STREAM ROUTE ---
     Route::get('/storage-file/{path}', function ($path) {

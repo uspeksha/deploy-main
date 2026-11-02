@@ -36,10 +36,14 @@ class AuthController extends Controller
             if ($user->registration_status !== 'approved' || !$user->is_active) {
                 Auth::logout();
 
+                $message = match (true) {
+                    ! $user->is_active => 'Akun Anda nonaktif. Silakan hubungi HRD.',
+                    $user->registration_status === 'rejected' => 'Pendaftaran akun Anda ditolak. Silakan hubungi HRD.',
+                    default => 'Akun Anda masih menunggu persetujuan HRD.',
+                };
+
                 return response()->json([
-                    'message' => $user->registration_status === 'rejected'
-                        ? 'Pendaftaran akun Anda ditolak. Silakan hubungi HRD.'
-                        : 'Akun Anda masih menunggu persetujuan HRD.',
+                    'message' => $message,
                 ], 403);
             }
 

@@ -348,66 +348,6 @@ class AbsensiController extends Controller
             }
 
             
-            $hasPelanggaran = \App\Models\IzinKeluar::where('user_id', $user->id)
-                ->whereBetween('waktu_keluar', [$today->copy()->startOfDay(), $today->copy()->endOfDay()])
-                ->where('is_pelanggaran', true)
-                ->exists();
-
-            if ($hasPelanggaran) {
-                // Stripping salary jika freelance/borongan sudah dilakukan sewaktu 'endIzin' tapi untuk amannya kita juga tolak checkout ini
-                return response()->json([
-                    'message' => 'Absen Pulang Ditolak! Anda melanggar aturan jam keluar perusahaan hari ini.'
-                ], 403);
-            }
-
-            
-            $activeIzin = \App\Models\IzinKeluar::where('user_id', $user->id)
-                ->where('status_izin', 'berjalan')
-                ->first();
-
-            if ($activeIzin) {
-                if ($activeIzin->tipe_izin === 'tugas_kantor') {
-                    
-                    $activeIzin->update([
-                        'waktu_kembali' => now(),
-                        'status_izin' => 'selesai',
-                        'keterangan_kembali' => 'Ditutup Otomatis oleh Sistem saat Absen Pulang dari luar kantor.'
-                    ]);
-                } else {
-                    
-                    $diffMinutes = Carbon::parse($activeIzin->waktu_keluar)->diffInMinutes(now());
-
-                    if ($diffMinutes > 120) {
-                        
-                        $activeIzin->update([
-                            'waktu_kembali' => now(),
-                            'status_izin' => 'selesai',
-                            'keterangan_kembali' => 'Ditutup Otomatis karena melanggar/melebihi batas 2 jam saat mau absen pulang.',
-                            'is_pelanggaran' => true
-                        ]);
-
-                        $kategori = $user->kategori_absensi;
-
-                        if (in_array($kategori, ['freelance', 'borongan'])) {
-                            $absensi->update([
-                                'base_salary' => 0,
-                                'final_salary' => 0,
-                                'late_penalty' => 0
-                            ]);
-                        }
-
-                        return response()->json([
-                            'message' => 'Absen Pulang Ditolak karena Izin Keluar Mendesak telah terlewat lebih dari 2 jam (Pelanggaran Otomatis).'
-                        ], 403);
-                    } else {
-                        
-                        return response()->json([
-                            'message' => 'Harap lampirkan bukti foto Izin Keluar terlebih dahulu untuk menyelesaikan sesi izin, baru Anda dapat melakukan absensi pulang.'
-                        ], 400);
-                    }
-                }
-            }
-
             $fotoPath = $request->file('foto')->store('absensi_foto', 'public');
             $fotoPath2 = $request->hasFile('foto_2') ? $request->file('foto_2')->store('absensi_foto', 'public') : null;
             $fotoPath3 = $request->hasFile('foto_3') ? $request->file('foto_3')->store('absensi_foto', 'public') : null;
@@ -1223,15 +1163,6 @@ public function meAbsensi(Request $request)
         }
 
         
-        $izinKeluar = \App\Models\IzinKeluar::find($id);
-        if ($izinKeluar) {
-            if ($izinKeluar->user_id !== Auth::id()) {
-                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
-            }
-            return $this->handleResubmitIzinKeluar($request, $id);
-        }
-
-        
         $scheduledLembur = \App\Models\ScheduledLembur::find($id);
         if ($scheduledLembur) {
             if ($scheduledLembur->user_id !== Auth::id()) {
@@ -1241,27 +1172,6 @@ public function meAbsensi(Request $request)
         }
 
         return response()->json(['success' => false, 'message' => 'Data tidak ditemukan atau tipe tidak didukung.'], 404);
-    }
-
-    
-    private function handleResubmitIzinKeluar(Request $request, $id)
-    {
-        $izin = \App\Models\IzinKeluar::findOrFail($id);
-
-        if (!in_array($izin->status_approval, ['rejected', 'ditolak'])) {
-            return response()->json(['success' => false, 'message' => 'Hanya pengajuan yang ditolak yang bisa diajukan ulang.'], 409);
-        }
-
-        $izin->update([
-            'status_approval' => 'pending',
-            'current_approval_level' => 1,
-            'rejected_by' => null,
-            'rejected_at' => null,
-            'catatan_admin' => null,
-            'updated_at' => now(),
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Pengajuan Izin Keluar berhasil diajukan ulang.'], 200);
     }
 
     

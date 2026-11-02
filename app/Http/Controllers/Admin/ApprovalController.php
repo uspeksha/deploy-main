@@ -7,7 +7,6 @@ use App\Models\Absensi;
 use App\Models\EmployeeSalaryRate;
 use App\Models\Notification;
 use App\Models\ScheduledLembur;
-use App\Models\IzinKeluar;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Services\EmployeeRegistrationMailer;
@@ -20,11 +19,6 @@ use Illuminate\Support\Str;
 
 class ApprovalController extends Controller
 {
-    protected $workflowMap = [
-        'produksi' => [1 => 'HRD'],
-        'office' => [1 => 'HRD'],
-    ];
-
     private $workflowTemplates = [
         'produksi' => ['hrd' => 'pending'],
         'office' => ['hrd' => 'pending'],
@@ -72,11 +66,23 @@ class ApprovalController extends Controller
         $status = $request->input('status', 'pending');
         $submissions = $this->getSubmissions($request, $status);
         $scheduledLembur = ScheduledLembur::where('status', 'pending')->with('user')->orderBy('tanggal_lembur')->get();
-        $izinKeluar = IzinKeluar::where('status_izin', 'selesai')->where('status_approval', 'pending')
-            ->with('user')->orderBy('waktu_keluar')->get();
+        $employeeStatus = $request->input('employee_status', 'active');
+        if (! in_array($employeeStatus, ['active', 'inactive', 'all'], true)) {
+            $employeeStatus = 'active';
+        }
         $employees = User::query()
             ->where('role', 'user')
             ->with('salaryRates')
+            ->when($employeeStatus === 'active', function ($query) {
+                $query->where(function ($query) {
+                    $query->where('is_active', true)
+                        ->orWhere('registration_status', 'pending');
+                });
+            })
+            ->when($employeeStatus === 'inactive', function ($query) {
+                $query->where('is_active', false)
+                    ->where('registration_status', 'approved');
+            })
             ->when($request->filled('employee_search'), function ($query) use ($request) {
                 $search = $request->string('employee_search')->trim()->toString();
                 $query->where(function ($query) use ($search) {
@@ -92,9 +98,9 @@ class ApprovalController extends Controller
         return view('admin.absensi.approval.hrd', compact(
             'submissions',
             'scheduledLembur',
-            'izinKeluar',
             'status',
             'employees',
+            'employeeStatus',
         ));
     }
 
@@ -254,21 +260,6 @@ class ApprovalController extends Controller
         return back()->with('success', 'Password sementara berhasil dikirim dan akun karyawan sudah aktif.');
     }
 
-    public function supervisor(Request $request)
-    {
-        return redirect()->route('admin.absensi.approval.hrd');
-    }
-
-    public function manager(Request $request)
-    {
-        return redirect()->route('admin.absensi.approval.hrd');
-    }
-
-    public function hrga(Request $request)
-    {
-        return redirect()->route('admin.absensi.approval.hrd');
-    }
-
     public function handleAction(Request $request, Absensi $absensi, string $action)
     {
         $this->ensureHrdApprover();
@@ -277,9 +268,6 @@ class ApprovalController extends Controller
             return back()->with('error', 'Pengajuan sudah diproses sebelumnya.');
         }
 
-        $userTipe = $absensi->user->work_location ?? 'office';
-        $currentLevel = $absensi->current_approval_level ?? 1;
-        $workflowMap = $this->workflowMap[$userTipe] ?? $this->workflowMap['office'];
         $currentApprover = 'HRD';
         $workflowKey = 'hrd';
 
@@ -302,7 +290,7 @@ class ApprovalController extends Controller
     $workflowStatus[$workflowKey] = 'rejected';
     $rejectedBy = $workflowKey;
     $resubmitLevel = $this->determineResubmitLevel($rejectedBy, $workflowStatus);
-    $resetWorkflow = $this->resetWorkflowFromLevel($workflowStatus, $resubmitLevel, $userTipe);
+    $resetWorkflow = $this->resetWorkflowFromLevel($workflowStatus, $resubmitLevel, $absensi->user->work_location ?? 'office');
 
     // ✅ CEK APAKAH INI IZIN/SAKIT (GAK ADA GAJI)
     $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
@@ -434,11 +422,12 @@ class ApprovalController extends Controller
         // ✅ APPROVE ACTION
         // =====================================================
         if ($action === 'approve') {
-            $maxLevel = count($workflowMap);
+            $currentLevel = 1;
+            $maxLevel = 1;
             $workflowStatus[$workflowKey] = 'approved';
 
             if ($currentLevel >= $maxLevel) {
-                // FINAL APPROVAL (HRGA)
+                // HRD is the only approval level.
 
                     // 🆕 INTEGRASI KOREKSI ABSENSI
                     if ($absensi->tipe === 'koreksi lupa absen') {
@@ -739,23 +728,6 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                         });
                 }
 
-            } else {
-                // Belum level terakhir → lanjut ke level berikutnya
-                $absensi->update([
-                    'current_approval_level' => $currentLevel + 1,
-                    'workflow_status' => $workflowStatus,
-                ]);
-
-                if ($absensi->children()->exists()) {
-                    $absensi->children()->update([
-                        'current_approval_level' => $currentLevel + 1,
-                        'workflow_status' => $workflowStatus,
-                    ]);
-
-                    Log::info("✅ Synced approval level to " . $absensi->children()->count() . " child records");
-                }
-
-                \App\Models\ActivityLog::log('Approve Pengajuan (Bukan Final)', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Naik level ke: " . ($currentLevel + 1));
             }
 
             return back()->with('success', 'Berhasil disetujui.');
@@ -815,70 +787,6 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
 
         return back()->with('error', 'Aksi tidak valid.');
     }
-    public function handleIzinKeluarAction(Request $request, $id, $action)
-    {
-        $this->ensureHrdApprover();
-        $record = IzinKeluar::with('user')->findOrFail($id);
-
-        if ($action === 'approve') {
-            $record->update([
-                'status_approval' => 'approved',
-                'current_approval_level' => 1,
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-            ]);
-
-                \App\Models\Notification::create([
-                    'user_id'     => $record->user_id,
-                    'title'       => 'Izin Keluar Disetujui ✅',
-                    'message'     => 'Izin Keluar kamu telah disetujui sepenuhnya, gaji hari ini tetap dibayar penuh.',
-                    'type'        => 'izin_keluar_approved',
-                    'target_page' => '/izin-keluar',
-                    'target_id'   => $record->id,
-                ]);
-
-                \App\Models\ActivityLog::log('Approve Izin Keluar HRD', "Izin ID: {$record->id} dari {$record->user->name}", "Persetujuan HRD");
-                return back()->with('success', 'Izin Keluar berhasil disetujui HRD.');
-        }
-
-        if ($action === 'reject') {
-            $request->validate(['catatan_admin' => 'required|min:5']);
-
-            $record->update([
-                'status_approval' => 'rejected',
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-            ]);
-
-            // Potong gaji pokok sehari penuh (overtime tetap aman)
-            $absensi = Absensi::where('user_id', $record->user_id)
-                ->whereDate('check_in_at', \Carbon\Carbon::parse($record->waktu_keluar)->toDateString())
-                ->first();
-
-            if ($absensi) {
-                $absensi->update([
-                    'base_salary' => 0,
-                    'late_penalty' => 0,
-                    'final_salary' => 0,
-                ]);
-            }
-
-            \App\Models\Notification::create([
-                'user_id'     => $record->user_id,
-                'title'       => 'Izin Keluar Ditolak ❌',
-                'message'     => "Izin Keluar kamu ditolak. Gaji hari ini tidak dibayar. Alasan: {$request->catatan_admin}",
-                'type'        => 'izin_keluar_rejected',
-                'target_page' => '/izin-keluar',
-                'target_id'   => $record->id,
-            ]);
-
-            \App\Models\ActivityLog::log('Reject Izin Keluar', "Izin ID: {$record->id} dari {$record->user->name}", "Alasan: {$request->catatan_admin}, gaji hari itu dinolkan");
-            return back()->with('success', 'Izin Keluar berhasil ditolak, gaji hari itu tidak dibayar.');
-        }
-
-        return back()->with('error', 'Aksi tidak valid.');
-    }
-
     public function handleBulkAction(Request $request)
     {
         $this->ensureHrdApprover();
@@ -907,8 +815,8 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
     private function approveSingleRecord(Absensi $absensi)
     {
         $userTipe = $absensi->user->work_location ?? 'office';
-        $currentLevel = $absensi->current_approval_level ?? 1;
         $currentApprover = 'HRD';
+        $currentLevel = 1;
         $maxLevel = 1;
         $workflowKey = 'hrd';
 
@@ -925,7 +833,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
         $targetPage = $targetPageMap[$submissionType] ?? '/absensi';
 
         if ($currentLevel >= $maxLevel) {
-            // FINAL APPROVAL
+            // HRD is the only approval level.
             $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
                            in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
 
@@ -1088,21 +996,6 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                     \App\Models\ActivityLog::log('Approve Pengajuan Final (Bulk)', "Pengajuan ID: {$absensi->id}", "Persetujuan final oleh: {$currentApprover}");
                 });
             }
-        } else {
-            // BUKAN FINAL
-            $absensi->update([
-                'current_approval_level' => $currentLevel + 1,
-                'workflow_status' => $workflowStatus,
-            ]);
-
-            if ($absensi->children()->exists()) {
-                $absensi->children()->update([
-                    'current_approval_level' => $currentLevel + 1,
-                    'workflow_status' => $workflowStatus,
-                ]);
-            }
-
-            \App\Models\ActivityLog::log('Approve Pengajuan (Bulk)', "Pengajuan ID: {$absensi->id}", "Naik level ke: " . ($currentLevel + 1));
         }
     }
 }

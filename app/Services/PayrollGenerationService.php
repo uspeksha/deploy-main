@@ -47,7 +47,7 @@ class PayrollGenerationService
                 ->with('salaryRates')
                 ->where('employment_type', 'freelance')
                 ->where('registration_status', 'approved')
-                ->whereNotIn('role', ['hrd', 'admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl'])
+                ->where('role', 'user')
                 ->orderBy('id')
                 ->chunkById(100, function (Collection $employees) use ($period): void {
                     foreach ($employees as $employee) {

@@ -3,7 +3,7 @@
 use App\Models\Absensi;
 use App\Models\User;
 
-it('shows the HRD approval page only to HRD and redirects legacy approval URLs', function () {
+it('shows the HRD approval page only to HRD and removes legacy approval URLs', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
 
     $this->actingAs($hrd)
@@ -14,17 +14,20 @@ it('shows the HRD approval page only to HRD and redirects legacy approval URLs',
         ->assertDontSee('Manager (Freelance/Org)')
         ->assertDontSee('HRGA (Final)');
 
-    $this->get('/admin/approval/supervisor')->assertRedirect('/admin/approval/hrd');
-    $this->get('/admin/approval/manager')->assertRedirect('/admin/approval/hrd');
-    $this->get('/admin/approval/hrga')->assertRedirect('/admin/approval/hrd');
+    $this->get('/admin/approval/supervisor')->assertNotFound();
+    $this->get('/admin/approval/manager')->assertNotFound();
+    $this->get('/admin/approval/hrga')->assertNotFound();
 });
 
-it('does not allow other roles to access the HRD approval page', function () {
+it('does not allow other roles to access HRD approval or admin dashboard', function () {
     foreach (['admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl', 'user'] as $role) {
         $account = User::factory()->create(['role' => $role]);
 
         $this->actingAs($account)
             ->get(route('admin.absensi.approval.hrd'))
+            ->assertForbidden();
+
+        $this->get(route('admin.absensi.index'))
             ->assertForbidden();
     }
 });
@@ -105,6 +108,12 @@ it('lets HRD approve leave and reject a late-excuse request', function () {
         'hari_potong_cuti' => 1,
         'status_approval' => 'pending',
         'keterangan_izin_sakit' => 'Keperluan keluarga',
+        'current_approval_level' => 3,
+        'workflow_status' => [
+            'supervisor' => 'approved',
+            'manager' => 'approved',
+            'hrga' => 'pending',
+        ],
     ]);
     $attendance = Absensi::create([
         'user_id' => $employee->id,
@@ -142,6 +151,8 @@ it('lets HRD approve leave and reject a late-excuse request', function () {
         ->assertSessionHas('success');
 
     expect($leave->fresh()->status_approval)->toBe('approved')
+        ->and($leave->fresh()->workflow_status)->toBe(['hrd' => 'approved'])
+        ->and($leave->fresh()->current_approval_level)->toBe(3)
         ->and($employee->fresh()->sisa_cuti)->toBe(11)
         ->and($employee->fresh()->total_cuti_diambil)->toBe(1)
         ->and($lateExcuse->fresh()->status_approval)->toBe('rejected')
