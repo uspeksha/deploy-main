@@ -80,3 +80,88 @@ it('enforces the seven-day notice period when resubmitting a rejected leave appl
     expect($absensi->fresh()->status_approval)->toBe('rejected')
         ->and(Storage::disk('public')->allFiles('bukti_sakit_izin'))->toBe([]);
 });
+
+it('allows organic employees to submit a half-day request against todays approved check-in', function () {
+    $user = User::factory()->create(['employment_type' => 'organik']);
+    $checkIn = Absensi::create([
+        'user_id' => $user->id,
+        'status' => 'hadir',
+        'check_in_at' => today()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/absensi/izin', [
+            'status' => 'izin',
+            'catatan_admin' => 'izin_pulang_cepat',
+            'jam_pulang_rencana' => '12:00',
+            'keterangan_izin_sakit' => 'Ada keperluan keluarga',
+            'file_bukti' => UploadedFile::fake()->image('bukti.jpg'),
+        ])
+        ->assertCreated()
+        ->assertJsonPath('success', true)
+        ->assertJsonPath('data.id', $checkIn->id)
+        ->assertJsonPath('data.status', 'izin')
+        ->assertJsonPath('data.submission_type', 'izin_pulang_cepat')
+        ->assertJsonPath('data.status_approval', 'pending')
+        ->assertJsonPath('data.jam_pulang_rencana', '12:00');
+
+    expect(Absensi::where('user_id', $user->id)->count())->toBe(1)
+        ->and($checkIn->fresh()->check_in_at->toDateString())->toBe(today()->toDateString())
+        ->and(Storage::disk('public')->allFiles('bukti_sakit_izin'))->toHaveCount(1);
+});
+
+it('requires a current approved check-in before submitting a half-day request', function () {
+    $user = User::factory()->create(['employment_type' => 'organik']);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/absensi/izin', [
+            'status' => 'izin',
+            'catatan_admin' => 'izin_pulang_cepat',
+            'jam_pulang_rencana' => '12:00',
+            'keterangan_izin_sakit' => 'Ada keperluan keluarga',
+            'file_bukti' => UploadedFile::fake()->image('bukti.jpg'),
+        ])
+        ->assertUnprocessable()
+        ->assertJsonPath('success', false)
+        ->assertJsonPath(
+            'message',
+            'Pengajuan setengah hari hanya dapat diajukan setelah Anda absen masuk hari ini.',
+        );
+
+    expect(Absensi::where('user_id', $user->id)->exists())->toBeFalse()
+        ->and(Storage::disk('public')->allFiles('bukti_sakit_izin'))->toBe([]);
+});
+
+it('still rejects a half-day request when another leave application conflicts on that date', function () {
+    $user = User::factory()->create(['employment_type' => 'organik']);
+    Absensi::create([
+        'user_id' => $user->id,
+        'status' => 'hadir',
+        'check_in_at' => today()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+    Absensi::create([
+        'user_id' => $user->id,
+        'status' => 'izin',
+        'tipe' => 'izin',
+        'submission_type' => 'cuti_tahunan',
+        'check_in_at' => today(),
+        'end_date' => today(),
+        'status_approval' => 'pending',
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->postJson('/api/v1/absensi/izin', [
+            'status' => 'izin',
+            'catatan_admin' => 'izin_pulang_cepat',
+            'jam_pulang_rencana' => '12:00',
+            'keterangan_izin_sakit' => 'Ada keperluan keluarga',
+            'file_bukti' => UploadedFile::fake()->image('bukti.jpg'),
+        ])
+        ->assertConflict()
+        ->assertJsonPath('success', false);
+
+    expect(Absensi::where('user_id', $user->id)->count())->toBe(2)
+        ->and(Storage::disk('public')->allFiles('bukti_sakit_izin'))->toBe([]);
+});

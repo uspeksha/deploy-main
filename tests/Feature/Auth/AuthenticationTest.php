@@ -7,8 +7,9 @@ test('login screen can be rendered', function () {
 
     $response->assertStatus(200)
         ->assertSee('Selamat datang kembali!')
-        ->assertSee('Selamat Datang di Followme')
-        ->assertSee('images/followme-indonesia.png');
+        ->assertSee('Kerja Nyaman, Tim Produktif')
+        ->assertSee('Ilustrasi karyawan sedang bekerja')
+        ->assertSee('login-arm-left', false);
 });
 
 test('HRD can authenticate using the login screen', function () {

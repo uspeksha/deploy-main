@@ -147,6 +147,93 @@
     background-size: 30px 30px;
   }
 
+  .login-illustration-wrap {
+    animation: login-scene-float 7s ease-in-out infinite;
+  }
+
+  .login-work-scene {
+    width: min(100%, 28rem);
+    filter: drop-shadow(0 22px 28px rgb(15 118 92 / 12%));
+  }
+
+  .login-work-art {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .login-arm-left {
+    transform-box: fill-box;
+    transform-origin: 100% 0%;
+    animation: login-type-left 1.8s ease-in-out infinite;
+  }
+
+  .login-arm-right {
+    transform-box: fill-box;
+    transform-origin: 0% 0%;
+    animation: login-type-right 1.8s ease-in-out -0.9s infinite;
+  }
+
+  .login-laptop,
+  .login-plant,
+  .login-work-badge {
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+
+  .login-laptop {
+    animation: login-screen-glow 3.2s ease-in-out infinite;
+  }
+
+  .login-plant {
+    animation: login-plant-sway 4.5s ease-in-out infinite;
+  }
+
+  .login-work-badge {
+    animation: login-badge-float 4s ease-in-out infinite;
+  }
+
+  @keyframes login-scene-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes login-type-left {
+    0%, 100% { transform: rotate(0); }
+    50% { transform: rotate(-4deg); }
+  }
+
+  @keyframes login-type-right {
+    0%, 100% { transform: rotate(0); }
+    50% { transform: rotate(4deg); }
+  }
+
+  @keyframes login-screen-glow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .88; }
+  }
+
+  @keyframes login-plant-sway {
+    0%, 100% { transform: rotate(0); }
+    50% { transform: rotate(2deg); }
+  }
+
+  @keyframes login-badge-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .login-illustration-wrap,
+    .login-arm-left,
+    .login-arm-right,
+    .login-laptop,
+    .login-plant,
+    .login-work-badge {
+      animation: none;
+    }
+  }
+
   .nav-item {
     @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 mx-2;
     color: var(--text-muted);

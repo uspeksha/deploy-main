@@ -540,7 +540,8 @@ public function meAbsensi(Request $request)
             $validCutiTypes = [
                 'cuti_tahunan', 'cuti_melahirkan', 'cuti_keguguran',
                 'cuti_haji', 'cuti_umroh', 'cuti_menikah', 'cuti_khitanan',
-                'cuti_baptis', 'cuti_meninggal', 'change_off', 'unpaid_leave'
+                'cuti_baptis', 'cuti_meninggal', 'change_off', 'unpaid_leave',
+                'izin_pulang_cepat',
             ];
             if (!$submissionType || !in_array($submissionType, $validCutiTypes)) {
                 return response()->json([
@@ -571,6 +572,7 @@ public function meAbsensi(Request $request)
     {
         DB::beginTransaction();
         try {
+            $isHalfDayRequest = $request->input('catatan_admin') === 'izin_pulang_cepat';
             $request->validate([
                 'file_bukti' => 'required|file|mimes:jpg,jpeg,png,pdf|max:2048',
                 'keterangan_izin_sakit' => 'required|string|max:500',
@@ -578,13 +580,24 @@ public function meAbsensi(Request $request)
                 'start_date' => 'nullable|date|after_or_equal:today',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
                 'catatan_admin' => 'nullable|string|max:255',
-                'jam_pulang_rencana' => 'nullable|date_format:H:i',
+                'jam_pulang_rencana' => [
+                    $isHalfDayRequest ? 'required' : 'nullable',
+                    'date_format:H:i',
+                ],
             ]);
 
             $user = Auth::user();
             $status = $request->status ?? $defaultStatus;
             $submissionType = $request->catatan_admin ?? null; 
             $jamPulangRencana = $request->jam_pulang_rencana;
+
+            if ($isHalfDayRequest && $status !== 'izin') {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pengajuan setengah hari harus menggunakan status izin.',
+                ], 422);
+            }
 
             if ($status === 'izin' && $submissionType !== 'izin_pulang_cepat') {
                 $leaveStartDate = $request->start_date
@@ -631,6 +644,45 @@ public function meAbsensi(Request $request)
             $startDateInput = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::today()->startOfDay();
             $endDateInput = $request->end_date ? Carbon::parse($request->end_date)->startOfDay() : $startDateInput->copy()->startOfDay();
 
+            if ($isHalfDayRequest && (
+                ! $startDateInput->isToday()
+                || ! $endDateInput->equalTo($startDateInput)
+            )) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Pengajuan setengah hari hanya dapat diajukan untuk hari ini.',
+                ], 422);
+            }
+
+            $halfDayAttendance = null;
+            if ($isHalfDayRequest) {
+                $halfDayAttendance = Absensi::where('user_id', $user->id)
+                    ->whereDate('check_in_at', Carbon::today())
+                    ->where('status', 'hadir')
+                    ->where('status_approval', 'approved')
+                    ->whereNull('parent_id')
+                    ->whereNull('submission_type')
+                    ->first();
+
+                if (! $halfDayAttendance) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Pengajuan setengah hari hanya dapat diajukan setelah Anda absen masuk hari ini.',
+                    ], 422);
+                }
+
+                $checkInTime = Carbon::parse($halfDayAttendance->check_in_at)->format('H:i');
+                if ($jamPulangRencana <= $checkInTime) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Jam pulang rencana harus setelah jam absen masuk.',
+                    ], 422);
+                }
+            }
+
             
             $calendarCutiTypes = ['cuti_melahirkan', 'cuti_keguguran', 'unpaid_leave'];
             $isCalendarLeave = in_array($submissionType, $calendarCutiTypes);
@@ -641,7 +693,7 @@ public function meAbsensi(Request $request)
                 $isWeekend = Absensi::isWeekend($tempDate);
                 $isHoliday = \App\Models\Holiday::isHoliday($tempDate);
 
-                if ($isCalendarLeave || (!$isWeekend && !$isHoliday)) {
+                if ($isCalendarLeave || $isHalfDayRequest || (!$isWeekend && !$isHoliday)) {
                     $validDates[] = $tempDate->copy();
                 }
                 $tempDate->addDay();
@@ -693,7 +745,7 @@ public function meAbsensi(Request $request)
             }
 
             
-            $existingAbsensi = Absensi::where('user_id', $user->id)
+            $existingAbsensiQuery = Absensi::where('user_id', $user->id)
                 ->where(function($query) use ($startDate, $endDate) {
                     $query->whereBetween('check_in_at', [$startDate, $endDate])
                           ->orWhereBetween('end_date', [$startDate, $endDate])
@@ -701,8 +753,13 @@ public function meAbsensi(Request $request)
                               $q->where('check_in_at', '<=', $startDate)->where('end_date', '>=', $endDate);
                           });
                 })
-                ->whereIn('status_approval', ['pending', 'approved', 'rejected'])
-                ->first();
+                ->whereIn('status_approval', ['pending', 'approved', 'rejected']);
+
+            if ($halfDayAttendance) {
+                $existingAbsensiQuery->where('id', '!=', $halfDayAttendance->id);
+            }
+
+            $existingAbsensi = $existingAbsensiQuery->first();
 
             if ($existingAbsensi) {
                 DB::rollBack();
@@ -723,12 +780,8 @@ public function meAbsensi(Request $request)
             $workflow = $this->workflowTemplates[$employment] ?? $this->workflowTemplates['organik'];
 
             
-            $existingTodayAbsensi = Absensi::where('user_id', $user->id)
-                ->whereDate('check_in_at', $startDate)
-                ->first();
-
-            if ($existingTodayAbsensi && $submissionType === 'izin_pulang_cepat') {
-                $parentAbsensi = $existingTodayAbsensi;
+            if ($halfDayAttendance && $submissionType === 'izin_pulang_cepat') {
+                $parentAbsensi = $halfDayAttendance;
                 $parentAbsensi->update([
                     'status' => $status,
                     'tipe' => $status,
