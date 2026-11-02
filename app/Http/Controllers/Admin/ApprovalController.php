@@ -74,36 +74,27 @@ class ApprovalController extends Controller
         $scheduledLembur = ScheduledLembur::where('status', 'pending')->with('user')->orderBy('tanggal_lembur')->get();
         $izinKeluar = IzinKeluar::where('status_izin', 'selesai')->where('status_approval', 'pending')
             ->with('user')->orderBy('waktu_keluar')->get();
-        $pendingAccounts = auth()->user()->role === 'hrd'
-            ? User::where('registration_status', 'pending')
-                ->where('is_active', false)
-                ->orderBy('created_at')
-                ->get()
-            : collect();
-        $freelanceEmployees = auth()->user()->role === 'hrd'
-            ? User::query()
-                ->with('salaryRates')
-                ->where('registration_status', 'approved')
-                ->where('employment_type', 'freelance')
-                ->where(function ($query) {
-                    $query->whereNull('id_karyawan')
-                        ->orWhere(function ($query) {
-                            $query->where('id_karyawan', 'not like', 'CS-AMB%')
-                                ->where('id_karyawan', 'not like', 'MG-AMB%');
-                        });
-                })
-                ->whereNotIn('role', ['hrd', 'admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl'])
-                ->orderBy('name')
-                ->get()
-            : collect();
+        $employees = User::query()
+            ->where('role', 'user')
+            ->with('salaryRates')
+            ->when($request->filled('employee_search'), function ($query) use ($request) {
+                $search = $request->string('employee_search')->trim()->toString();
+                $query->where(function ($query) use ($search) {
+                    $query->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%")
+                        ->orWhere('id_karyawan', 'like', "%{$search}%");
+                });
+            })
+            ->orderByDesc('created_at')
+            ->paginate(15, ['*'], 'employee_page')
+            ->withQueryString();
 
         return view('admin.absensi.approval.hrd', compact(
             'submissions',
             'scheduledLembur',
             'izinKeluar',
             'status',
-            'pendingAccounts',
-            'freelanceEmployees',
+            'employees',
         ));
     }
 
@@ -117,11 +108,13 @@ class ApprovalController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
             'id_karyawan' => ['required', 'string', 'max:255', 'unique:users,id_karyawan'],
+            'phone' => ['required', 'string', 'max:30'],
+            'address' => ['required', 'string', 'max:1000'],
             'departemen' => ['required', 'string', 'max:255'],
             'employment_type' => ['required', 'in:organik,freelance'],
             'work_location' => ['required', 'in:office,produksi'],
             'nik' => ['required', 'digits:16'],
-            'bank_name' => ['required', 'string', 'max:100'],
+            'bank_name' => ['required', 'in:BCA,BRI'],
             'bank_account_number' => ['required', 'string', 'max:40'],
             'bank_account_name' => ['required', 'string', 'max:255'],
             'daily_rate' => ['required_if:employment_type,freelance', 'nullable', 'integer', 'min:1', 'max:100000000'],
@@ -132,6 +125,8 @@ class ApprovalController extends Controller
                 ->withErrors($validator)
                 ->withInput($request->except([
                     'nik',
+                    'phone',
+                    'address',
                     'bank_name',
                     'bank_account_number',
                     'bank_account_name',
@@ -141,7 +136,7 @@ class ApprovalController extends Controller
         $validated = $validator->validated();
         $dailyRate = (int) ($validated['daily_rate'] ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
         unset($validated['daily_rate']);
-        $temporaryPassword = Str::password(8, true, true, true, false);
+        $temporaryPassword = Str::password(6, true, true, true, false);
         $user = DB::transaction(function () use ($validated, $dailyRate, $temporaryPassword): User {
             $user = User::create([
                 ...$validated,
@@ -178,7 +173,7 @@ class ApprovalController extends Controller
                 : 'HRD membuat akun karyawan; pengiriman password sementara gagal.',
         );
 
-        return back()->with(
+        return redirect()->route('admin.absensi.approval.hrd', ['section' => 'employees'])->with(
             $emailSent ? 'success' : 'warning',
             $emailSent
                 ? 'Akun berhasil dibuat dan password sementara dikirim ke email karyawan.'
@@ -224,7 +219,7 @@ class ApprovalController extends Controller
         );
 
         return redirect()
-            ->route('admin.absensi.approval.hrd', ['section' => 'accounts'])
+            ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
             ->with('success', "Tarif harian {$user->name} berhasil diperbarui. Riwayat tarif sebelumnya tetap tersimpan.");
     }
 
@@ -238,7 +233,7 @@ class ApprovalController extends Controller
             return back()->with('error', 'Akun ini tidak menunggu pengiriman akses.');
         }
 
-        $temporaryPassword = Str::password(8, true, true, true, false);
+        $temporaryPassword = Str::password(6, true, true, true, false);
         $user->update(['password' => Hash::make($temporaryPassword)]);
 
         if (!$registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {

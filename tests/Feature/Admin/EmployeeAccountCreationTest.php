@@ -12,11 +12,13 @@ function employeeAccountPayload(array $overrides = []): array
         'name' => 'New Employee',
         'email' => 'new.employee@example.com',
         'id_karyawan' => 'EMP-2026-001',
+        'phone' => '081234567890',
+        'address' => 'Jl. Merdeka No. 1, Jakarta',
         'departemen' => 'Operasional',
         'employment_type' => 'organik',
         'work_location' => 'office',
         'nik' => '1234567890123456',
-        'bank_name' => 'Bank Contoh',
+        'bank_name' => 'BCA',
         'bank_account_number' => '1234567890',
         'bank_account_name' => 'New Employee',
     ], $overrides);
@@ -30,10 +32,7 @@ it('lets HRD create an active employee account and emails temporary credentials'
     $this->actingAs($hrd)
         ->get(route('admin.absensi.approval.hrd'))
         ->assertOk()
-        ->assertSee('Buat akun karyawan baru')
-        ->assertSee('id="hrd-panel-accounts"', false)
-        ->assertSee('id="hrd-tab-approvals"', false)
-        ->assertSee('kirim akses lewat email');
+        ->assertSee('Data Karyawan');
 
     $this->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload())
         ->assertRedirect()
@@ -43,15 +42,28 @@ it('lets HRD create an active employee account and emails temporary credentials'
     expect($employee->role)->toBe('user')
         ->and($employee->registration_status)->toBe('approved')
         ->and($employee->is_active)->toBeTrue()
+        ->and($employee->phone)->toBe('081234567890')
+        ->and($employee->address)->toBe('Jl. Merdeka No. 1, Jakarta')
+        ->and($employee->bank_name)->toBe('BCA')
         ->and(Hash::check('password', $employee->password))->toBeFalse()
         ->and($employee->nik)->toBe('1234567890123456');
 
-    expect($employee->getRawOriginal('nik'))->not->toBe('1234567890123456');
+    expect($employee->getRawOriginal('nik'))->not->toBe('1234567890123456')
+        ->and($employee->getRawOriginal('phone'))->not->toBe('081234567890')
+        ->and($employee->getRawOriginal('address'))->not->toBe('Jl. Merdeka No. 1, Jakarta');
+
+    $this->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
+        ->assertOk()
+        ->assertSee($employee->name)
+        ->assertSee($employee->id_karyawan)
+        ->assertSee($employee->email)
+        ->assertSee($employee->address)
+        ->assertSee($employee->bank_account_number);
 
     $temporaryPassword = null;
     Mail::assertSent(EmployeeRegistrationMail::class, function (EmployeeRegistrationMail $mail) use ($employee, &$temporaryPassword) {
         $temporaryPassword = $mail->temporaryPassword;
-        expect($mail->temporaryPassword)->not->toBeEmpty();
+        expect(strlen($mail->temporaryPassword))->toBe(6);
         expect(Hash::check($mail->temporaryPassword, $employee->password))->toBeTrue();
 
         return $mail->hasTo($employee->email);
@@ -91,7 +103,12 @@ it('keeps an account inactive if email fails and lets HRD resend credentials', f
 
     expect($employee->fresh()->registration_status)->toBe('approved')
         ->and($employee->fresh()->is_active)->toBeTrue();
-    Mail::assertSent(EmployeeRegistrationMail::class, 1);
+    Mail::assertSent(EmployeeRegistrationMail::class, function (EmployeeRegistrationMail $mail) use ($employee) {
+        expect(strlen($mail->temporaryPassword))->toBe(6);
+        expect(Hash::check($mail->temporaryPassword, $employee->fresh()->password))->toBeTrue();
+
+        return $mail->hasTo($employee->email);
+    });
 });
 
 it('records the starting freelance rate and adds salary changes without deleting history', function () {
@@ -118,7 +135,7 @@ it('records the starting freelance rate and adds salary changes without deleting
         'daily_rate' => 150000,
         'effective_at' => $effectiveAt,
     ])
-        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'accounts']))
+        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertSessionHas('success');
 
     expect($employee->salaryRates()->count())->toBe(2)
@@ -179,10 +196,34 @@ it('does not flash NIK or bank details back into the session after validation fa
         ->assertSessionHasErrors('nik')
         ->assertSessionHas('_old_input', fn (array $input) =>
             !array_key_exists('nik', $input)
+            && !array_key_exists('phone', $input)
+            && !array_key_exists('address', $input)
             && !array_key_exists('bank_name', $input)
             && !array_key_exists('bank_account_number', $input)
             && !array_key_exists('bank_account_name', $input)
         );
+});
+
+it('only accepts BCA or BRI for new employee bank accounts', function () {
+    Mail::fake();
+    $hrd = User::factory()->create(['role' => 'hrd']);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload([
+            'bank_name' => 'Mandiri',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHasErrors('bank_name');
+
+    expect(User::where('email', 'new.employee@example.com')->exists())->toBeFalse();
+
+    $this->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload([
+        'bank_name' => 'BRI',
+    ]))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect(User::where('email', 'new.employee@example.com')->firstOrFail()->bank_name)->toBe('BRI');
 });
 
 it('rejects public web and mobile self-registration', function () {

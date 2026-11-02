@@ -19,7 +19,7 @@
     Approvals
 </div>
 <a href="{{ route('admin.absensi.approval.hrd') }}"
-   class="nav-item {{ request()->routeIs('admin.absensi.approval.hrd') ? 'active' : '' }}">
+   class="nav-item {{ request()->routeIs('admin.absensi.approval.hrd') && request('section') !== 'employees' ? 'active' : '' }}">
     <div class="nav-icon"><i class="fas fa-user-check"></i></div>
     <span>HRD Approval</span>
 </a>

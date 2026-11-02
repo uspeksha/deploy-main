@@ -1,223 +1,70 @@
 <x-app-layout>
     <x-slot name="header">
-        <div>
-            <h2 class="font-bold text-2xl text-gray-900 dark:text-white leading-tight">Approval HRD</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Semua pengajuan absensi menunggu satu persetujuan HRD.</p>
+        <div class="flex flex-wrap items-center justify-between gap-4">
+            <div>
+                @if (request('section') === 'employees')
+                    <h2 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white">Data Karyawan</h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Kelola akun, detail, dan status karyawan.</p>
+                @else
+                    <h2 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white">Approval HRD</h2>
+                    <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Semua pengajuan absensi menunggu satu persetujuan HRD.</p>
+                @endif
+            </div>
         </div>
     </x-slot>
 
-    <div class="min-h-screen" x-data="{ section: @js(request('section') === 'accounts' || $errors->has('name') || $errors->has('id_karyawan') || $errors->has('email') || $errors->has('daily_rate') || $errors->has('effective_at') ? 'accounts' : 'approvals') }">
-        <div class="ui-page">
-            @foreach (['success', 'warning', 'error'] as $flashType)
-                @if (session($flashType))
-                    <div class="mb-5 rounded-xl border px-4 py-3 text-sm {{ [
-                        'success' => 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
-                        'warning' => 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
-                        'error' => 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200',
-                    ][$flashType] }}">
-                        {{ session($flashType) }}
-                    </div>
-                @endif
-            @endforeach
-
-            <div class="flex flex-wrap gap-2 rounded-xl border border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800"
-                 role="tablist" aria-label="Bagian approval HRD">
-                <button type="button" role="tab" id="hrd-tab-approvals" aria-controls="hrd-panel-approvals"
-                        :aria-selected="section === 'approvals'"
-                        @click="section = 'approvals'"
-                        :class="{ 'bg-emerald-700 text-white hover:bg-emerald-800 dark:text-white': section === 'approvals' }"
-                        class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
-                    <i class="fas fa-clipboard-check"></i>
-                    <span>Persetujuan</span>
-                </button>
-                <button type="button" role="tab" id="hrd-tab-accounts" aria-controls="hrd-panel-accounts"
-                        :aria-selected="section === 'accounts'"
-                        @click="section = 'accounts'"
-                        :class="{ 'bg-emerald-700 text-white hover:bg-emerald-800 dark:text-white': section === 'accounts' }"
-                        class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700">
-                    <i class="fas fa-user-plus"></i>
-                    <span>Buat akun karyawan</span>
-                </button>
-            </div>
-
-            @if (auth()->user()->role === 'hrd')
-                <section id="hrd-panel-accounts" x-show="section === 'accounts'" x-cloak role="tabpanel"
-                         aria-labelledby="hrd-tab-accounts" class="ui-panel">
-                    <div class="mb-5">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Buat akun karyawan baru</h3>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                            HRD mengisi data karyawan. Akun diaktifkan setelah password sementara berhasil dikirim ke email karyawan.
-                            NIK dan rekening disimpan terenkripsi.
-                        </p>
-                    </div>
-
-                    <form method="POST" action="{{ route('admin.absensi.approval.employees.store') }}" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        @csrf
-                        <div>
-                            <x-input-label for="employee_name" value="Nama lengkap" />
-                            <x-text-input id="employee_name" name="name" type="text" class="mt-1 ui-control" :value="old('name')" required />
-                            <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_id_karyawan" value="ID karyawan" />
-                            <x-text-input id="employee_id_karyawan" name="id_karyawan" type="text" class="mt-1 ui-control" :value="old('id_karyawan')" required />
-                            <x-input-error :messages="$errors->get('id_karyawan')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_email" value="Email karyawan" />
-                            <x-text-input id="employee_email" name="email" type="email" class="mt-1 ui-control" :value="old('email')" required />
-                            <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_department" value="Departemen" />
-                            <x-text-input id="employee_department" name="departemen" type="text" class="mt-1 ui-control" :value="old('departemen')" required />
-                            <x-input-error :messages="$errors->get('departemen')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_type" value="Jenis karyawan" />
-                            <select id="employee_type" name="employment_type" required class="ui-control">
-                                <option value="">Pilih jenis karyawan</option>
-                                <option value="organik" @selected(old('employment_type') === 'organik')>Organik</option>
-                                <option value="freelance" @selected(old('employment_type') === 'freelance')>Freelance</option>
-                            </select>
-                            <x-input-error :messages="$errors->get('employment_type')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_daily_rate" value="Tarif harian freelance (Rp)" />
-                            <x-text-input id="employee_daily_rate" name="daily_rate" type="number" min="1" max="100000000" class="mt-1 ui-control" :value="old('daily_rate', \App\Models\EmployeeSalaryRate::LEGACY_DAILY_RATE)" />
-                            <x-input-error :messages="$errors->get('daily_rate')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_work_location" value="Lokasi kerja" />
-                            <select id="employee_work_location" name="work_location" required class="ui-control">
-                                <option value="">Pilih lokasi kerja</option>
-                                <option value="office" @selected(old('work_location') === 'office')>Kantor</option>
-                                <option value="produksi" @selected(old('work_location') === 'produksi')>Produksi</option>
-                            </select>
-                            <x-input-error :messages="$errors->get('work_location')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_nik" value="NIK (16 digit)" />
-                            <x-text-input id="employee_nik" name="nik" type="text" inputmode="numeric" maxlength="16" class="mt-1 ui-control" :value="old('nik')" required />
-                            <x-input-error :messages="$errors->get('nik')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_bank" value="Nama bank" />
-                            <x-text-input id="employee_bank" name="bank_name" type="text" class="mt-1 ui-control" :value="old('bank_name')" required />
-                            <x-input-error :messages="$errors->get('bank_name')" class="mt-2" />
-                        </div>
-                        <div>
-                            <x-input-label for="employee_account_number" value="Nomor rekening" />
-                            <x-text-input id="employee_account_number" name="bank_account_number" type="text" class="mt-1 ui-control" :value="old('bank_account_number')" required />
-                            <x-input-error :messages="$errors->get('bank_account_number')" class="mt-2" />
-                        </div>
-                        <div class="sm:col-span-2 lg:col-span-3">
-                            <x-input-label for="employee_account_name" value="Nama pemilik rekening" />
-                            <x-text-input id="employee_account_name" name="bank_account_name" type="text" class="mt-1 ui-control" :value="old('bank_account_name')" required />
-                            <x-input-error :messages="$errors->get('bank_account_name')" class="mt-2" />
-                        </div>
-                        <div class="flex items-end sm:col-span-2 lg:col-span-3">
-                            <button type="submit" class="ui-button-primary">
-                                Buat akun & kirim akses lewat email
-                            </button>
-                        </div>
-                    </form>
-
-                    <div class="mt-8 border-t border-gray-200 pt-5 dark:border-gray-700">
-                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Tarif gaji karyawan freelance</h3>
-                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-                            Perubahan hanya berlaku mulai tanggal yang dipilih. Tarif dan payroll lama tetap tersimpan.
-                        </p>
-
-                        @forelse ($freelanceEmployees as $account)
-                            <div class="mt-4 rounded-xl border border-gray-200 p-4 dark:border-gray-700">
-                                <div class="flex flex-wrap items-start justify-between gap-3">
-                                    <div>
-                                        <h4 class="font-semibold text-gray-900 dark:text-white">{{ $account->name }}</h4>
-                                        <p class="text-sm text-gray-600 dark:text-gray-400">
-                                            {{ $account->id_karyawan }} · {{ $account->departemen }} · Tarif berlaku sekarang:
-                                            <strong>Rp {{ number_format($account->dailyRateAt(), 0, ',', '.') }}</strong>
-                                        </p>
-                                    </div>
-                                    <form method="POST" action="{{ route('admin.absensi.approval.employees.salary-rates.store', $account) }}"
-                                          class="grid w-full gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end lg:w-auto">
-                                        @csrf
-                                        <div>
-                                            <x-input-label for="daily_rate_{{ $account->id }}" value="Tarif harian baru (Rp)" />
-                                            <x-text-input id="daily_rate_{{ $account->id }}" name="daily_rate" type="number" min="1" max="100000000" class="mt-1 ui-control" :value="old('daily_rate', $account->dailyRateAt())" required />
-                                            <x-input-error :messages="$errors->get('daily_rate')" class="mt-2" />
-                                        </div>
-                                        <div>
-                                            <x-input-label for="effective_at_{{ $account->id }}" value="Berlaku mulai" />
-                                            <x-text-input id="effective_at_{{ $account->id }}" name="effective_at" type="datetime-local" class="mt-1 ui-control" :value="old('effective_at', now()->addMinute()->format('Y-m-d\TH:i'))" required />
-                                            <x-input-error :messages="$errors->get('effective_at')" class="mt-2" />
-                                        </div>
-                                        <button type="submit" class="ui-button-primary">Simpan tarif</button>
-                                    </form>
-                                </div>
-
-                                <details class="mt-3 text-sm">
-                                    <summary class="cursor-pointer font-medium text-emerald-700 dark:text-emerald-300">Lihat riwayat tarif</summary>
-                                    <ul class="mt-2 space-y-1 text-gray-600 dark:text-gray-400">
-                                        @foreach ($account->salaryRates->sortByDesc('effective_at') as $rate)
-                                            <li>
-                                                Rp {{ number_format($rate->daily_rate, 0, ',', '.') }}
-                                                · berlaku {{ $rate->effective_at->format('d/m/Y H:i') }}
-                                            </li>
-                                        @endforeach
-                                    </ul>
-                                </details>
-                            </div>
-                        @empty
-                            <p class="mt-4 text-sm text-gray-600 dark:text-gray-400">Belum ada akun karyawan freelance aktif.</p>
-                        @endforelse
-                    </div>
-
-                    @if ($pendingAccounts->isNotEmpty())
-                        <div class="mt-6 border-t border-gray-200 pt-5 dark:border-gray-700">
-                            <h4 class="font-semibold text-gray-900 dark:text-white">Akun menunggu email terkirim</h4>
-                            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Akun ini belum aktif karena pengiriman email sebelumnya gagal.</p>
-                            @foreach ($pendingAccounts as $account)
-                                <div class="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-amber-50 p-3 dark:bg-amber-950/20">
-                                    <div class="text-sm">
-                                        <span class="font-semibold text-gray-900 dark:text-white">{{ $account->name }}</span>
-                                        <span class="text-gray-600 dark:text-gray-400"> · {{ $account->email }}</span>
-                                    </div>
-                                    <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', $account) }}">
-                                        @csrf
-                                        <button type="submit" class="ui-button-primary">
-                                            Buat password baru & kirim ulang
-                                        </button>
-                                    </form>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </section>
+    <div class="ui-page" x-data="{ section: @js(request('section') === 'employees' || $errors->any() ? 'employees' : 'approvals') }">
+        @foreach (['success', 'warning', 'error'] as $flashType)
+            @if (session($flashType))
+                <div class="rounded-xl border px-4 py-3 text-sm {{ [
+                    'success' => 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200',
+                    'warning' => 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200',
+                    'error' => 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200',
+                ][$flashType] }}">
+                    {{ session($flashType) }}
+                </div>
             @endif
+        @endforeach
 
-            <div id="hrd-panel-approvals" x-show="section === 'approvals'" x-cloak role="tabpanel"
-                 aria-labelledby="hrd-tab-approvals">
-            <div class="ui-panel flex flex-wrap items-center gap-2 mb-8 w-fit">
-                @foreach(['pending' => 'Menunggu', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $filter => $label)
-                    <a href="{{ request()->fullUrlWithQuery(['status' => $filter]) }}"
-                       class="px-5 py-2.5 rounded-xl text-sm font-bold {{ $status === $filter ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
+        <div class="ui-panel flex flex-wrap items-center gap-2 p-2" role="tablist" aria-label="Bagian HRD">
+            <button type="button" role="tab" id="hrd-tab-approvals" aria-controls="hrd-panel-approvals"
+                    :aria-selected="section === 'approvals'" @click="section = 'approvals'"
+                    class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                <i class="fas fa-clipboard-check"></i> Approval
+            </button>
+            <button type="button" role="tab" id="hrd-tab-employees" aria-controls="hrd-panel-employees"
+                    :aria-selected="section === 'employees'" @click="section = 'employees'"
+                    class="inline-flex min-h-11 items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700">
+                <i class="fas fa-users"></i> Data Karyawan
+            </button>
+        </div>
+
+        <section id="hrd-panel-employees" x-show="section === 'employees'" x-cloak role="tabpanel"
+                 aria-labelledby="hrd-tab-employees">
+            @include('admin.absensi.approval.partials.employee-management')
+        </section>
+
+        <section id="hrd-panel-approvals" x-show="section === 'approvals'" x-cloak role="tabpanel"
+                 aria-labelledby="hrd-tab-approvals" class="space-y-6">
+            <div class="ui-panel flex w-fit flex-wrap items-center gap-2">
+                @foreach (['pending' => 'Menunggu', 'approved' => 'Disetujui', 'rejected' => 'Ditolak'] as $filter => $label)
+                    <a href="{{ request()->fullUrlWithQuery(['section' => 'approvals', 'status' => $filter]) }}"
+                       class="rounded-xl px-5 py-2.5 text-sm font-bold {{ $status === $filter ? 'bg-emerald-600 text-white' : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700' }}">
                         {{ $label }}
                     </a>
                 @endforeach
             </div>
 
             <section class="ui-panel">
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-5">Pengajuan absensi ({{ $submissions->count() }})</h3>
+                <h3 class="mb-5 text-lg font-bold text-gray-900 dark:text-white">Pengajuan absensi ({{ $submissions->count() }})</h3>
                 @include('admin.absensi.approval.table', ['submissions' => $submissions])
             </section>
 
-            @if($status === 'pending')
+            @if ($status === 'pending')
                 @include('admin.absensi.approval.partials.scheduled-lembur-table')
                 @include('admin.absensi.approval.partials.izin-keluar-table')
             @endif
-            </div>
-        </div>
+        </section>
     </div>
 
     @include('admin.absensi.approval.partials.reject-modal')

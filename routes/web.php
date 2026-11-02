@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\AbsensiAdminController;
 use App\Http\Controllers\Admin\ApprovalController;
+use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -108,13 +109,18 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
         Route::post('/izin-keluar/{id}/{action}', [ApprovalController::class, 'handleIzinKeluarAction'])
             ->name('admin.absensi.approval.izin-keluar.action')
             ->where('action', 'approve|reject');
-        Route::post('/employees', [ApprovalController::class, 'createEmployeeAccount'])
-            ->name('admin.absensi.approval.employees.store');
-        Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
-            ->name('admin.absensi.approval.employees.resend');
         Route::post('/employees/{user}/salary-rates', [ApprovalController::class, 'updateEmployeeSalaryRate'])
             ->name('admin.absensi.approval.employees.salary-rates.store');
     });
+
+    Route::get('/employees', [EmployeeController::class, 'index'])->name('admin.employees.index');
+    Route::post('/employees', [ApprovalController::class, 'createEmployeeAccount'])->name('admin.absensi.approval.employees.store');
+    Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
+        ->name('admin.absensi.approval.employees.resend');
+    Route::get('/employees/{user}/edit', [EmployeeController::class, 'edit'])->name('admin.employees.edit');
+    Route::put('/employees/{user}', [EmployeeController::class, 'update'])->name('admin.employees.update');
+    Route::patch('/employees/{user}/activate', [EmployeeController::class, 'activate'])->name('admin.employees.activate');
+    Route::delete('/employees/{user}', [EmployeeController::class, 'deactivate'])->name('admin.employees.deactivate');
 
     // --- SECURE STORAGE FILE STREAM ROUTE ---
     Route::get('/storage-file/{path}', function ($path) {

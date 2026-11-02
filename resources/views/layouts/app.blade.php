@@ -42,10 +42,8 @@
                 <!-- Brand -->
                 <div class="px-8 mb-8">
                     <a href="{{ route('dashboard') }}" class="flex items-center gap-3 group">
-                        <div class="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 group-hover:rotate-6 transition-transform">
-                            <i class="fas fa-bolt"></i>
-                        </div>
-                        <span class="text-xl font-bold tracking-tight">Presensi<span class="text-emerald-500">Pro</span></span>
+                        <img src="{{ asset('images/followme-indonesia.png') }}" alt="Followme Indonesia" class="h-10 w-10 rounded-xl object-cover shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-105">
+                        <span class="text-xl font-bold tracking-tight">Followme</span>
                     </a>
                 </div>
 

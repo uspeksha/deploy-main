@@ -8,10 +8,8 @@
             <section class="login-card">
                 <div class="mb-12">
                     <a href="/" class="flex items-center gap-3 group w-fit">
-                        <div class="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-emerald-500/20 group-hover:rotate-6 transition-transform">
-                            <i class="fas fa-bolt text-xl"></i>
-                        </div>
-                        <span class="text-2xl font-black tracking-tighter">Presensi<span class="text-emerald-500">Pro</span></span>
+                        <img src="{{ asset('images/followme-indonesia.png') }}" alt="Followme Indonesia" class="h-12 w-12 rounded-2xl object-cover shadow-xl shadow-emerald-500/20 transition-transform group-hover:scale-105">
+                        <span class="text-2xl font-black tracking-tighter">Followme</span>
                     </a>
                 </div>
 
@@ -87,12 +85,11 @@
 
             <section class="login-visual">
                 <div class="relative z-10 text-center space-y-8 animate-float">
-                    <div class="w-32 h-32 bg-white dark:bg-slate-800 rounded-[2.5rem] flex items-center justify-center text-6xl shadow-2xl mx-auto" aria-label="Ilustrasi karyawan melakukan absensi kerja">
-                        🏢
+                    <div class="w-56 h-56 rounded-[2.5rem] overflow-hidden shadow-2xl mx-auto ring-1 ring-white/40">
+                        <img src="{{ asset('images/followme-indonesia.png') }}" alt="Logo Followme Indonesia" class="h-full w-full object-cover">
                     </div>
                     <div>
-                        <p class="sr-only">Ilustrasi karyawan melakukan absensi kerja</p>
-                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-4">Efisiensi Dalam Genggaman</h2>
+                        <h2 class="text-3xl font-black text-slate-900 dark:text-white mb-4">Selamat Datang di Followme</h2>
                         <p class="text-slate-500 dark:text-slate-400 max-w-xs mx-auto">Sistem absensi modern yang dirancang untuk produktivitas tim Anda.</p>
                     </div>
                     
