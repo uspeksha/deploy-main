@@ -1,3 +1,15 @@
+@php
+    $employeeListQuery = array_filter([
+        'section' => 'employees',
+        'employee_status' => in_array(request('employee_status', 'all'), ['active', 'inactive', 'all'], true)
+            ? request('employee_status', 'all')
+            : 'all',
+        'employee_search' => request('employee_search'),
+        'employee_page' => filter_var(request('employee_page'), FILTER_VALIDATE_INT) > 0
+            ? (int) request('employee_page')
+            : null,
+    ], fn ($value) => $value !== null && $value !== '');
+@endphp
 <div class="space-y-6">
         <details class="ui-panel group" {{ $errors->any() ? 'open' : '' }}>
             <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
@@ -176,32 +188,27 @@
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex flex-wrap items-center justify-end gap-2">
-                                        <a href="{{ route('admin.employees.edit', [
-                                            'user' => $employee,
-                                            'employee_status' => request('employee_status', 'all'),
-                                            'employee_search' => request('employee_search'),
-                                            'employee_page' => request('employee_page'),
-                                        ]) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
+                                        <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
-                                            <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', $employee) }}">
+                                            <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
                                                 <button type="submit" class="ui-button-primary !px-3 !py-2">Kirim akses</button>
                                             </form>
                                         @elseif ($employee->is_active)
-                                            <form method="POST" action="{{ route('admin.employees.deactivate', $employee) }}" onsubmit="return confirm('Nonaktifkan akun ini? Data dan riwayat tetap disimpan.')">
+                                            <form method="POST" action="{{ route('admin.employees.deactivate', ['user' => $employee] + $employeeListQuery) }}" onsubmit="return confirm('Nonaktifkan akun ini? Data dan riwayat tetap disimpan.')">
                                                 @csrf
                                                 @method('DELETE')
                                                 <button type="submit" class="ui-button-danger !px-3 !py-2">Nonaktifkan</button>
                                             </form>
                                         @else
-                                            <form method="POST" action="{{ route('admin.employees.activate', $employee) }}">
+                                            <form method="POST" action="{{ route('admin.employees.activate', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
                                                 @method('PATCH')
                                                 <button type="submit" class="ui-button-primary !px-3 !py-2">Aktifkan</button>
                                             </form>
                                         @endif
                                         @if (! $employee->is_active)
-                                            <form method="POST" action="{{ route('admin.employees.destroy', $employee) }}"
+                                            <form method="POST" action="{{ route('admin.employees.destroy', ['user' => $employee] + $employeeListQuery) }}"
                                                   onsubmit="return confirm('HAPUS PERMANEN akun ini, seluruh riwayat absensi, dan data payroll-nya? Tindakan ini tidak dapat dibatalkan.')">
                                                 @csrf
                                                 @method('DELETE')

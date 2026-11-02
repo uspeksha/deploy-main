@@ -227,20 +227,38 @@ class ApprovalController extends Controller
     }
 
     public function resendEmployeeCredentials(
+        Request $request,
         User $user,
         EmployeeRegistrationMailer $registrationMailer,
     ) {
         abort_unless(auth()->user()->role === 'hrd', 403);
 
+        $employeeListQuery = array_filter([
+            'section' => 'employees',
+            'employee_status' => in_array($request->query('employee_status'), ['active', 'inactive', 'all'], true)
+                ? $request->query('employee_status')
+                : null,
+            'employee_search' => is_string($request->query('employee_search')) && trim($request->query('employee_search')) !== ''
+                ? trim($request->query('employee_search'))
+                : null,
+            'employee_page' => filter_var($request->query('employee_page'), FILTER_VALIDATE_INT) > 0
+                ? (int) $request->query('employee_page')
+                : null,
+        ], fn ($value) => $value !== null);
+
         if ($user->registration_status !== 'pending' || $user->is_active) {
-            return back()->with('error', 'Akun ini tidak menunggu pengiriman akses.');
+            return redirect()
+                ->route('admin.absensi.approval.hrd', $employeeListQuery)
+                ->with('error', 'Akun ini tidak menunggu pengiriman akses.');
         }
 
         $temporaryPassword = Str::password(6, true, true, true, false);
         $user->update(['password' => Hash::make($temporaryPassword)]);
 
         if (!$registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {
-            return back()->with('warning', 'Email gagal dikirim. Akun tetap tidak aktif; periksa konfigurasi SMTP lalu coba lagi.');
+            return redirect()
+                ->route('admin.absensi.approval.hrd', $employeeListQuery)
+                ->with('warning', 'Email gagal dikirim. Akun tetap tidak aktif; periksa konfigurasi SMTP lalu coba lagi.');
         }
 
         $user->update([
@@ -254,7 +272,9 @@ class ApprovalController extends Controller
             'HRD mengirim ulang password sementara dan mengaktifkan akun karyawan.',
         );
 
-        return back()->with('success', 'Password sementara berhasil dikirim dan akun karyawan sudah aktif.');
+        return redirect()
+            ->route('admin.absensi.approval.hrd', $employeeListQuery)
+            ->with('success', 'Password sementara berhasil dikirim dan akun karyawan sudah aktif.');
     }
 
     public function handleAction(Request $request, Absensi $absensi, string $action)

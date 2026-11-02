@@ -151,8 +151,19 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
         ->and($employee->fresh()->bank_name)->toBe('BRI')
         ->and($employee->fresh()->is_active)->toBeFalse();
 
-    $this->patch(route('admin.employees.activate', $employee))
-        ->assertRedirect()
+    $this->patch(route('admin.employees.activate', [
+        'user' => $employee,
+        'section' => 'employees',
+        'employee_status' => 'inactive',
+        'employee_search' => 'Nama Diperbarui',
+        'employee_page' => 2,
+    ]))
+        ->assertRedirect(route('admin.absensi.approval.hrd', [
+            'section' => 'employees',
+            'employee_status' => 'inactive',
+            'employee_search' => 'Nama Diperbarui',
+            'employee_page' => 2,
+        ]))
         ->assertSessionHas('success');
 
     expect($employee->fresh()->is_active)->toBeTrue();
@@ -164,8 +175,19 @@ it('deactivates without deleting employee data or attendance history', function 
     $token = $employee->createToken('test-device');
 
     $this->actingAs($hrd)
-        ->delete(route('admin.employees.deactivate', $employee))
-        ->assertRedirect()
+        ->delete(route('admin.employees.deactivate', [
+            'user' => $employee,
+            'section' => 'employees',
+            'employee_status' => 'all',
+            'employee_search' => $employee->name,
+            'employee_page' => 3,
+        ]))
+        ->assertRedirect(route('admin.absensi.approval.hrd', [
+            'section' => 'employees',
+            'employee_status' => 'all',
+            'employee_search' => $employee->name,
+            'employee_page' => 3,
+        ]))
         ->assertSessionHas('success');
 
     expect($employee->fresh())->not->toBeNull()
@@ -197,8 +219,11 @@ it('deactivates without deleting employee data or attendance history', function 
         ->assertRedirect(route('login'));
 
     $this->actingAs($hrd)
-        ->patch(route('admin.employees.activate', $employee))
-        ->assertRedirect()
+        ->patch(route('admin.employees.activate', [
+            'user' => $employee,
+            'section' => 'employees',
+        ]))
+        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertSessionHas('success');
 
     expect($employee->fresh()->is_active)->toBeTrue()

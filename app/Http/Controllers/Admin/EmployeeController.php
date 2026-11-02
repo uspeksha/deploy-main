@@ -90,7 +90,8 @@ class EmployeeController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return back()
+            return redirect()
+                ->route('admin.employees.edit', ['user' => $user] + $this->employeeListQuery($request))
                 ->withErrors($validator)
                 ->withInput($request->except([
                     'nik',
@@ -116,7 +117,8 @@ class EmployeeController extends Controller
                 || (int) $latestRate->daily_rate !== (int) $dailyRate);
 
         if ($saveDailyRate && $latestRate && $effectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
-            return back()
+            return redirect()
+                ->route('admin.employees.edit', ['user' => $user] + $this->employeeListQuery($request))
                 ->withErrors(['effective_at' => 'Tanggal berlaku harus setelah perubahan tarif terakhir.'])
                 ->withInput($request->except([
                     'nik',
@@ -145,7 +147,7 @@ class EmployeeController extends Controller
             ->with('success', "Data {$user->name} berhasil diperbarui.");
     }
 
-    public function deactivate(User $user)
+    public function deactivate(Request $request, User $user)
     {
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
@@ -157,16 +159,20 @@ class EmployeeController extends Controller
 
         ActivityLog::log('Deactivate Employee', "User: {$user->name}", 'Akun dinonaktifkan; data dan riwayat tetap disimpan.');
 
-        return back()->with('success', "Akun {$user->name} dinonaktifkan. Data dan riwayatnya tetap tersimpan.");
+        return redirect()
+            ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
+            ->with('success', "Akun {$user->name} dinonaktifkan. Data dan riwayatnya tetap tersimpan.");
     }
 
-    public function activate(User $user)
+    public function activate(Request $request, User $user)
     {
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
 
         if ($user->registration_status !== 'approved') {
-            return back()->with('error', 'Akun belum disetujui. Kirim ulang akses melalui halaman Data Karyawan terlebih dahulu.');
+            return redirect()
+                ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
+                ->with('error', 'Akun belum disetujui. Kirim ulang akses melalui halaman Data Karyawan terlebih dahulu.');
         }
 
         DB::transaction(function () use ($user): void {
@@ -176,16 +182,20 @@ class EmployeeController extends Controller
         });
         ActivityLog::log('Reactivate Employee', "User: {$user->name}", 'HRD mengaktifkan kembali akun karyawan.');
 
-        return back()->with('success', "Akun {$user->name} aktif kembali.");
+        return redirect()
+            ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
+            ->with('success', "Akun {$user->name} aktif kembali.");
     }
 
-    public function destroy(User $user)
+    public function destroy(Request $request, User $user)
     {
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
 
         if ($user->is_active) {
-            return back()->with('error', 'Nonaktifkan akun terlebih dahulu sebelum menghapusnya secara permanen.');
+            return redirect()
+                ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
+                ->with('error', 'Nonaktifkan akun terlebih dahulu sebelum menghapusnya secara permanen.');
         }
 
         $employeeName = $user->name;
@@ -201,6 +211,8 @@ class EmployeeController extends Controller
 
         ActivityLog::log('Permanently Delete Employee', 'Employee account and related records permanently deleted.', 'HRD menghapus permanen akun dan riwayat terkait.');
 
-        return back()->with('success', "Akun {$employeeName} beserta riwayat absensi dan payroll berhasil dihapus permanen.");
+        return redirect()
+            ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
+            ->with('success', "Akun {$employeeName} beserta riwayat absensi dan payroll berhasil dihapus permanen.");
     }
 }
