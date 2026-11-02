@@ -13,6 +13,26 @@ use Illuminate\Validation\Rule;
 
 class EmployeeController extends Controller
 {
+    private function employeeListQuery(Request $request): array
+    {
+        $employeeStatus = $request->query('employee_status');
+        $employeeSearch = $request->query('employee_search');
+        $employeePage = filter_var($request->query('employee_page'), FILTER_VALIDATE_INT);
+
+        return array_filter([
+            'section' => 'employees',
+            'employee_status' => in_array($employeeStatus, ['active', 'inactive', 'all'], true)
+                ? $employeeStatus
+                : null,
+            'employee_search' => is_string($employeeSearch) && trim($employeeSearch) !== ''
+                ? trim($employeeSearch)
+                : null,
+            'employee_page' => $employeePage !== false && $employeePage > 0
+                ? $employeePage
+                : null,
+        ], fn ($value) => $value !== null);
+    }
+
     private function ensureHrd(): void
     {
         abort_unless(auth()->user()->role === 'hrd', 403);
@@ -28,7 +48,7 @@ class EmployeeController extends Controller
         ]);
     }
 
-    public function edit(User $user)
+    public function edit(Request $request, User $user)
     {
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
@@ -43,6 +63,7 @@ class EmployeeController extends Controller
             'user' => $user,
             'dailyRate' => $user->dailyRateAt(),
             'nextEffectiveAt' => $nextEffectiveAt,
+            'employeeListQuery' => $this->employeeListQuery($request),
         ]);
     }
 
@@ -120,7 +141,7 @@ class EmployeeController extends Controller
         ActivityLog::log('Update Employee Data', "User: {$user->name}", 'HRD memperbarui data karyawan.');
 
         return redirect()
-            ->route('admin.employees.index')
+            ->route('admin.absensi.approval.hrd', $this->employeeListQuery($request))
             ->with('success', "Data {$user->name} berhasil diperbarui.");
     }
 

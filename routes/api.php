@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\KpiIntegrationController;
+use App\Http\Controllers\Api\UserPasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +57,8 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
         // ========== AUTH & PROFILE ==========
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
+        Route::put('/user/password', [UserPasswordController::class, 'update'])
+            ->middleware('throttle:10,1');
         
         // Profile routes
         Route::get('/user/profile', [UserProfileController::class, 'show']);

@@ -116,9 +116,28 @@
                                             <tr class="group">
                                                 <td>
                                                     <div class="flex items-center gap-3">
-                                                        <div class="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-500 font-bold text-xs uppercase group-hover:bg-emerald-500 group-hover:text-white transition-colors">
-                                                            {{ substr($daily['user']->name, 0, 1) }}
-                                                        </div>
+                                                        @if ($daily['user']->profile_photo_path)
+                                                            <div x-data="{ imageFailed: false }" class="relative h-9 w-9 shrink-0">
+                                                                <img
+                                                                    src="{{ route('admin.storage.file', ['path' => $daily['user']->profile_photo_path]) }}"
+                                                                    alt="Foto profil {{ $daily['user']->name }}"
+                                                                    class="absolute inset-0 h-full w-full rounded-full object-cover"
+                                                                    x-show="!imageFailed"
+                                                                    x-on:error="imageFailed = true"
+                                                                >
+                                                                <div
+                                                                    x-show="imageFailed"
+                                                                    x-cloak
+                                                                    class="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800"
+                                                                >
+                                                                    {{ substr($daily['user']->name, 0, 1) }}
+                                                                </div>
+                                                            </div>
+                                                        @else
+                                                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800">
+                                                                {{ substr($daily['user']->name, 0, 1) }}
+                                                            </div>
+                                                        @endif
                                                         <div>
                                                             <p class="font-bold text-slate-900 dark:text-white">{{ $daily['user']->name }}</p>
                                                             <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{{ $daily['user']->id_karyawan ?? 'N/A' }}</p>

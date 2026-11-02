@@ -14,7 +14,7 @@
         @endif
 
         <section class="ui-panel mx-auto w-full max-w-4xl">
-            <form method="POST" action="{{ route('admin.employees.update', $user) }}"
+            <form method="POST" action="{{ route('admin.employees.update', ['user' => $user] + $employeeListQuery) }}"
                   class="grid gap-x-5 gap-y-4 sm:grid-cols-2"
                   x-data="{ employmentType: @js(old('employment_type', $user->employment_type ?? 'organik')) }">
                 @csrf
@@ -100,7 +100,7 @@
                     <x-input-error :messages="$errors->get('address')" class="mt-2" />
                 </div>
                 <div class="flex flex-col-reverse gap-3 border-t border-gray-200 pt-5 sm:col-span-2 sm:flex-row sm:justify-end dark:border-gray-700">
-                    <a href="{{ route('admin.employees.index') }}" class="ui-button-secondary">Batal</a>
+                    <a href="{{ route('admin.absensi.approval.hrd', $employeeListQuery) }}" class="ui-button-secondary">Batal</a>
                     <button type="submit" class="ui-button-primary">Simpan perubahan</button>
                 </div>
             </form>

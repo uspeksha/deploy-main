@@ -39,6 +39,20 @@ it('shows employee data in the HRD page data employees section', function () {
         ->get(route('admin.employees.index'))
         ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']));
 
+    $this->get(route('admin.employees.edit', [
+        'user' => $employee,
+        'employee_status' => 'active',
+        'employee_search' => $employee->name,
+        'employee_page' => 2,
+    ]))
+        ->assertOk()
+        ->assertSee(route('admin.absensi.approval.hrd', [
+            'section' => 'employees',
+            'employee_status' => 'active',
+            'employee_search' => $employee->name,
+            'employee_page' => 2,
+    ]));
+
     $this->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertOk()
         ->assertSee('Data Karyawan')
@@ -89,12 +103,30 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
     $employee = employeeManagementUser(['is_active' => false]);
 
     $this->actingAs($hrd)
-        ->get(route('admin.employees.edit', $employee))
+        ->get(route('admin.employees.edit', [
+            'user' => $employee,
+            'employee_status' => 'inactive',
+            'employee_search' => $employee->name,
+            'employee_page' => 2,
+        ]))
         ->assertOk()
         ->assertSee($employee->email)
+        ->assertSee(route('admin.employees.update', [
+            'user' => $employee,
+            'section' => 'employees',
+            'employee_status' => 'inactive',
+            'employee_search' => $employee->name,
+            'employee_page' => 2,
+        ]))
         ->assertDontSee('name="profile_photo"', false);
 
-    $this->put(route('admin.employees.update', $employee), [
+    $this->put(route('admin.employees.update', [
+        'user' => $employee,
+        'section' => 'employees',
+        'employee_status' => 'inactive',
+        'employee_search' => $employee->name,
+        'employee_page' => 2,
+    ]), [
         'name' => 'Nama Diperbarui',
         'email' => $employee->email,
         'id_karyawan' => $employee->id_karyawan,
@@ -107,7 +139,12 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
         'bank_name' => 'BRI',
         'bank_account_number' => '999888777',
         'bank_account_name' => 'Nama Diperbarui',
-    ])->assertRedirect(route('admin.employees.index'));
+    ])->assertRedirect(route('admin.absensi.approval.hrd', [
+        'section' => 'employees',
+        'employee_status' => 'inactive',
+        'employee_search' => $employee->name,
+        'employee_page' => 2,
+    ]));
 
     expect($employee->fresh()->name)->toBe('Nama Diperbarui')
         ->and($employee->fresh()->phone)->toBe('081111111111')
@@ -332,7 +369,7 @@ it('records freelance rate changes from the employee edit form', function () {
             'daily_rate' => 150000,
             'effective_at' => $effectiveAt,
         ])
-        ->assertRedirect(route('admin.employees.index'));
+        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']));
 
     expect($employee->salaryRates()->count())->toBe(2)
         ->and($employee->dailyRateAt($effectiveAt))->toBe(150000);

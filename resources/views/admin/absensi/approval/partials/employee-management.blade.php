@@ -176,7 +176,12 @@
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex flex-wrap items-center justify-end gap-2">
-                                        <a href="{{ route('admin.employees.edit', $employee) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
+                                        <a href="{{ route('admin.employees.edit', [
+                                            'user' => $employee,
+                                            'employee_status' => request('employee_status', 'all'),
+                                            'employee_search' => request('employee_search'),
+                                            'employee_page' => request('employee_page'),
+                                        ]) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
                                             <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', $employee) }}">
                                                 @csrf

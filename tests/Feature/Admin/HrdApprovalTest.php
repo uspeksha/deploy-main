@@ -2,6 +2,7 @@
 
 use App\Models\Absensi;
 use App\Models\User;
+use Illuminate\Support\Facades\Storage;
 
 it('shows the HRD approval page only to HRD and removes legacy approval URLs', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
@@ -237,6 +238,29 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         ->assertSee('Karyawan Freelance Belum Absen')
         ->assertDontSee('Karyawan Freelance Nonaktif')
         ->assertDontSee('Karyawan Organik Tersembunyi');
+});
+
+it('shows freelance profile photos on the attendance dashboard', function () {
+    Storage::fake('public');
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $photoPath = 'profile-photos/freelance-employee.jpg';
+    Storage::disk('public')->put($photoPath, 'test image');
+    User::factory()->create([
+        'name' => 'Karyawan Freelance dengan Foto',
+        'employment_type' => 'freelance',
+        'id_karyawan' => 'FL-PHOTO',
+        'profile_photo_path' => $photoPath,
+        'registration_status' => 'approved',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertSee(route('admin.storage.file', ['path' => $photoPath]), false)
+        ->assertSee('Foto profil Karyawan Freelance dengan Foto');
+
+    $this->get(route('admin.storage.file', ['path' => $photoPath]))
+        ->assertOk();
 });
 
 it('rejects non-HRD roles from web login', function () {
