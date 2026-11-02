@@ -35,7 +35,7 @@ class UserProfileController extends Controller
                 'id_karyawan' => $user->id_karyawan,
                 'departemen' => $user->departemen,
                 'profile_photo_path' => $user->profile_photo_path,
-                'profile_photo_url' => $user->profile_photo_url,
+                'profile_photo_url' => $user->profilePhotoDisplayUrl(),
             ]);
 
         } catch (\Exception $e) {
@@ -99,7 +99,7 @@ class UserProfileController extends Controller
 
                 if ($newPhotoPath) {
                     $user->profile_photo_path = $newPhotoPath;
-                    $user->profile_photo_url = Storage::disk('public')->url($newPhotoPath);
+                    $user->profile_photo_url = $user->profilePhotoDisplayUrl();
                 }
 
                 $user->save();
@@ -116,9 +116,12 @@ class UserProfileController extends Controller
             Storage::disk('public')->delete($previousPhotoPath);
         }
 
+        $updatedUser = $user->fresh();
+        $updatedUser->profile_photo_url = $updatedUser->profilePhotoDisplayUrl();
+
         return response()->json([
             'message' => 'Profil berhasil diperbarui.',
-            'user' => $user->fresh(),
+            'user' => $updatedUser,
         ]);
     }
 }

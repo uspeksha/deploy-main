@@ -5,6 +5,16 @@ use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+Route::get('/profile-photos/{filename}', function (string $filename) {
+    abort_unless(preg_match('/\A(?!\.{1,2}\z)[A-Za-z0-9][A-Za-z0-9._-]*\z/', $filename) === 1, 404);
+
+    $path = 'profile-photos/'.$filename;
+    abort_unless(Storage::disk('public')->exists($path), 404);
+
+    return Storage::disk('public')->response($path);
+})->name('profile-photos.show');
 
 Route::get('/', function () {
     return view('welcome');

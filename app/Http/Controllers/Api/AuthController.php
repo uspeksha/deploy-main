@@ -48,6 +48,7 @@ class AuthController extends Controller
             }
 
             $token = $user->createToken('authToken')->plainTextToken;
+            $user->profile_photo_url = $user->profilePhotoDisplayUrl();
             ActivityLog::log('Login User', "User: {$user->name}", "User login via API.");
 
             return response()->json([
@@ -116,7 +117,7 @@ class AuthController extends Controller
         'departemen' => $user->departemen,
         'role' => $user->role,
         'profile_photo_path' => $user->profile_photo_path,
-        'profile_photo_url' => $user->profile_photo_url ?? null,
+        'profile_photo_url' => $user->profilePhotoDisplayUrl(),
         'is_admin' => $user->is_admin,
         // ✅ Data cuti (hanya organik, freelance null)
         'sisa_cuti' => $user->employment_type === 'organik' ? ($user->sisa_cuti ?? 12) : null,

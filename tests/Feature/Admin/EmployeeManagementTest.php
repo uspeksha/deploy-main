@@ -2,6 +2,7 @@
 
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
@@ -233,9 +234,22 @@ it('shows the employee selected profile photo in the HRD list', function () {
     expect($employee->fresh()->name)->toBe($employee->name)
         ->and($employee->fresh()->id_karyawan)->toBe($employee->id_karyawan)
         ->and($employee->fresh()->departemen)->toBe($employee->departemen);
-    expect($employee->fresh()->profile_photo_url)->toBe(Storage::disk('public')->url($newPhotoPath));
+    $photoUrl = route('profile-photos.show', ['filename' => basename($newPhotoPath)]);
+    expect($employee->fresh()->profile_photo_url)->toBe($photoUrl);
     Storage::disk('public')->assertExists($newPhotoPath);
     Storage::disk('public')->assertMissing($oldPhotoPath);
+
+    $this->get($photoUrl)
+        ->assertOk()
+        ->assertHeader('Content-Type', 'image/jpeg');
+
+    Auth::forgetGuards();
+    Auth::shouldUse('web');
+    $this->postJson('/api/v1/login', [
+        'email' => $employee->email,
+        'password' => 'password',
+    ])->assertOk()
+        ->assertJsonPath('user.profile_photo_url', $photoUrl);
 
     $this->actingAs($hrd);
     $this->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
@@ -246,11 +260,11 @@ it('shows the employee selected profile photo in the HRD list', function () {
     $this->getJson('/api/v1/user')
         ->assertOk()
         ->assertJsonPath('profile_photo_path', $newPhotoPath)
-        ->assertJsonPath('profile_photo_url', Storage::disk('public')->url($newPhotoPath));
+        ->assertJsonPath('profile_photo_url', $photoUrl);
 
     $this->getJson('/api/v1/user/profile')
         ->assertOk()
-        ->assertJsonPath('profile_photo_url', Storage::disk('public')->url($newPhotoPath));
+        ->assertJsonPath('profile_photo_url', $photoUrl);
 });
 
 it('records freelance rate changes from the employee edit form', function () {

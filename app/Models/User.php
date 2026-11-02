@@ -97,6 +97,17 @@ public static function cutiYangMemotong(): array
         return $this->hasMany(EmployeeSalaryRate::class);
     }
 
+    public function profilePhotoDisplayUrl(): ?string
+    {
+        if (! $this->profile_photo_path) {
+            return null;
+        }
+
+        return route('profile-photos.show', [
+            'filename' => basename($this->profile_photo_path),
+        ]);
+    }
+
     public function dailyRateAt(Carbon|string|null $date = null): int
     {
         $effectiveAt = $date instanceof Carbon ? $date : Carbon::parse($date ?? now());
