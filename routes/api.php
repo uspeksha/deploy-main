@@ -7,7 +7,6 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\UserProfileController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ForgotPasswordController;
-use App\Http\Controllers\Api\ScheduledLemburController;
 use App\Http\Controllers\Api\KpiIntegrationController;
 
 /*
@@ -75,13 +74,7 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
             Route::post('/absensi/sakit', [AbsensiController::class, 'absenSakit']);
             Route::post('/absensi/izin', [AbsensiController::class, 'absenIzin']);
             Route::post('/absensi/telat', [AbsensiController::class, 'pengajuanTelat']);
-            Route::post('/absensi/scheduled-lembur', [ScheduledLemburController::class, 'store']);
-            
         });
-        
-        Route::get('/absensi/scheduled-lembur', [ScheduledLemburController::class, 'index']);
-        Route::put('/absensi/scheduled-lembur/{id}/status', [ScheduledLemburController::class, 'updateStatus'])
-            ->middleware('throttle:10,1');
         
         // ========== ABSENSI - RESUBMIT ENDPOINTS (rate limit lebih ketat) ==========
         Route::middleware('throttle:5,1')->group(function () {

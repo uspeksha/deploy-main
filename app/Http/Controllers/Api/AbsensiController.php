@@ -1162,51 +1162,7 @@ public function meAbsensi(Request $request)
             }
         }
 
-        
-        $scheduledLembur = \App\Models\ScheduledLembur::find($id);
-        if ($scheduledLembur) {
-            if ($scheduledLembur->user_id !== Auth::id()) {
-                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
-            }
-            return $this->handleResubmitScheduledLembur($request, $id);
-        }
-
         return response()->json(['success' => false, 'message' => 'Data tidak ditemukan atau tipe tidak didukung.'], 404);
-    }
-
-    
-    private function handleResubmitScheduledLembur(Request $request, $id)
-    {
-        $lembur = \App\Models\ScheduledLembur::findOrFail($id);
-
-        if (!in_array($lembur->status, ['rejected', 'ditolak'])) {
-            return response()->json(['success' => false, 'message' => 'Hanya pengajuan yang ditolak yang bisa diajukan ulang.'], 409);
-        }
-
-        $request->validate([
-            'tanggal_lembur' => 'required|date|after:today',
-            'keterangan'     => 'required|max:500',
-            'foto_bukti'     => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048'
-        ]);
-
-        $fotoPath = $lembur->foto_bukti;
-        if ($request->hasFile('foto_bukti')) {
-            if ($lembur->foto_bukti && Storage::disk('public')->exists($lembur->foto_bukti)) {
-                Storage::disk('public')->delete($lembur->foto_bukti);
-            }
-            $fotoPath = $request->file('foto_bukti')->store('absensi_foto', 'public');
-        }
-
-        $lembur->update([
-            'tanggal_lembur' => $request->tanggal_lembur,
-            'keterangan'     => $request->keterangan,
-            'foto_bukti'     => $fotoPath,
-            'status'         => 'pending',
-            'current_approval_level' => 1,
-            'updated_at' => now(),
-        ]);
-
-        return response()->json(['success' => true, 'message' => 'Lembur terjadwal berhasil diajukan ulang.', 'data' => $lembur], 200);
     }
 
 

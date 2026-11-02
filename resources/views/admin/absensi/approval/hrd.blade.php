@@ -60,9 +60,6 @@
                 @include('admin.absensi.approval.table', ['submissions' => $submissions])
             </section>
 
-            @if ($status === 'pending')
-                @include('admin.absensi.approval.partials.scheduled-lembur-table')
-            @endif
         </section>
     </div>
 

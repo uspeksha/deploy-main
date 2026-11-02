@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\EmployeeSalaryRate;
 use App\Models\Notification;
-use App\Models\ScheduledLembur;
 use App\Models\User;
 use App\Models\ActivityLog;
 use App\Services\EmployeeRegistrationMailer;
@@ -65,7 +64,6 @@ class ApprovalController extends Controller
         $this->ensureHrdApprover();
         $status = $request->input('status', 'pending');
         $submissions = $this->getSubmissions($request, $status);
-        $scheduledLembur = ScheduledLembur::where('status', 'pending')->with('user')->orderBy('tanggal_lembur')->get();
         $employeeStatus = $request->input('employee_status', 'active');
         if (! in_array($employeeStatus, ['active', 'inactive', 'all'], true)) {
             $employeeStatus = 'active';
@@ -97,7 +95,6 @@ class ApprovalController extends Controller
 
         return view('admin.absensi.approval.hrd', compact(
             'submissions',
-            'scheduledLembur',
             'status',
             'employees',
             'employeeStatus',
@@ -746,47 +743,6 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
         return ['hrd' => 'pending'];
     }
 
-    public function handleScheduledLemburAction(Request $request, $id, $action)
-    {
-        $this->ensureHrdApprover();
-        $record = ScheduledLembur::with('user')->findOrFail($id);
-
-        if ($action === 'approve') {
-            $record->update(['status' => 'approved', 'current_approval_level' => 1]);
-                
-                $tanggal = \Carbon\Carbon::parse($record->tanggal_lembur)->translatedFormat('d F Y');
-                \App\Models\Notification::create([
-                    'user_id'     => $record->user_id,
-                    'title'       => 'Lembur Terjadwal Disetujui ✅',
-                    'message'     => "Lembur terjadwal kamu pada $tanggal telah disetujui sepenuhnya.",
-                    'type'        => 'scheduled_lembur_approved',
-                    'target_page' => '/jadwal_lembur',
-                    'target_id'   => $record->id,
-                ]);
-                
-                \App\Models\ActivityLog::log('Approve Jadwal Lembur HRD', "Jadwal ID: {$record->id} dari {$record->user->name}", "Persetujuan HRD");
-                return back()->with('success', 'Lembur terjadwal berhasil disetujui oleh HRD.');
-        }
-
-        if ($action === 'reject') {
-            $request->validate(['catatan_admin' => 'required|min:5']);
-            $record->update(['status' => 'rejected']);
-            $tanggal = \Carbon\Carbon::parse($record->tanggal_lembur)->translatedFormat('d F Y');
-            \App\Models\Notification::create([
-                'user_id'     => $record->user_id,
-                'title'       => 'Lembur Terjadwal Ditolak ❌',
-                'message'     => "Lembur terjadwal kamu pada $tanggal ditolak. Alasan: {$request->catatan_admin}",
-                'type'        => 'scheduled_lembur_rejected',
-                'target_page' => '/jadwal_lembur',
-                'target_id'   => $record->id,
-            ]);
-            
-            \App\Models\ActivityLog::log('Reject Jadwal Lembur', "Jadwal ID: {$record->id} dari {$record->user->name}", "Alasan: {$request->catatan_admin}");
-            return back()->with('success', 'Lembur terjadwal berhasil ditolak.');
-        }
-
-        return back()->with('error', 'Aksi tidak valid.');
-    }
     public function handleBulkAction(Request $request)
     {
         $this->ensureHrdApprover();

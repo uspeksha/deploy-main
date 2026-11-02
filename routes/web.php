@@ -96,9 +96,6 @@ Route::middleware(['auth', 'active.account', 'admin', \App\Http\Middleware\Activ
 
         Route::post('/bulk-approve', [ApprovalController::class, 'handleBulkAction'])->name('admin.absensi.approval.bulk-action');
 
-        Route::post('/scheduled-lembur/{id}/{action}', [ApprovalController::class, 'handleScheduledLemburAction'])
-            ->name('admin.absensi.approval.scheduled-lembur.action')
-            ->where('action', 'approve|reject');
         Route::post('/employees/{user}/salary-rates', [ApprovalController::class, 'updateEmployeeSalaryRate'])
             ->name('admin.absensi.approval.employees.salary-rates.store');
     });
