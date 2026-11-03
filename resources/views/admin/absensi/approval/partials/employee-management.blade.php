@@ -35,6 +35,15 @@
                     <x-input-error :messages="$errors->get('id_karyawan')" class="mt-2" />
                 </div>
                 <div>
+                    <x-input-label for="employee_gender" value="Jenis kelamin" />
+                    <select id="employee_gender" name="gender" class="mt-1 w-full ui-control">
+                        <option value="">Belum diisi</option>
+                        <option value="male" @selected(old('gender') === 'male')>Laki-laki</option>
+                        <option value="female" @selected(old('gender') === 'female')>Perempuan</option>
+                    </select>
+                    <x-input-error :messages="$errors->get('gender')" class="mt-2" />
+                </div>
+                <div>
                     <x-input-label for="employee_email" value="Email karyawan" />
                     <x-text-input id="employee_email" name="email" type="email" class="mt-1 w-full ui-control" :value="old('email')" required />
                     <x-input-error :messages="$errors->get('email')" class="mt-2" />

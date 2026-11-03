@@ -99,28 +99,31 @@
     @push('styles')
         <style nonce="{{ config('app.csp_nonce') }}">
             .welcome-page {
-                --w-ink: #0f2a24;
-                --w-muted: #5f7a72;
-                --w-faint: #8aa39b;
-                --w-line: rgba(15, 42, 36, .09);
-                --w-green: #059669;
-                --w-green-2: #0d9488;
-                --w-chip-bg: #e7f8f0;
-                --w-chip-line: #c9eedd;
-                --w-chip-ink: #047857;
+                --w-ink: #262626;
+                --w-muted: #525252;
+                --w-faint: #737373;
+                --w-line: rgba(64, 64, 64, .1);
+                --w-accent: #a8642f;
+                --w-chip-bg: #fff8f1;
+                --w-chip-line: #f5d2b5;
+                --w-chip-ink: #854d28;
                 min-height: 100vh;
                 min-height: 100svh;
                 overflow: hidden;
+                position: relative;
+                isolation: isolate;
                 color: var(--w-ink);
+                background: linear-gradient(145deg, #fafafa, #f5f5f5 62%, #f3f4f6);
             }
             .dark .welcome-page {
-                --w-ink: #ecfdf5;
-                --w-muted: #9ec2b6;
-                --w-faint: #6f9487;
+                --w-ink: #f5f5f5;
+                --w-muted: #d4d4d4;
+                --w-faint: #a3a3a3;
                 --w-line: rgba(255, 255, 255, .09);
-                --w-chip-bg: rgba(52, 211, 153, .12);
-                --w-chip-line: rgba(52, 211, 153, .25);
-                --w-chip-ink: #6ee7b7;
+                --w-chip-bg: rgba(196, 122, 60, .12);
+                --w-chip-line: rgba(218, 153, 103, .24);
+                --w-chip-ink: #f5d2b5;
+                background: linear-gradient(145deg, #0a0a0a, #171717 62%, #262626);
             }
 
             .welcome-shell {
@@ -150,14 +153,14 @@
             .welcome-brand-mark {
                 display: grid; width: 2.2rem; height: 2.2rem; place-items: center;
                 border-radius: .72rem; color: #fff; font-size: 1.15rem; font-weight: 800;
-                background: linear-gradient(135deg, #10b981, #0d9488);
-                box-shadow: 0 6px 16px rgba(16, 185, 129, .35);
+                background: linear-gradient(135deg, #a8642f, #c47a3c);
+                box-shadow: 0 6px 16px rgba(168, 100, 47, .2);
                 transition: transform .4s cubic-bezier(.3, 1.6, .5, 1);
             }
             .welcome-brand:hover .welcome-brand-mark { transform: rotate(-8deg) scale(1.08); }
             .welcome-brand-name { font-size: 1.1rem; font-weight: 800; letter-spacing: -.055em; }
-            .welcome-brand-name span { color: var(--w-green); }
-            .dark .welcome-brand-name span { color: #34d399; }
+            .welcome-brand-name span { color: var(--w-accent); }
+            .dark .welcome-brand-name span { color: #eab88f; }
 
             .welcome-header-note { color: var(--w-faint); font-size: .75rem; font-weight: 600; }
 
@@ -168,10 +171,10 @@
                 transition: background-color .2s ease, color .2s ease, transform .2s ease;
             }
             .dark .welcome-theme { background: rgba(255, 255, 255, .05); }
-            .welcome-theme:hover { background: rgba(16, 185, 129, .14); color: var(--w-green); }
-            .dark .welcome-theme:hover { color: #6ee7b7; }
+            .welcome-theme:hover { background: rgba(196, 122, 60, .1); color: var(--w-accent); }
+            .dark .welcome-theme:hover { color: #eab88f; }
             .welcome-theme:active { transform: scale(.92); }
-            .welcome-theme:focus-visible { outline: 2px solid #34d399; outline-offset: 2px; }
+            .welcome-theme:focus-visible { outline: 2px solid #da9967; outline-offset: 2px; }
             .welcome-theme .fa-sun { color: #fbbf24; }
 
             /* ---------- Hero ---------- */
@@ -183,8 +186,8 @@
             .welcome-art {
                 position: relative; display: grid; min-height: 32rem; place-items: center; overflow: hidden;
                 border: 1px solid rgba(255, 255, 255, .85); border-radius: 2rem;
-                background: linear-gradient(145deg, #eafbf3, #d9f6ea 58%, #dcf3f6);
-                box-shadow: 0 28px 70px -28px rgba(5, 120, 85, .45);
+                background: linear-gradient(145deg, #fff8f1, #fcebdc 58%, #f5f5f5);
+                box-shadow: 0 28px 70px -28px rgba(168, 100, 47, .2);
                 isolation: isolate;
                 animation: welcome-enter-left 700ms cubic-bezier(.2, .7, .25, 1) both;
             }
@@ -196,14 +199,14 @@
             }
             .welcome-art-glow {
                 position: absolute; z-index: -1; top: 8%; right: -12%; width: 15rem; aspect-ratio: 1;
-                border-radius: 50%; background: rgba(52, 211, 153, .28); filter: blur(24px);
+                border-radius: 50%; background: rgba(218, 153, 103, .2); filter: blur(24px);
                 translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -14px);
                 transition: translate .35s cubic-bezier(.2, .8, .2, 1);
             }
 
             .welcome-team {
                 display: block; width: min(84%, 350px); height: auto; max-height: 90%;
-                border-radius: 1rem; mix-blend-mode: multiply; object-fit: contain;
+                border-radius: 1rem; filter: grayscale(1); mix-blend-mode: multiply; object-fit: contain;
                 translate: calc(var(--px, 0) * 14px) calc(var(--py, 0) * 10px);
                 transition: translate .35s cubic-bezier(.2, .8, .2, 1);
                 animation: welcome-image-float 7s ease-in-out 700ms infinite;
@@ -212,34 +215,34 @@
             .welcome-chip {
                 position: absolute; top: 1.15rem; left: 1.15rem; display: flex; align-items: center; gap: .6rem;
                 padding: .55rem .85rem .55rem .7rem; border: 1px solid rgba(255, 255, 255, .85); border-radius: 9999px;
-                background: rgba(255, 255, 255, .82); box-shadow: 0 8px 25px rgba(5, 80, 60, .1);
+                background: rgba(255, 255, 255, .9); box-shadow: 0 8px 25px rgba(64, 64, 64, .08);
                 -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
                 translate: calc(var(--px, 0) * 22px) calc(var(--py, 0) * 16px);
                 transition: translate .35s cubic-bezier(.2, .8, .2, 1);
             }
-            .welcome-chip strong { display: block; color: #0f2a24; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
-            .welcome-chip small { display: block; color: #5f7a72; font-size: .65rem; }
-            .welcome-pulse { position: relative; width: 8px; height: 8px; border-radius: 9999px; background: #10b981; }
+            .welcome-chip strong { display: block; color: #262626; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+            .welcome-chip small { display: block; color: #737373; font-size: .65rem; }
+            .welcome-pulse { position: relative; width: 8px; height: 8px; border-radius: 9999px; background: #c47a3c; }
             .welcome-pulse::after {
-                content: ""; position: absolute; inset: 0; border-radius: inherit; background: #10b981;
+                content: ""; position: absolute; inset: 0; border-radius: inherit; background: #c47a3c;
                 animation: welcome-ping 1.8s cubic-bezier(0, 0, .2, 1) infinite;
             }
 
             .welcome-art-caption {
                 position: absolute; right: 1.15rem; bottom: 1.15rem; left: 1.15rem; display: flex; align-items: center; gap: .7rem;
                 padding: .8rem .9rem; border: 1px solid rgba(255, 255, 255, .8); border-radius: 1rem;
-                background: rgba(255, 255, 255, .82); box-shadow: 0 8px 25px rgba(5, 80, 60, .08);
+                background: rgba(255, 255, 255, .9); box-shadow: 0 8px 25px rgba(64, 64, 64, .07);
                 -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
             }
             .welcome-caption-icon {
                 display: grid; width: 2.15rem; height: 2.15rem; flex: none; place-items: center;
-                border-radius: .7rem; background: linear-gradient(135deg, #10b981, #0d9488); color: #fff;
-                box-shadow: 0 6px 14px -4px rgba(16, 185, 129, .7);
+                border-radius: .7rem; background: linear-gradient(135deg, #a8642f, #c47a3c); color: #fff;
+                box-shadow: 0 6px 14px -4px rgba(168, 100, 47, .32);
             }
             .welcome-caption-icon svg { width: 1.1rem; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
             .welcome-art-caption strong, .welcome-art-caption small { display: block; }
-            .welcome-art-caption strong { color: #0f2a24; font-size: .78rem; font-weight: 750; }
-            .welcome-art-caption small { margin-top: .15rem; color: #5f7a72; font-size: .66rem; }
+            .welcome-art-caption strong { color: #262626; font-size: .78rem; font-weight: 750; }
+            .welcome-art-caption small { margin-top: .15rem; color: #737373; font-size: .66rem; }
 
             /* ---------- Teks ---------- */
             .welcome-copy {
@@ -252,18 +255,18 @@
                 color: var(--w-chip-ink); font-size: .75rem; font-weight: 650;
             }
             .welcome-eyebrow span {
-                width: .42rem; height: .42rem; border-radius: 50%; background: #10b981;
-                box-shadow: 0 0 0 3px rgba(16, 185, 129, .18);
+                width: .42rem; height: .42rem; border-radius: 50%; background: #c47a3c;
+                box-shadow: 0 0 0 3px rgba(196, 122, 60, .14);
             }
             .welcome-copy h1 {
                 margin: 0; color: var(--w-ink); font-size: clamp(3rem, 5.4vw, 5.1rem);
                 font-weight: 760; letter-spacing: -.075em; line-height: 1.04;
             }
             .welcome-copy h1 span {
-                background: linear-gradient(100deg, #059669, #0d9488 45%, #06b6d4 90%);
+                background: linear-gradient(100deg, #a8642f, #c47a3c 55%, #da9967 100%);
                 -webkit-background-clip: text; background-clip: text; color: transparent;
             }
-            .dark .welcome-copy h1 span { background-image: linear-gradient(100deg, #34d399, #2dd4bf 45%, #22d3ee 90%); }
+            .dark .welcome-copy h1 span { background-image: linear-gradient(100deg, #eab88f, #f5d2b5 55%, #da9967 100%); }
             .welcome-description { max-width: 29rem; margin: 1.25rem 0 1.75rem; color: var(--w-muted); font-size: .98rem; line-height: 1.75; }
 
             /* ---------- Tombol masuk ---------- */
@@ -271,8 +274,8 @@
                 position: relative; display: inline-flex; min-height: 3.25rem; align-items: center; justify-content: center;
                 gap: .85rem; padding: 0 1.5rem; overflow: hidden; border-radius: .9rem; color: #fff;
                 font-size: .9rem; font-weight: 750; text-decoration: none;
-                background: linear-gradient(135deg, #10b981, #0d9488);
-                box-shadow: 0 12px 26px -8px rgba(16, 185, 129, .65), inset 0 1px 0 rgba(255, 255, 255, .25);
+                background: linear-gradient(135deg, #a8642f, #c47a3c);
+                box-shadow: 0 12px 26px -8px rgba(168, 100, 47, .34), inset 0 1px 0 rgba(255, 255, 255, .25);
                 transition: translate .25s cubic-bezier(.2, .8, .2, 1), transform .18s ease, box-shadow .18s ease;
             }
             .welcome-login::before {
@@ -280,10 +283,10 @@
                 background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
                 transform: skewX(-20deg); transition: left .6s ease;
             }
-            .welcome-login:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -8px rgba(16, 185, 129, .75), inset 0 1px 0 rgba(255, 255, 255, .25); }
+            .welcome-login:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -8px rgba(168, 100, 47, .42), inset 0 1px 0 rgba(255, 255, 255, .25); }
             .welcome-login:hover::before { left: 130%; }
             .welcome-login:active { transform: translateY(0) scale(.98); }
-            .welcome-login:focus-visible { outline: 3px solid #6ee7b7; outline-offset: 3px; }
+            .welcome-login:focus-visible { outline: 3px solid #eab88f; outline-offset: 3px; }
             .welcome-login-label, .welcome-login svg { position: relative; }
             .welcome-login svg {
                 width: 1.05rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;
@@ -292,7 +295,7 @@
             .welcome-login:hover svg { transform: translateX(4px); }
 
             .welcome-assurance { display: flex; align-items: center; gap: .45rem; margin: 1rem 0 0; color: var(--w-faint); font-size: .75rem; }
-            .welcome-assurance svg { width: 1rem; flex: none; stroke: #10b981; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+            .welcome-assurance svg { width: 1rem; flex: none; stroke: #a8642f; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
 
             .welcome-footer {
                 display: flex; min-height: 3.5rem; align-items: center; justify-content: space-between;

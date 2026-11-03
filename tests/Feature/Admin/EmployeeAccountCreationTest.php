@@ -1,8 +1,8 @@
 <?php
 
 use App\Mail\EmployeeRegistrationMail;
-use App\Services\EmployeeRegistrationMailer;
 use App\Models\User;
+use App\Services\EmployeeRegistrationMailer;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 
@@ -194,13 +194,12 @@ it('does not flash NIK or bank details back into the session after validation fa
         ->post(route('admin.absensi.approval.employees.store'), $payload)
         ->assertRedirect(route('admin.absensi.approval.hrd'))
         ->assertSessionHasErrors('nik')
-        ->assertSessionHas('_old_input', fn (array $input) =>
-            !array_key_exists('nik', $input)
-            && !array_key_exists('phone', $input)
-            && !array_key_exists('address', $input)
-            && !array_key_exists('bank_name', $input)
-            && !array_key_exists('bank_account_number', $input)
-            && !array_key_exists('bank_account_name', $input)
+        ->assertSessionHas('_old_input', fn (array $input) => ! array_key_exists('nik', $input)
+            && ! array_key_exists('phone', $input)
+            && ! array_key_exists('address', $input)
+            && ! array_key_exists('bank_name', $input)
+            && ! array_key_exists('bank_account_number', $input)
+            && ! array_key_exists('bank_account_name', $input)
         );
 });
 

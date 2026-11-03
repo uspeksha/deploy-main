@@ -14,30 +14,30 @@
     <style nonce="{{ config('app.csp_nonce') }}">
         /* Token warna: sama dengan layout admin & navbar */
         :root {
-            --sb-top: #0a3a31;
-            --sb-bottom: #05201b;
-            --accent: #34d399;
-            --surface: #f4f7f6;
-            --glow-a: rgba(52, 211, 153, .35);
-            --glow-b: rgba(34, 211, 238, .22);
-            --glow-c: rgba(20, 184, 166, .28);
-            --dot: rgba(100, 116, 139, .16);
-            --spot: rgba(16, 185, 129, .14);
+            --sb-top: #262626;
+            --sb-bottom: #171717;
+            --accent: #737373;
+            --surface: #f5f5f5;
+            --glow-a: rgba(82, 82, 82, .12);
+            --glow-b: rgba(115, 115, 115, .08);
+            --glow-c: rgba(64, 64, 64, .08);
+            --dot: rgba(82, 82, 82, .12);
+            --spot: rgba(64, 64, 64, .06);
         }
         .dark {
-            --sb-top: #082a24;
-            --sb-bottom: #031612;
-            --surface: #0b1412;
-            --glow-a: rgba(16, 185, 129, .22);
-            --glow-b: rgba(34, 211, 238, .10);
-            --glow-c: rgba(20, 184, 166, .16);
+            --sb-top: #171717;
+            --sb-bottom: #0a0a0a;
+            --surface: #0a0a0a;
+            --glow-a: rgba(82, 82, 82, .12);
+            --glow-b: rgba(115, 115, 115, .06);
+            --glow-c: rgba(64, 64, 64, .08);
             --dot: rgba(255, 255, 255, .06);
-            --spot: rgba(52, 211, 153, .10);
+            --spot: rgba(115, 115, 115, .06);
         }
 
         html { scroll-behavior: smooth; }
         body { background-color: var(--surface); transition: background-color .4s ease; }
-        ::selection { background: rgba(52, 211, 153, .35); }
+        ::selection { background: rgba(115, 115, 115, .25); }
 
         /* Latar: aurora + pola titik */
         .bg-stage { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }

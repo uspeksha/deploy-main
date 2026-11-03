@@ -4,18 +4,17 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
-use Carbon\Carbon;
 
 class ForgotPasswordController extends Controller
 {
-    
     public function sendOtp(Request $request)
     {
         try {
@@ -31,8 +30,8 @@ class ForgotPasswordController extends Controller
                 ->whereRaw('LOWER(email) = ?', [$email])
                 ->first();
 
-            if (!$user) {
-                if (!RateLimiter::tooManyAttempts($throttleKey, 3)) {
+            if (! $user) {
+                if (! RateLimiter::tooManyAttempts($throttleKey, 3)) {
                     RateLimiter::hit($throttleKey, 60);
                 }
 
@@ -112,8 +111,8 @@ class ForgotPasswordController extends Controller
                     ->whereRaw('LOWER(email) = ?', [mb_strtolower(trim($email))])
                     ->lockForUpdate()
                     ->first();
-                if (!$user) {
-                    if (!RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                if (! $user) {
+                    if (! RateLimiter::tooManyAttempts($throttleKey, 5)) {
                         RateLimiter::hit($throttleKey, 600);
                     }
 
@@ -130,7 +129,7 @@ class ForgotPasswordController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$record || !$this->otpMatches($user->email, $otp, $record->otp)) {
+                if (! $record || ! $this->otpMatches($user->email, $otp, $record->otp)) {
                     RateLimiter::hit($throttleKey, 600);
 
                     return 'invalid';
@@ -138,6 +137,7 @@ class ForgotPasswordController extends Controller
 
                 if ($this->otpIsExpired($record->created_at)) {
                     DB::table('password_resets')->where('email', $user->email)->delete();
+
                     return 'expired';
                 }
 
@@ -206,8 +206,8 @@ class ForgotPasswordController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$user) {
-                    if (!RateLimiter::tooManyAttempts($throttleKey, 5)) {
+                if (! $user) {
+                    if (! RateLimiter::tooManyAttempts($throttleKey, 5)) {
                         RateLimiter::hit($throttleKey, 600);
                     }
 
@@ -224,7 +224,7 @@ class ForgotPasswordController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$record || !$this->otpMatches($user->email, $otp, $record->otp)) {
+                if (! $record || ! $this->otpMatches($user->email, $otp, $record->otp)) {
                     RateLimiter::hit($throttleKey, 600);
 
                     return 'invalid';

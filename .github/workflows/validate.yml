@@ -50,3 +50,15 @@ jobs:
 
       - name: Run application tests
         run: composer test
+
+      - name: Check PHP formatting
+        run: composer format:check
+
+      - name: Run static analysis
+        run: composer analyse
+
+      - name: Verify Laravel production caches
+        run: php artisan optimize
+
+      - name: Build production container
+        run: docker build --tag deploy-main:${{ github.sha }} .

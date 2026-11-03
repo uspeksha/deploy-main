@@ -2,9 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $daily_rate
+ * @property Carbon $effective_at
+ */
 class EmployeeSalaryRate extends Model
 {
     public const LEGACY_DAILY_RATE = 120000;

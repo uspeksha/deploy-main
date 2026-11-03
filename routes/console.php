@@ -1,5 +1,7 @@
 <?php
 
+use App\Models\Absensi;
+use Carbon\Carbon;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -10,8 +12,8 @@ Artisan::command('inspire', function () {
 
 // JADWAL AUTO CHECKOUT LUPA ABSEN (Setiap Hari Jam 23:59)
 Schedule::call(function () {
-    $today = \Carbon\Carbon::today();
-    $forgottenAbsences = \App\Models\Absensi::where('status', 'hadir')
+    $today = Carbon::today();
+    $forgottenAbsences = Absensi::where('status', 'hadir')
         ->whereNull('check_out_at')
         ->whereDate('check_in_at', $today)
         ->get();

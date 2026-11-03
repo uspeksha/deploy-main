@@ -81,6 +81,97 @@
             @endforeach
         </div>
 
+        <section class="space-y-5">
+            <div>
+                <h2 class="text-xl font-black text-slate-900 dark:text-white">Statistik Karyawan</h2>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Gender seluruh karyawan aktif; ranking dari absensi disetujui pada {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                @foreach ([
+                    ['label' => 'Laki-laki', 'value' => $employeeGenderStats['male'], 'icon' => 'fa-mars', 'icon_classes' => 'bg-blue-500/10 text-blue-600'],
+                    ['label' => 'Perempuan', 'value' => $employeeGenderStats['female'], 'icon' => 'fa-venus', 'icon_classes' => 'bg-pink-500/10 text-pink-600'],
+                    ['label' => 'Belum diisi', 'value' => $employeeGenderStats['unspecified'], 'icon' => 'fa-user', 'icon_classes' => 'bg-slate-500/10 text-slate-600'],
+                ] as $genderCard)
+                    <div class="lucent-panel flex items-center gap-4 rounded-2xl p-5">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $genderCard['icon_classes'] }}">
+                            <i class="fas {{ $genderCard['icon'] }} text-lg"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $genderCard['label'] }}</p>
+                            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ $genderCard['value'] }}</p>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+                @foreach ([
+                    ['key' => 'attendance', 'title' => 'Paling Rajin Hadir', 'column' => 'attendance_count', 'icon' => 'fa-trophy', 'icon_classes' => 'bg-emerald-500/10 text-emerald-600', 'text_class' => 'text-emerald-600'],
+                    ['key' => 'sick', 'title' => 'Paling Sering Sakit', 'column' => 'sick_count', 'icon' => 'fa-medkit', 'icon_classes' => 'bg-rose-500/10 text-rose-600', 'text_class' => 'text-rose-600'],
+                    ['key' => 'late', 'title' => 'Paling Sering Terlambat', 'column' => 'late_count', 'icon' => 'fa-user-clock', 'icon_classes' => 'bg-amber-500/10 text-amber-600', 'text_class' => 'text-amber-600'],
+                    ['key' => 'leave', 'title' => 'Paling Banyak Izin', 'column' => 'leave_count', 'icon' => 'fa-calendar-minus', 'icon_classes' => 'bg-indigo-500/10 text-indigo-600', 'text_class' => 'text-indigo-600'],
+                ] as $ranking)
+                    <section class="lucent-panel overflow-hidden rounded-2xl">
+                        <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl {{ $ranking['icon_classes'] }}">
+                                <i class="fas {{ $ranking['icon'] }}"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-900 dark:text-white">{{ $ranking['title'] }}</h3>
+                        </div>
+                        <div class="grid grid-cols-3 items-end gap-2 px-3 py-6 sm:gap-4 sm:px-6">
+                            @foreach ([1, 0, 2] as $podiumPosition)
+                                @php
+                                    $rank = $podiumPosition + 1;
+                                    $employee = $employeeRankings[$ranking['key']]->get($rank - 1);
+                                    $podiumStyles = [
+                                        1 => [
+                                            'height' => 'h-24',
+                                            'base' => 'border-amber-300 bg-gradient-to-b from-amber-100 to-amber-200 text-amber-800 dark:border-amber-700 dark:from-amber-900/60 dark:to-amber-950/70 dark:text-amber-200',
+                                            'medal' => 'text-amber-500',
+                                        ],
+                                        2 => [
+                                            'height' => 'h-16',
+                                            'base' => 'border-slate-300 bg-gradient-to-b from-slate-100 to-slate-200 text-slate-700 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800 dark:text-slate-200',
+                                            'medal' => 'text-slate-400',
+                                        ],
+                                        3 => [
+                                            'height' => 'h-12',
+                                            'base' => 'border-orange-300 bg-gradient-to-b from-orange-100 to-orange-200 text-orange-800 dark:border-orange-800 dark:from-orange-950/70 dark:to-orange-950 dark:text-orange-200',
+                                            'medal' => 'text-orange-600',
+                                        ],
+                                    ][$rank];
+                                @endphp
+                                <div data-ranking-slot="{{ $ranking['key'] }}-{{ $rank }}" class="flex min-w-0 flex-col items-center text-center">
+                                    <div class="mb-3 flex min-h-24 w-full flex-col items-center justify-end">
+                                        <i class="fas fa-medal mb-1 text-xl {{ $podiumStyles['medal'] }}" aria-hidden="true"></i>
+                                        <p class="w-full truncate text-xs font-bold text-slate-800 dark:text-slate-100 sm:text-sm">
+                                            {{ $employee?->name ?? 'Belum ada data' }}
+                                        </p>
+                                        @if ($employee)
+                                            <p class="mt-1 text-[11px] font-semibold {{ $ranking['text_class'] }}">
+                                                {{ $employee->{$ranking['column']} }} {{ $ranking['key'] === 'attendance' ? 'hari' : 'kali' }}
+                                            </p>
+                                        @else
+                                            <p class="mt-1 text-[11px] text-slate-400">—</p>
+                                        @endif
+                                    </div>
+                                    <div class="flex w-full flex-col items-center justify-center rounded-t-xl border-x border-t {{ $podiumStyles['height'] }} {{ $podiumStyles['base'] }}">
+                                        <span class="text-2xl font-black sm:text-3xl">{{ $rank }}</span>
+                                        <span class="text-[9px] font-extrabold tracking-[0.16em] sm:text-[10px]">
+                                            {{ $rank === 1 ? 'JUARA' : 'RANK' }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </section>
+                @endforeach
+            </div>
+        </section>
+
         {{-- Tables Section --}}
         <div class="lucent-table-wrapper">
                             <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -233,7 +324,7 @@
                 ->map(fn ($point, $index) => ($index === 0 ? 'M ' : 'L ').round($point['x'], 1).' '.round($point['y'], 1))
                 ->implode(' ');
             $areaPath = $linePath.' L 700 216 L 50 216 Z';
-            $statusColors = ['#10b981', '#f59e0b', '#ef4444', '#64748b'];
+            $statusColors = ['#525252', '#737373', '#262626', '#a3a3a3'];
             $statusTotal = array_sum($grafikStatus['values']);
             $statusCircumference = 2 * pi() * 72;
             $statusOffset = 0;
@@ -276,16 +367,16 @@
                         @endforeach
                         <defs>
                             <linearGradient id="attendance-area" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stop-color="#10b981" stop-opacity="0.24" />
-                                <stop offset="100%" stop-color="#10b981" stop-opacity="0.01" />
+                                <stop offset="0%" stop-color="#525252" stop-opacity="0.24" />
+                                <stop offset="100%" stop-color="#525252" stop-opacity="0.01" />
                             </linearGradient>
                         </defs>
                         <path d="{{ $areaPath }}" fill="url(#attendance-area)" />
-                        <path d="{{ $linePath }}" fill="none" stroke="#10b981" stroke-width="4"
+                        <path d="{{ $linePath }}" fill="none" stroke="#525252" stroke-width="4"
                               stroke-linecap="round" stroke-linejoin="round" />
                         @foreach ($chartPoints as $index => $point)
                             <circle cx="{{ round($point['x'], 1) }}" cy="{{ round($point['y'], 1) }}" r="5"
-                                    fill="#10b981" stroke="white" stroke-width="2">
+                                    fill="#525252" stroke="white" stroke-width="2">
                                 <title>{{ $chartMonths[$index] }}: {{ $point['value'] }} kehadiran</title>
                             </circle>
                             <text x="{{ round($point['x'], 1) }}" y="242" text-anchor="middle"
@@ -312,7 +403,7 @@
                         <div class="relative h-44 w-44 shrink-0">
                             <svg class="h-full w-full -rotate-90" viewBox="0 0 180 180" role="img"
                                  aria-label="Grafik distribusi status absensi freelance">
-                                <circle cx="90" cy="90" r="72" fill="none" stroke="#e2e8f0" stroke-width="28" />
+                                <circle cx="90" cy="90" r="72" fill="none" stroke="#e5e5e5" stroke-width="28" />
                                 @foreach ($statusSlices as $slice)
                                     @if ($slice['length'] > 0)
                                         <circle cx="90" cy="90" r="72" fill="none" stroke="{{ $slice['color'] }}"

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\User;
-use InvalidArgumentException;
 use LogicException;
 
 class AttendanceGeofence

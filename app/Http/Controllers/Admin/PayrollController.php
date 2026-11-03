@@ -140,7 +140,7 @@ class PayrollController extends Controller
         $correctionReason = $previousPeriod
             ? "Dibuat ulang setelah payroll #{$previousPeriod->id} dibatalkan"
             : null;
-        $revision = ($previousPeriod?->revision ?? 0) + 1;
+        $revision = ($previousPeriod->revision ?? 0) + 1;
         try {
             $period = DB::transaction(function () use ($validated, $generationService, $previousPeriod, $revision, $correctionReason) {
                 $period = $generationService->createPeriod(

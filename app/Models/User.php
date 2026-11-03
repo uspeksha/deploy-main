@@ -2,20 +2,33 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Carbon\Carbon;
 
-class User extends Authenticatable
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string|null $id_karyawan
+ * @property string|null $departemen
+ * @property string $employment_type
+ * @property string|null $work_location
+ * @property-read 'borongan'|'freelance'|'magang'|'organik' $kategori_absensi
+ * @property-read Collection<int, EmployeeSalaryRate> $salaryRates
+ */
+class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasFactory, Notifiable, HasApiTokens;
+    use HasApiTokens, HasFactory, Notifiable;
 
-    
     protected $fillable = [
         'name',
+        'gender',
         'email',
         'password',
         'profile_photo_path',
@@ -34,13 +47,12 @@ class User extends Authenticatable
         'bank_name',
         'bank_account_number',
         'bank_account_name',
-        'sisa_cuti',           
-        'total_cuti_diambil',  
+        'sisa_cuti',
+        'total_cuti_diambil',
         'tahun_cuti',
-        
+
     ];
 
-    
     protected $guarded = [
         'is_admin',
     ];
@@ -59,7 +71,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'is_admin' => 'boolean', 
+            'is_admin' => 'boolean',
             'is_active' => 'boolean',
             'nik' => 'encrypted',
             'phone' => 'encrypted',
@@ -70,28 +82,34 @@ class User extends Authenticatable
         ];
     }
 
-public function resetCutiTahunan(): void
-{
-    $tahunSekarang = (int) date('Y');
-    if ((int) $this->tahun_cuti !== $tahunSekarang) {
-        $this->update([
-            'sisa_cuti' => 12,
-            'total_cuti_diambil' => 0,
-            'tahun_cuti' => $tahunSekarang,
-        ]);
+    public function resetCutiTahunan(): void
+    {
+        $tahunSekarang = (int) date('Y');
+        if ((int) $this->tahun_cuti !== $tahunSekarang) {
+            $this->update([
+                'sisa_cuti' => 12,
+                'total_cuti_diambil' => 0,
+                'tahun_cuti' => $tahunSekarang,
+            ]);
+        }
     }
-}
 
-public static function cutiYangMemotong(): array
-{
-    return ['cuti_tahunan', 'cuti_haji', 'cuti_umroh'];
-}
-    
-    public function absensis()
+    public static function cutiYangMemotong(): array
+    {
+        return ['cuti_tahunan', 'cuti_haji', 'cuti_umroh'];
+    }
+
+    /**
+     * @return HasMany<Absensi, $this>
+     */
+    public function absensis(): HasMany
     {
         return $this->hasMany(Absensi::class);
     }
 
+    /**
+     * @return HasMany<EmployeeSalaryRate, $this>
+     */
     public function salaryRates(): HasMany
     {
         return $this->hasMany(EmployeeSalaryRate::class);
@@ -120,7 +138,7 @@ public static function cutiYangMemotong(): array
             ->sortByDesc('effective_at')
             ->first();
 
-        return (int) ($rate?->daily_rate ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
+        return (int) ($rate->daily_rate ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
     }
 
     public function isSuperAdmin(): bool
@@ -151,11 +169,11 @@ public static function cutiYangMemotong(): array
         if (strpos($idKaryawan, 'CS-AMB') === 0 || $empType === 'borongan') {
             return 'borongan';
         }
-        
+
         if (strpos($idKaryawan, 'MG-AMB') === 0 || $empType === 'magang') {
             return 'magang';
         }
-        
+
         if (strpos($idKaryawan, 'AMB') === 0 || $empType === 'freelance') {
             return 'freelance';
         }

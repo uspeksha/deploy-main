@@ -16,7 +16,7 @@ return new class extends Migration
             // Sangat krusial untuk menghindari Full Table Scan saat peak hour (jam absen masuk/pulang)
             $table->index('check_in_at');
             $table->index('check_out_at');
-            
+
             // Index untuk filter status dan approval yang sering digunakan di Dashboard & Recap
             $table->index('status_approval');
             $table->index('status');

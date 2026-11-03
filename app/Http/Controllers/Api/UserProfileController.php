@@ -1,4 +1,5 @@
 <?php
+
 // FILE: app/Http/Controllers/Api/UserProfileController.php
 
 namespace App\Http\Controllers\Api;
@@ -23,7 +24,7 @@ class UserProfileController extends Controller
             $user = Auth::user();
 
             // Memastikan user tidak null
-            if (!$user) {
+            if (! $user) {
                 return response()->json(['message' => 'User not authenticated'], 401);
             }
 
@@ -42,7 +43,7 @@ class UserProfileController extends Controller
             // Menangkap error tak terduga
             return response()->json([
                 'message' => 'An unexpected error occurred.',
-                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
     }

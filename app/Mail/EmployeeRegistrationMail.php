@@ -16,8 +16,7 @@ class EmployeeRegistrationMail extends Mailable
     public function __construct(
         public User $employee,
         public string $temporaryPassword,
-    ) {
-    }
+    ) {}
 
     public function envelope(): Envelope
     {

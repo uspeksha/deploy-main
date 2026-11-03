@@ -2,24 +2,29 @@
 
 namespace App\Exports;
 
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AbsensiUserExport implements FromCollection, WithHeadings, WithStyles, WithColumnWidths, WithTitle
+class AbsensiUserExport implements FromCollection, WithColumnWidths, WithHeadings, WithStyles, WithTitle
 {
     protected $absensi;
+
     protected $user;
+
     protected $filterType;
+
     protected $month;
+
     protected $year;
+
     protected $week;
 
     public function __construct($absensi, $user, $filterType = 'all', $month = null, $year = null, $week = null)
@@ -38,14 +43,14 @@ class AbsensiUserExport implements FromCollection, WithHeadings, WithStyles, Wit
         $no = 1;
 
         // Group records by date to handle Parent+Child aggregation
-        $grouped = $this->absensi->groupBy(function($item) {
+        $grouped = $this->absensi->groupBy(function ($item) {
             return Carbon::parse($item->check_in_at)->format('Y-m-d');
         });
 
         foreach ($grouped as $date => $items) {
             // ✅ FIX: Cari record parent (Induk) secara ketat
             $parent = $items->firstWhere('parent_id', null);
-            
+
             // Cari record lembur (Anak)
             $childLembur = $items->firstWhere('tipe', 'lembur');
 
@@ -61,15 +66,15 @@ class AbsensiUserExport implements FromCollection, WithHeadings, WithStyles, Wit
                 'check_out' => $checkOut,
                 'status' => ($parent && $parent->status === 'hadir' && strtolower($parent->tipe ?? '') === 'sakit') ? 'Hadir & Sakit' : ucfirst($parent->status ?? '-'),
                 'tipe' => $parent ? ucfirst($parent->tipe ?? '-') : '-',
-                'telat' => ($parent && $parent->late_minutes ? ($parent->late_minutes . ' Menit') : '-'),
+                'telat' => ($parent && $parent->late_minutes ? ($parent->late_minutes.' Menit') : '-'),
                 // Data Lembur ambil dari Child
-                'menit_lembur' => ($childLembur ? ($childLembur->overtime_minutes ?? 0) : 0) . ' Menit',
-                'gaji_lembur' => 'Rp ' . number_format($childLembur ? ($childLembur->overtime_pay ?? 0) : 0, 0, ',', '.'),
-                'gaji_pokok' => 'Rp ' . number_format($parent ? ($parent->base_salary ?? 0) : 0, 0, ',', '.'),
-                'potongan' => 'Rp ' . number_format($parent ? ($parent->late_penalty ?? 0) : 0, 0, ',', '.'),
-                'adjustment' => 'Rp ' . number_format($parent ? ($parent->adjustment_salary ?? 0) : 0, 0, ',', '.'),
+                'menit_lembur' => ($childLembur ? ($childLembur->overtime_minutes ?? 0) : 0).' Menit',
+                'gaji_lembur' => 'Rp '.number_format($childLembur ? ($childLembur->overtime_pay ?? 0) : 0, 0, ',', '.'),
+                'gaji_pokok' => 'Rp '.number_format($parent ? ($parent->base_salary ?? 0) : 0, 0, ',', '.'),
+                'potongan' => 'Rp '.number_format($parent ? ($parent->late_penalty ?? 0) : 0, 0, ',', '.'),
+                'adjustment' => 'Rp '.number_format($parent ? ($parent->adjustment_salary ?? 0) : 0, 0, ',', '.'),
                 'alasan_adj' => $parent->adjustment_reason ?? '-',
-                'gaji_bersih' => 'Rp ' . number_format($parent ? ($parent->final_salary ?? 0) : 0, 0, ',', '.'),
+                'gaji_bersih' => 'Rp '.number_format($parent ? ($parent->final_salary ?? 0) : 0, 0, ',', '.'),
                 'approval' => ucfirst($parent->status_approval ?? '-'),
             ]);
         }
@@ -109,7 +114,7 @@ class AbsensiUserExport implements FromCollection, WithHeadings, WithStyles, Wit
         // Ambil tgl awal & akhir DARI DATA yang dikirim
         $firstDate = $this->absensi->isNotEmpty() ? Carbon::parse($this->absensi->min('check_in_at'))->format('d M Y') : null;
         $lastDate = $this->absensi->isNotEmpty() ? Carbon::parse($this->absensi->max('check_in_at'))->format('d M Y') : null;
-        $dateRange = "";
+        $dateRange = '';
 
         if ($firstDate && $lastDate) {
             // Kalo data ada, bikin string Tgl Awal s/d Tgl Akhir
@@ -118,14 +123,14 @@ class AbsensiUserExport implements FromCollection, WithHeadings, WithStyles, Wit
 
         // 3. Bikin string periode utamanya
         $periode = match ($this->filterType) {
-            'monthly' => "Bulan " . Carbon::createFromFormat('!m', $this->month)->translatedFormat('F') . " {$this->year}",
-            'weekly' => "Minggu ke-{$this->week}, " . Carbon::createFromFormat('!m', $this->month)->translatedFormat('F') . " {$this->year}",
+            'monthly' => 'Bulan '.Carbon::createFromFormat('!m', $this->month)->translatedFormat('F')." {$this->year}",
+            'weekly' => "Minggu ke-{$this->week}, ".Carbon::createFromFormat('!m', $this->month)->translatedFormat('F')." {$this->year}",
             'yearly' => "Tahun {$this->year}",
-            default => "Semua Data",
+            default => 'Semua Data',
         };
 
         // 4. Set sel-sel baru (SESUAI REQUEST LO)
-        $sheet->setCellValue('A1', "Rekap Absensi Karyawan");
+        $sheet->setCellValue('A1', 'Rekap Absensi Karyawan');
         $sheet->setCellValue('A2', "Nama: {$this->user->name}  (ID: {$this->user->id_karyawan})"); // <-- ID KARYAWAN DI SINI
         $sheet->setCellValue('A3', "Periode: {$periode} {$dateRange}"); // <-- RANGE TANGGAL DI SINI
 

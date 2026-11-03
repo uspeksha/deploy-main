@@ -6,25 +6,25 @@
     <style>
         @page { margin: 28px; }
         * { box-sizing: border-box; }
-        body { color: #1f2937; font-family: DejaVu Sans, sans-serif; font-size: 10px; }
-        .header { border-bottom: 3px solid #059669; margin-bottom: 18px; padding-bottom: 12px; }
+        body { color: #262626; font-family: DejaVu Sans, sans-serif; font-size: 10px; }
+        .header { border-bottom: 3px solid #525252; margin-bottom: 18px; padding-bottom: 12px; }
         .logo { height: 42px; width: auto; }
-        .brand { color: #047857; font-size: 21px; font-weight: bold; letter-spacing: 1px; margin-top: 8px; }
-        .title { color: #111827; font-size: 15px; font-weight: bold; margin-top: 4px; }
+        .brand { color: #404040; font-size: 21px; font-weight: bold; letter-spacing: 1px; margin-top: 8px; }
+        .title { color: #171717; font-size: 15px; font-weight: bold; margin-top: 4px; }
         .meta, .identity, .earnings, .deductions, .summary { border-collapse: collapse; width: 100%; }
         .meta td { padding: 3px 0; }
         .identity, .earnings, .deductions { margin-top: 14px; }
-        th { background: #ecfdf5; color: #065f46; text-align: left; }
-        th, td { border: 1px solid #d1d5db; padding: 8px; }
-        .section { background: #f3f4f6; font-weight: bold; margin-top: 14px; padding: 8px; }
+        th { background: #e5e5e5; color: #404040; text-align: left; }
+        th, td { border: 1px solid #d4d4d4; padding: 8px; }
+        .section { background: #f5f5f5; font-weight: bold; margin-top: 14px; padding: 8px; }
         .amount { text-align: right; white-space: nowrap; }
         .summary { margin-top: 14px; }
         .summary td { border: 0; padding: 5px 8px; }
-        .net { background: #ecfdf5; color: #065f46; font-size: 13px; font-weight: bold; }
-        .status { border: 1px solid #d1d5db; display: inline-block; font-weight: bold; margin-top: 12px; padding: 6px 10px; }
-        .draft { background: #fef3c7; color: #92400e; }
-        .paid { background: #d1fae5; color: #065f46; }
-        .footer { border-top: 1px solid #d1d5db; color: #6b7280; margin-top: 28px; padding-top: 10px; }
+        .net { background: #e5e5e5; color: #404040; font-size: 13px; font-weight: bold; }
+        .status { border: 1px solid #d4d4d4; display: inline-block; font-weight: bold; margin-top: 12px; padding: 6px 10px; }
+        .draft { background: #e5e5e5; color: #404040; }
+        .paid { background: #d4d4d4; color: #262626; }
+        .footer { border-top: 1px solid #d4d4d4; color: #737373; margin-top: 28px; padding-top: 10px; }
         .signature { margin-top: 34px; text-align: right; }
     </style>
 </head>
@@ -41,7 +41,7 @@
         ];
     @endphp
     <div class="header">
-        <img class="logo" src="{{ public_path('images/logo-followme.png') }}" alt="Followme">
+        <img class="logo" src="{{ public_path('images/logo-followme.png') }}" alt="Followme" style="filter: grayscale(1);">
         <div class="brand">FOLLOWME</div>
         <div class="title">SLIP GAJI KARYAWAN FREELANCE</div>
     </div>

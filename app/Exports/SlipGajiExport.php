@@ -3,19 +3,22 @@
 namespace App\Exports;
 
 use App\Models\User;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Drawing;
 use PhpOffice\PhpSpreadsheet\Worksheet\PageSetup;
 
 class SlipGajiExport implements WithEvents
 {
     protected $user;
+
     protected $stats;
+
     protected $periode;
+
     protected $terbilangString;
 
     public function __construct(User $user, array $stats, string $periode)
@@ -24,30 +27,32 @@ class SlipGajiExport implements WithEvents
         $this->stats = $stats;
         $this->periode = $periode;
         $gajiBersih = $stats['total_gaji_bersih'] ?? 0;
-        $this->terbilangString = $this->penyebut($gajiBersih) . ' Rupiah';
+        $this->terbilangString = $this->penyebut($gajiBersih).' Rupiah';
     }
 
-    private function penyebut($nilai) {
+    private function penyebut($nilai)
+    {
         $nilai = abs($nilai);
-        $huruf = ["", "satu", "dua", "tiga", "empat", "lima", "enam", "tujuh", "delapan", "sembilan", "sepuluh", "sebelas"];
-        $temp = "";
+        $huruf = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+        $temp = '';
         if ($nilai < 12) {
-            $temp = " ". $huruf[$nilai];
-        } else if ($nilai < 20) {
-            $temp = $this->penyebut($nilai - 10). " belas";
-        } else if ($nilai < 100) {
-            $temp = $this->penyebut($nilai/10)." puluh". $this->penyebut($nilai % 10);
-        } else if ($nilai < 200) {
-            $temp = " seratus" . $this->penyebut($nilai - 100);
-        } else if ($nilai < 1000) {
-            $temp = $this->penyebut($nilai/100) . " ratus" . $this->penyebut($nilai % 100);
-        } else if ($nilai < 2000) {
-            $temp = " seribu" . $this->penyebut($nilai - 1000);
-        } else if ($nilai < 1000000) {
-            $temp = $this->penyebut($nilai/1000) . " ribu" . $this->penyebut($nilai % 1000);
-        } else if ($nilai < 1000000000) {
-            $temp = $this->penyebut($nilai/1000000) . " juta" . $this->penyebut($nilai % 1000000);
+            $temp = ' '.$huruf[$nilai];
+        } elseif ($nilai < 20) {
+            $temp = $this->penyebut($nilai - 10).' belas';
+        } elseif ($nilai < 100) {
+            $temp = $this->penyebut($nilai / 10).' puluh'.$this->penyebut($nilai % 10);
+        } elseif ($nilai < 200) {
+            $temp = ' seratus'.$this->penyebut($nilai - 100);
+        } elseif ($nilai < 1000) {
+            $temp = $this->penyebut($nilai / 100).' ratus'.$this->penyebut($nilai % 100);
+        } elseif ($nilai < 2000) {
+            $temp = ' seribu'.$this->penyebut($nilai - 1000);
+        } elseif ($nilai < 1000000) {
+            $temp = $this->penyebut($nilai / 1000).' ribu'.$this->penyebut($nilai % 1000);
+        } elseif ($nilai < 1000000000) {
+            $temp = $this->penyebut($nilai / 1000000).' juta'.$this->penyebut($nilai % 1000000);
         }
+
         return $temp;
     }
 
@@ -79,18 +84,18 @@ class SlipGajiExport implements WithEvents
 
                 // 3. VARIABEL WARNA & STYLE
                 $bgHeader = 'BDD7EE';
-                $bgTotal  = 'D9D9D9';
-                $bgNet    = 'C6E0B4';
+                $bgTotal = 'D9D9D9';
+                $bgNet = 'C6E0B4';
                 $bgYellow = 'FFFF00';
 
                 // Style Kotak Full (Grid)
                 $styleGrid = [
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 ];
 
                 // Style Outline Saja (Opsional)
                 $styleOutline = [
-                    'borders' => ['outline' => ['borderStyle' => Border::BORDER_THIN]]
+                    'borders' => ['outline' => ['borderStyle' => Border::BORDER_THIN]],
                 ];
 
                 // DATA
@@ -100,14 +105,14 @@ class SlipGajiExport implements WithEvents
                 $potongan = $this->stats['total_potongan'] ?? 0;
                 $gajiBersih = $this->stats['total_gaji_bersih'] ?? 0;
                 $totalMenit = $this->stats['total_menit_lembur'] ?? 0;
-                $durasiLembur = floor($totalMenit / 60) . " Jam " . ($totalMenit % 60) . " Menit";
+                $durasiLembur = floor($totalMenit / 60).' Jam '.($totalMenit % 60).' Menit';
 
                 $row = 1;
 
                 // ================= HEADER PT =================
                 $logoPath = public_path('images/logo-followme.png');
                 if (file_exists($logoPath)) {
-                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing = new Drawing;
                     $drawing->setName('Logo');
                     $drawing->setPath($logoPath);
                     $drawing->setHeight(100);
@@ -122,7 +127,7 @@ class SlipGajiExport implements WithEvents
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 14],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgHeader]]
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgHeader]],
                 ]);
                 $row++;
 
@@ -131,7 +136,7 @@ class SlipGajiExport implements WithEvents
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 12],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
-                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgHeader]]
+                    'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgHeader]],
                 ]);
                 $row += 2;
 
@@ -140,7 +145,7 @@ class SlipGajiExport implements WithEvents
 
                 // --- HEADER KIRI "DATA KARYAWAN" ---
                 $sheet->mergeCells("A{$row}:B{$row}");
-                $sheet->setCellValue("A{$row}", "DATA KARYAWAN");
+                $sheet->setCellValue("A{$row}", 'DATA KARYAWAN');
                 $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($styleGrid); // Kotak
                 $sheet->getStyle("A{$row}")->getFont()->setBold(true);
 
@@ -152,17 +157,17 @@ class SlipGajiExport implements WithEvents
                 $dataBodyStart = $row;
 
                 // Baris 1
-                $sheet->setCellValue("A{$row}", "Nama Karyawan");
-                $sheet->setCellValue("B{$row}", ": " . $this->user->name);
-                $sheet->setCellValue("D{$row}", "Periode Penggajian");
-                $sheet->setCellValue("E{$row}", ": " . $this->periode);
+                $sheet->setCellValue("A{$row}", 'Nama Karyawan');
+                $sheet->setCellValue("B{$row}", ': '.$this->user->name);
+                $sheet->setCellValue("D{$row}", 'Periode Penggajian');
+                $sheet->setCellValue("E{$row}", ': '.$this->periode);
                 $row++;
 
                 // Baris 2
-                $sheet->setCellValue("A{$row}", "Nomor Induk Pegawai");
-                $sheet->setCellValue("B{$row}", ": " . ($this->user->id_karyawan ?? '-'));
-                $sheet->setCellValue("D{$row}", "Tipe Karyawan");
-                $sheet->setCellValue("E{$row}", ": " . ucfirst($this->user->employment_type));
+                $sheet->setCellValue("A{$row}", 'Nomor Induk Pegawai');
+                $sheet->setCellValue("B{$row}", ': '.($this->user->id_karyawan ?? '-'));
+                $sheet->setCellValue("D{$row}", 'Tipe Karyawan');
+                $sheet->setCellValue("E{$row}", ': '.ucfirst($this->user->employment_type));
                 $dataBodyEnd = $row;
 
                 // STYLE: BOLD SEMUA & KOTAK TERPISAH
@@ -181,15 +186,15 @@ class SlipGajiExport implements WithEvents
                 $tableStart = $row;
 
                 // HEADER
-                $sheet->setCellValue("A{$row}", "PENGHASILAN");
-                $sheet->setCellValue("B{$row}", "");
-                $sheet->setCellValue("D{$row}", "POTONGAN");
-                $sheet->setCellValue("E{$row}", "");
+                $sheet->setCellValue("A{$row}", 'PENGHASILAN');
+                $sheet->setCellValue("B{$row}", '');
+                $sheet->setCellValue("D{$row}", 'POTONGAN');
+                $sheet->setCellValue("E{$row}", '');
 
                 $styleHeaderTabel = [
                     'font' => ['bold' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgHeader]],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 ];
                 $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($styleHeaderTabel);
                 $sheet->getStyle("D{$row}:E{$row}")->applyFromArray($styleHeaderTabel);
@@ -198,22 +203,22 @@ class SlipGajiExport implements WithEvents
                 // ISI TABEL
                 $rowIsi = $row;
 
-                $sheet->setCellValue("A{$row}", "Upah Harian (Total)");
+                $sheet->setCellValue("A{$row}", 'Upah Harian (Total)');
                 $sheet->setCellValue("B{$row}", $gajiPokok);
-                $sheet->setCellValue("D{$row}", "Potongan Keterlambatan");
+                $sheet->setCellValue("D{$row}", 'Potongan Keterlambatan');
                 $sheet->setCellValue("E{$row}", $potongan);
                 $row++;
 
-                $sheet->setCellValue("A{$row}", "Upah Lembur (Total)");
+                $sheet->setCellValue("A{$row}", 'Upah Lembur (Total)');
                 $sheet->setCellValue("B{$row}", $gajiLembur);
-                $sheet->setCellValue("D{$row}", "Penyesuaian Gaji (Adj)");
+                $sheet->setCellValue("D{$row}", 'Penyesuaian Gaji (Adj)');
                 $sheet->setCellValue("E{$row}", $adjustment);
                 $row++;
 
-                $sheet->setCellValue("A{$row}", "Jumlah Jam Lembur");
-                $sheet->setCellValue("B{$row}", ": " . $durasiLembur);
-                $sheet->setCellValue("D{$row}", "");
-                $sheet->setCellValue("E{$row}", "");
+                $sheet->setCellValue("A{$row}", 'Jumlah Jam Lembur');
+                $sheet->setCellValue("B{$row}", ': '.$durasiLembur);
+                $sheet->setCellValue("D{$row}", '');
+                $sheet->setCellValue("E{$row}", '');
 
                 // 🔥 FULL GRID (GARIS-GARIS DI DALAM) 🔥
                 $sheet->getStyle("A{$rowIsi}:B{$row}")->applyFromArray($styleGrid);
@@ -222,15 +227,15 @@ class SlipGajiExport implements WithEvents
                 $row++;
 
                 // ================= TOTAL (ABU-ABU & GRID) =================
-                $sheet->setCellValue("A{$row}", "TOTAL PENGHASILAN");
+                $sheet->setCellValue("A{$row}", 'TOTAL PENGHASILAN');
                 $sheet->setCellValue("B{$row}", $gajiPokok + $gajiLembur + ($adjustment > 0 ? $adjustment : 0));
-                $sheet->setCellValue("D{$row}", "TOTAL POTONGAN");
+                $sheet->setCellValue("D{$row}", 'TOTAL POTONGAN');
                 $sheet->setCellValue("E{$row}", $potongan + ($adjustment < 0 ? abs($adjustment) : 0));
 
                 $styleTotal = [
                     'font' => ['bold' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgTotal]],
-                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+                    'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 ];
                 $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($styleTotal);
                 $sheet->getStyle("D{$row}:E{$row}")->applyFromArray($styleTotal);
@@ -239,25 +244,25 @@ class SlipGajiExport implements WithEvents
 
                 // ================= GAJI BERSIH (HIJAU) =================
                 $sheet->mergeCells("A{$row}:D{$row}");
-                $sheet->setCellValue("A{$row}", "PENGHASILAN BERSIH (TAKE HOME PAY)");
+                $sheet->setCellValue("A{$row}", 'PENGHASILAN BERSIH (TAKE HOME PAY)');
                 $sheet->setCellValue("E{$row}", $gajiBersih);
 
                 $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'size' => 11],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgNet]],
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-                    'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
+                    'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
                 ]);
                 $row++;
 
                 // ================= TERBILANG (KUNING) =================
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", "Terbilang: " . ucwords($this->terbilangString));
+                $sheet->setCellValue("A{$row}", 'Terbilang: '.ucwords($this->terbilangString));
                 $sheet->getStyle("A{$row}:E{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'italic' => true],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['argb' => $bgYellow]],
                     'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
                 $row += 3;
@@ -269,23 +274,23 @@ class SlipGajiExport implements WithEvents
                 $sheet->setCellValue("A{$row}", '"Keep Up The Good Work"');
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'italic' => true, 'name' => 'Times New Roman'],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 $row += 2;
 
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", "HRD Division");
+                $sheet->setCellValue("A{$row}", 'HRD Division');
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
                 $row++;
 
                 $sheet->mergeCells("A{$row}:E{$row}");
-                $sheet->setCellValue("A{$row}", "PT. FOLLOWME");
+                $sheet->setCellValue("A{$row}", 'PT. FOLLOWME');
                 $sheet->getStyle("A{$row}")->applyFromArray([
                     'font' => ['bold' => true],
-                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER]
+                    'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
                 ]);
 
                 // FORMAT RUPIAH

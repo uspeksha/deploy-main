@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Http\Middleware\IsAdmin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Http\Request;
@@ -19,7 +20,6 @@ class RouteServiceProvider extends ServiceProvider
      */
     public const HOME = '/admin/absensi';
 
-
     /**
      * Define your route model bindings, pattern filters, and other route configuration.
      */
@@ -28,7 +28,7 @@ class RouteServiceProvider extends ServiceProvider
         // --- START: Pendaftaran Alias Middleware Baru ---
         Route::middleware([
             // Daftarkan alias 'admin' ke class middleware IsAdmin Anda
-            'admin' => \App\Http\Middleware\IsAdmin::class,
+            'admin' => IsAdmin::class,
         ]);
         // --- END: Pendaftaran Alias Middleware Baru ---
 

@@ -2,26 +2,21 @@
 
 namespace App\Exports;
 
-use App\Models\User;
 use App\Models\Absensi;
+use App\Models\Holiday;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Maatwebsite\Excel\Concerns\WithCharts;
-use Carbon\Carbon;
-use PhpOffice\PhpSpreadsheet\Chart\Chart;
-use PhpOffice\PhpSpreadsheet\Chart\DataSeries;
-use PhpOffice\PhpSpreadsheet\Chart\DataSeriesValues;
-use PhpOffice\PhpSpreadsheet\Chart\Layout;
-use PhpOffice\PhpSpreadsheet\Chart\Legend;
-use PhpOffice\PhpSpreadsheet\Chart\PlotArea;
-use PhpOffice\PhpSpreadsheet\Chart\Title;
 
 class BulkAllSimpleExport implements FromView, ShouldAutoSize, WithTitle
 {
     protected $userIds;
+
     protected $startDate;
+
     protected $endDate;
 
     public function __construct($userIds, $startDate, $endDate)
@@ -50,7 +45,7 @@ class BulkAllSimpleExport implements FromView, ShouldAutoSize, WithTitle
             ->orderBy('check_in_at', 'asc')
             ->get();
 
-        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y') . ' s/d ' . Carbon::parse($this->endDate)->translatedFormat('d M Y');
+        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y').' s/d '.Carbon::parse($this->endDate)->translatedFormat('d M Y');
 
         // CHUNK TANGGAL JADI 11 HARI PER ROW
         $dateChunks = array_chunk($allDates, 11);
@@ -63,15 +58,15 @@ class BulkAllSimpleExport implements FromView, ShouldAutoSize, WithTitle
             'total_sakit' => 0,
             'total_izin' => 0,
             'total_alpha' => 0,
-            'total_lembur' => 0, 
-            'breakdown' => []
+            'total_lembur' => 0,
+            'breakdown' => [],
         ];
 
         foreach ($users as $user) {
             $kategori = $this->detectKategori($user);
             $kategoriLabel = ucfirst($kategori);
 
-            if (!isset($summary['breakdown'][$kategoriLabel])) {
+            if (! isset($summary['breakdown'][$kategoriLabel])) {
                 $summary['breakdown'][$kategoriLabel] = [
                     'hadir' => 0,
                     'sakit' => 0,
@@ -84,7 +79,7 @@ class BulkAllSimpleExport implements FromView, ShouldAutoSize, WithTitle
             $userAbsensi = $absensiData->where('user_id', $user->id);
 
             foreach ($allDates as $date) {
-                $absen = $userAbsensi->first(fn($i) => Carbon::parse($i->check_in_at)->isSameDay($date));
+                $absen = $userAbsensi->first(fn ($i) => Carbon::parse($i->check_in_at)->isSameDay($date));
 
                 if ($absen) {
                     if (strtolower($absen->status) === 'hadir') {
@@ -104,7 +99,7 @@ class BulkAllSimpleExport implements FromView, ShouldAutoSize, WithTitle
                         $summary['breakdown'][$kategoriLabel]['lembur']++;
                     }
                 } else {
-                    if (!Carbon::parse($date)->isWeekend() && !\App\Models\Holiday::isHoliday($date)) {
+                    if (! Carbon::parse($date)->isWeekend() && ! Holiday::isHoliday($date)) {
                         $summary['total_alpha']++;
                         $summary['breakdown'][$kategoriLabel]['alpha']++;
                     }

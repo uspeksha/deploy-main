@@ -4,25 +4,21 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
+use App\Models\ActivityLog;
 use App\Models\EmployeeSalaryRate;
 use App\Models\Notification;
 use App\Models\User;
-use App\Models\ActivityLog;
 use App\Services\EmployeeRegistrationMailer;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class ApprovalController extends Controller
 {
-    private $workflowTemplates = [
-        'produksi' => ['hrd' => 'pending'],
-        'office' => ['hrd' => 'pending'],
-    ];
-
     private function ensureHrdApprover(): void
     {
         abort_unless(auth()->user()->role === 'hrd', 403);
@@ -109,6 +105,7 @@ class ApprovalController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
+            'gender' => ['nullable', 'in:male,female'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
             'id_karyawan' => ['required', 'string', 'max:255', 'unique:users,id_karyawan'],
             'phone' => ['required', 'string', 'max:30'],
@@ -197,7 +194,7 @@ class ApprovalController extends Controller
             'daily_rate' => ['required', 'integer', 'min:1', 'max:100000000'],
             'effective_at' => ['required', 'date_format:Y-m-d\TH:i'],
         ]);
-        $effectiveAt = \Carbon\Carbon::createFromFormat('Y-m-d\TH:i', $validated['effective_at']);
+        $effectiveAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['effective_at']);
         $latestRate = $user->salaryRates()->latest('effective_at')->first();
 
         if ($latestRate && $effectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
@@ -255,7 +252,7 @@ class ApprovalController extends Controller
         $temporaryPassword = Str::password(6, true, true, true, false);
         $user->update(['password' => Hash::make($temporaryPassword)]);
 
-        if (!$registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {
+        if (! $registrationMailer->sendTemporaryPassword($user, $temporaryPassword)) {
             return redirect()
                 ->route('admin.absensi.approval.hrd', $employeeListQuery)
                 ->with('warning', 'Email gagal dikirim. Akun tetap tidak aktif; periksa konfigurasi SMTP lalu coba lagi.');
@@ -292,9 +289,9 @@ class ApprovalController extends Controller
 
         $submissionType = $absensi->tipe ?? 'absensi';
         $targetPageMap = [
-            'lembur'  => '/lembur_detail',
-            'sakit'   => '/sakit_detail',
-            'izin'    => '/izin_detail',
+            'lembur' => '/lembur_detail',
+            'sakit' => '/sakit_detail',
+            'izin' => '/izin_detail',
             'absensi' => '/absensi_detail',
         ];
         $targetPage = $targetPageMap[$submissionType] ?? '/absensi';
@@ -303,448 +300,445 @@ class ApprovalController extends Controller
         // 🟥 REJECT ACTION
         // =====================================================
         if ($action === 'reject') {
-    $request->validate(['catatan_admin' => 'required|min:5']);
-    $workflowStatus[$workflowKey] = 'rejected';
-    $rejectedBy = $workflowKey;
-    $resubmitLevel = $this->determineResubmitLevel($rejectedBy, $workflowStatus);
-    $resetWorkflow = $this->resetWorkflowFromLevel($workflowStatus, $resubmitLevel, $absensi->user->work_location ?? 'office');
+            $request->validate(['catatan_admin' => 'required|min:5']);
+            $workflowStatus[$workflowKey] = 'rejected';
+            $rejectedBy = $workflowKey;
+            $resubmitLevel = $this->determineResubmitLevel($rejectedBy, $workflowStatus);
+            $resetWorkflow = $this->resetWorkflowFromLevel($workflowStatus, $resubmitLevel, $absensi->user->work_location ?? 'office');
 
-    // ✅ CEK APAKAH INI IZIN/SAKIT (GAK ADA GAJI)
-    $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
-                   in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
+            // ✅ CEK APAKAH INI IZIN/SAKIT (GAK ADA GAJI)
+            $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
+                           in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
 
-    Log::info('🔍 [REJECT] Processing rejection', [
-        'id' => $absensi->id,
-        'tipe' => $absensi->tipe,
-        'status' => $absensi->status,
-        'is_leave_type' => $isLeaveType,
-    ]);
-
-    // ✅ HITUNG GAJI BERDASARKAN TIPE
-    if ($isLeaveType) {
-        // IZIN/SAKIT → Gak ada gaji
-        $finalSalary = 0;
-        $baseSalary = 0;
-        $latePenalty = 0;
-
-        Log::info('💰 [REJECT] Leave type - No salary');
-
-    } else {
-        // HADIR/LEMBUR → Ada gaji pokok, tapi lembur gak masuk
-
-        // Pastikan base_salary udah ada (kalo belum, hitung dulu)
-        if ($absensi->base_salary === null) {
-            $salaryData = \App\Models\Absensi::calculateSalary(
-                $absensi->late_minutes ?? 0,
-                $absensi->status,
-                null, // Bukan lembur
-                $absensi->is_weekend_overtime ?? false,
-                $absensi->check_in_at,
-                $absensi->check_out_at,
-                $absensi->user->kategori_absensi,
-                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
-                $absensi->user->dailyRateAt($absensi->check_in_at),
-            );
-
-            $baseSalary = $salaryData['base_salary'];
-            $latePenalty = $salaryData['late_penalty'];
-
-            Log::info('💰 [REJECT] Calculated base salary', [
-                'base_salary' => $baseSalary,
-                'late_penalty' => $latePenalty,
+            Log::info('🔍 [REJECT] Processing rejection', [
+                'id' => $absensi->id,
+                'tipe' => $absensi->tipe,
+                'status' => $absensi->status,
+                'is_leave_type' => $isLeaveType,
             ]);
 
-        } else {
-            // Udah ada, pake yang ada
-            $baseSalary = $absensi->base_salary;
-            $latePenalty = $absensi->late_penalty ?? 0;
+            // ✅ HITUNG GAJI BERDASARKAN TIPE
+            if ($isLeaveType) {
+                // IZIN/SAKIT → Gak ada gaji
+                $finalSalary = 0;
+                $baseSalary = 0;
+                $latePenalty = 0;
 
-            Log::info('💰 [REJECT] Using existing base salary', [
+                Log::info('💰 [REJECT] Leave type - No salary');
+
+            } else {
+                // HADIR/LEMBUR → Ada gaji pokok, tapi lembur gak masuk
+
+                // Pastikan base_salary udah ada (kalo belum, hitung dulu)
+                if ($absensi->base_salary === null) {
+                    $salaryData = Absensi::calculateSalary(
+                        $absensi->late_minutes ?? 0,
+                        $absensi->status,
+                        null, // Bukan lembur
+                        $absensi->is_weekend_overtime ?? false,
+                        $absensi->check_in_at,
+                        $absensi->check_out_at,
+                        $absensi->user->kategori_absensi,
+                        $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                        $absensi->user->dailyRateAt($absensi->check_in_at),
+                    );
+
+                    $baseSalary = $salaryData['base_salary'];
+                    $latePenalty = $salaryData['late_penalty'];
+
+                    Log::info('💰 [REJECT] Calculated base salary', [
+                        'base_salary' => $baseSalary,
+                        'late_penalty' => $latePenalty,
+                    ]);
+
+                } else {
+                    // Udah ada, pake yang ada
+                    $baseSalary = $absensi->base_salary;
+                    $latePenalty = $absensi->late_penalty ?? 0;
+
+                    Log::info('💰 [REJECT] Using existing base salary', [
+                        'base_salary' => $baseSalary,
+                        'late_penalty' => $latePenalty,
+                    ]);
+                }
+
+                // FINAL SALARY = Gaji Pokok - Potongan (TANPA LEMBUR)
+                $finalSalary = $baseSalary - $latePenalty;
+
+                Log::info('💰 [REJECT] Final salary (no overtime)', [
+                    'final_salary' => $finalSalary,
+                ]);
+            }
+
+            // ✅ UPDATE DATABASE
+            $absensi->forceFill([
+                'status_approval' => 'rejected',
+                'catatan_admin' => $request->catatan_admin,
+                'rejected_by' => $rejectedBy,
+                'rejected_at' => now(),
+                'workflow_status' => $resetWorkflow,
+                'current_approval_level' => $resubmitLevel,
+
+                // ✅ ACTIVITY LOG
+                // Log penolakan absensi
+
+                // ✅ RESET LEMBUR (karena lembur ditolak)
+                'overtime_minutes' => 0,
+                'overtime_pay' => 0,
+
+                // ✅ TETEP KASIH GAJI POKOK (kalo bukan izin/sakit)
                 'base_salary' => $baseSalary,
                 'late_penalty' => $latePenalty,
+                'final_salary' => $finalSalary, // ✅ Gaji pokok - potongan (tanpa lembur)
+            ])->save();
+
+            ActivityLog::log('Reject Pengajuan', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Alasan: {$request->catatan_admin}");
+
+            Log::info('✅ [REJECT] Updated main record', [
+                'id' => $absensi->id,
+                'final_salary' => $finalSalary,
             ]);
+
+            // ✅ UPDATE CHILDREN (kalo ada)
+            if ($absensi->children()->exists()) {
+                $absensi->children()->update([
+                    'status_approval' => 'rejected',
+                    'workflow_status' => $resetWorkflow,
+                    'current_approval_level' => $resubmitLevel,
+                    'rejected_by' => $rejectedBy,
+                    'rejected_at' => now(),
+                    'catatan_admin' => $request->catatan_admin,
+                    'approved_at' => null,
+                    'overtime_minutes' => 0,
+                    'overtime_pay' => 0,
+                    'base_salary' => $baseSalary,
+                    'late_penalty' => $latePenalty,
+                    'final_salary' => $finalSalary,
+                ]);
+
+                Log::info('✅ Synced REJECT status to '.$absensi->children()->count().' child records');
+            }
+
+            // ✅ NOTIFIKASI
+            Notification::create([
+                'user_id' => $absensi->user_id,
+                'title' => 'Pengajuan '.ucfirst($submissionType).' Ditolak ❌',
+                'message' => "Pengajuan kamu ditolak oleh $currentApprover. Alasan: ".$request->catatan_admin,
+                'type' => "{$submissionType}_rejected",
+                'target_page' => $targetPage,
+                'target_id' => $absensi->id,
+            ]);
+
+            return back()->with('success', 'Pengajuan ditolak. Gaji pokok tetap dihitung.');
         }
-
-        // FINAL SALARY = Gaji Pokok - Potongan (TANPA LEMBUR)
-        $finalSalary = $baseSalary - $latePenalty;
-
-        Log::info('💰 [REJECT] Final salary (no overtime)', [
-            'final_salary' => $finalSalary,
-        ]);
-    }
-
-    // ✅ UPDATE DATABASE
-    $absensi->forceFill([
-        'status_approval' => 'rejected',
-        'catatan_admin' => $request->catatan_admin,
-        'rejected_by' => $rejectedBy,
-        'rejected_at' => now(),
-        'workflow_status' => $resetWorkflow,
-        'current_approval_level' => $resubmitLevel,
-
-        // ✅ ACTIVITY LOG
-        // Log penolakan absensi
-        
-        // ✅ RESET LEMBUR (karena lembur ditolak)
-        'overtime_minutes' => 0,
-        'overtime_pay'     => 0,
-
-        // ✅ TETEP KASIH GAJI POKOK (kalo bukan izin/sakit)
-        'base_salary'   => $baseSalary,
-        'late_penalty'  => $latePenalty,
-        'final_salary'  => $finalSalary, // ✅ Gaji pokok - potongan (tanpa lembur)
-    ])->save();
-
-    \App\Models\ActivityLog::log('Reject Pengajuan', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Alasan: {$request->catatan_admin}");
-
-    Log::info('✅ [REJECT] Updated main record', [
-        'id' => $absensi->id,
-        'final_salary' => $finalSalary,
-    ]);
-
-    // ✅ UPDATE CHILDREN (kalo ada)
-    if ($absensi->children()->exists()) {
-        $absensi->children()->update([
-            'status_approval' => 'rejected',
-            'workflow_status' => $resetWorkflow,
-            'current_approval_level' => $resubmitLevel,
-            'rejected_by' => $rejectedBy,
-            'rejected_at' => now(),
-            'catatan_admin' => $request->catatan_admin,
-            'approved_at' => null,
-            'overtime_minutes' => 0,
-            'overtime_pay' => 0,
-            'base_salary' => $baseSalary,
-            'late_penalty' => $latePenalty,
-            'final_salary' => $finalSalary,
-        ]);
-
-        Log::info("✅ Synced REJECT status to " . $absensi->children()->count() . " child records");
-    }
-
-    // ✅ NOTIFIKASI
-    Notification::create([
-        'user_id' => $absensi->user_id,
-        'title' => "Pengajuan " . ucfirst($submissionType) . " Ditolak ❌",
-        'message' => "Pengajuan kamu ditolak oleh $currentApprover. Alasan: " . $request->catatan_admin,
-        'type' => "{$submissionType}_rejected",
-        'target_page' => $targetPage,
-        'target_id' => $absensi->id,
-    ]);
-
-    return back()->with('success', 'Pengajuan ditolak. Gaji pokok tetap dihitung.');
-}
 
         // =====================================================
         // ✅ APPROVE ACTION
         // =====================================================
         if ($action === 'approve') {
-            $currentLevel = 1;
-            $maxLevel = 1;
             $workflowStatus[$workflowKey] = 'approved';
 
-            if ($currentLevel >= $maxLevel) {
-                // HRD is the only approval level.
+            // HRD is the only approval level.
 
-                    // 🆕 INTEGRASI KOREKSI ABSENSI
-                    if ($absensi->tipe === 'koreksi lupa absen') {
-                        DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover, $submissionType, $targetPage) {
-                            $updateData = [
-                                'status' => 'hadir',
-                                'tipe' => 'normal',
-                                'status_approval' => 'approved',
-                                'approved_at' => now(),
-                                'workflow_status' => $workflowStatus,
-                                'rejected_by' => null,
-                                'rejected_at' => null,
-                            ];
+            // 🆕 INTEGRASI KOREKSI ABSENSI
+            if ($absensi->tipe === 'koreksi lupa absen') {
+                DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover) {
+                    $updateData = [
+                        'status' => 'hadir',
+                        'tipe' => 'normal',
+                        'status_approval' => 'approved',
+                        'approved_at' => now(),
+                        'workflow_status' => $workflowStatus,
+                        'rejected_by' => null,
+                        'rejected_at' => null,
+                    ];
 
-                            if ($absensi->user->employment_type === 'organik') {
-                                $updateData['base_salary'] = 0;
-                                $updateData['final_salary'] = 0;
-                            } else {
-                                $salaryData = \App\Models\Absensi::calculateSalary(
-                                    0,
-                                    'hadir',
-                                    'normal',
-                                    \App\Models\Absensi::isWeekend($absensi->check_in_at),
-                                    $absensi->check_in_at,
-                                    $absensi->check_out_at,
-                                    $absensi->user->employment_type,
-                                    $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
-                                    $absensi->user->dailyRateAt($absensi->check_in_at),
-                                );
-                                $updateData['base_salary'] = $salaryData['base_salary'];
-                                $updateData['final_salary'] = $salaryData['final_salary'];
-                            }
-
-                            $absensi->update($updateData);
-
-                            Notification::create([
-                                'user_id' => $absensi->user_id,
-                                'title' => "Pengajuan Koreksi Disetujui ✅",
-                                'message' => "Pengajuan koreksi absen kamu telah disetujui oleh $currentApprover.",
-                                'type' => "koreksi_approved",
-                                'target_page' => '/absensi',
-                                'target_id' => $absensi->id,
-                            ]);
-
-                            \App\Models\ActivityLog::log('Approve Koreksi Final', "Koreksi ID: {$absensi->id} dari {$absensi->user->name}", "Persetujuan final oleh: {$currentApprover}");
-                        });
-                        return back()->with('success', 'Koreksi berhasil disetujui.');
-                    }
-
-                    // 🔥 FIX: CEK APAKAH INI IZIN/SAKIT (BUKAN LEMBUR/HADIR)
-                    $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
-                                   in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
-
-                Log::info('🔍 [APPROVAL] Processing final approval', [
-                    'id' => $absensi->id,
-                    'tipe' => $absensi->tipe,
-                    'status' => $absensi->status,
-                    'is_leave_type' => $isLeaveType,
-                    'has_children' => $absensi->children()->exists(),
-                ]);
-
-                // 🔥 FIX: JANGAN HITUNG GAJI UNTUK IZIN/SAKIT
-                // 🔥 MODIFIKASI FINAL APPROVAL UNTUK IZIN/SAKIT 🔥
-                if ($isLeaveType) {
-                    Log::info('⏭️ [FINAL APPROVAL] Leave type processing');
-
-                    DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover, $submissionType, $targetPage) {
-                        // 1. UPDATE DATA UTAMA (PARENT)
-                        $updateData = [
-                            'status_approval' => 'approved',
-                            'approved_at' => now(),
-                            'workflow_status' => $workflowStatus,
-                            'rejected_by' => null,
-                            'rejected_at' => null,
-                            'overtime_minutes' => 0,
-                            'overtime_pay' => 0,
-                            'base_salary' => 0,
-                            'late_penalty' => 0,
-                            'final_salary' => 0,
-                        ];
-
-                        // 🆕 LOGIKA IZIN SETENGAH HARI
-                        if ($absensi->jam_pulang_rencana) {
-                            $checkInDate = \Carbon\Carbon::parse($absensi->check_in_at)->format('Y-m-d');
-                            $checkOutDateTime = \Carbon\Carbon::parse($checkInDate . ' ' . $absensi->jam_pulang_rencana);
-                            $updateData['check_out_at'] = $checkOutDateTime;
-                            
-                            // Hitung gaji ulang karena jam pulang berubah
-                            $salaryData = \App\Models\Absensi::calculateSalary(
-                                $absensi->late_minutes ?? 0,
-                                'hadir', // Anggap hadir karena kerja setengah hari
-                                null,
-                                $absensi->is_weekend_overtime ?? false,
-                                $absensi->check_in_at,
-                                $checkOutDateTime,
-                                $absensi->user->kategori_absensi,
-                                $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
-                                $absensi->user->dailyRateAt($absensi->check_in_at),
-                            );
-                            
-                            $updateData['status'] = 'hadir'; // Ubah status jadi hadir tapi durasi kurang
-                            $updateData['base_salary'] = $salaryData['base_salary'];
-                            $updateData['late_penalty'] = $salaryData['late_penalty'];
-                            $updateData['final_salary'] = $salaryData['final_salary'];
-                        }
-
-                        $absensi->update($updateData);
-
-                        
-$user = \App\Models\User::find($absensi->user_id);
-
-
-if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
-    $hariCuti = $absensi->hari_potong_cuti;
-    
-    $user->update([
-        'sisa_cuti' => max(0, $user->sisa_cuti - $hariCuti),
-        'total_cuti_diambil' => $user->total_cuti_diambil + $hariCuti,
-    ]);
-    Log::info('✅ [CUTI] Berhasil potong saldo saat approve', [
-        'user' => $user->name,
-        'hari_potong' => $hariCuti,
-        'hari_unpaid' => $absensi->hari_unpaid,
-        'sisa_cuti_sekarang' => $user->fresh()->sisa_cuti,
-    ]);
-} else {
-    Log::info('⏭️ [CUTI] Skip potong — bukan parent atau tidak ada hari yang dipotong.');
-}
-
-                        // 3. UPDATE SEMUA ANAKNYA (CHILD RECORDS) JIKA MULTI-DAY
-                        if ($absensi->children()->exists()) {
-                            $absensi->children()->update([
-                                'status_approval' => 'approved',
-                                'workflow_status' => $workflowStatus,
-                                'current_approval_level' => $absensi->current_approval_level,
-                                'approved_at' => now(),
-                                'rejected_by' => null,
-                                'rejected_at' => null,
-                                'base_salary' => 0,
-                                'late_penalty' => 0,
-                                'final_salary' => 0,
-                            ]);
-                            Log::info("✅ [SYNC] Anak record ikut di-approve");
-                        }
-
-                        // 4. KIRIM NOTIFIKASI KE USER
-                        \App\Models\Notification::create([
-                            'user_id' => $absensi->user_id,
-                            'title' => "Pengajuan " . ucfirst($submissionType) . " Disetujui ✅",
-                            'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
-                            'type' => "{$submissionType}_approved",
-                            'target_page' => $targetPage,
-                            'target_id' => $absensi->id,
-                        ]);
-
-                        \App\Models\ActivityLog::log('Approve Pengajuan Final', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Persetujuan final oleh: {$currentApprover}");
-                    });
-
-                } else {
-
-                    // Detect kategori
-                    $idKaryawan = $absensi->user->id_karyawan ?? '';
-                    $kategori = strtolower($absensi->user->employment_type ?? 'organik');
-                    if (strpos($idKaryawan, 'CS-AMB') === 0) $kategori = 'borongan';
-                    elseif (strpos($idKaryawan, 'MG-AMB') === 0) $kategori = 'magang';
-                    elseif (strpos($idKaryawan, 'AMB') === 0) $kategori = 'freelance';
-
-                    // Pastikan base_salary & late_penalty ada
-                    if ($absensi->base_salary === null) {
+                    if ($absensi->user->employment_type === 'organik') {
+                        $updateData['base_salary'] = 0;
+                        $updateData['final_salary'] = 0;
+                    } else {
                         $salaryData = Absensi::calculateSalary(
-                            $absensi->late_minutes ?? 0, 
-                            $absensi->status, 
-                            $absensi->tipe,
-                            false,
+                            0,
+                            'hadir',
+                            'normal',
+                            Absensi::isWeekend($absensi->check_in_at),
                             $absensi->check_in_at,
                             $absensi->check_out_at,
-                            $kategori,
+                            $absensi->user->employment_type,
                             $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
                             $absensi->user->dailyRateAt($absensi->check_in_at),
                         );
-                        $absensi->base_salary = $salaryData['base_salary'];
-                        $absensi->late_penalty = $salaryData['late_penalty'];
-                        $absensi->save();
-                        $absensi->refresh();
+                        $updateData['base_salary'] = $salaryData['base_salary'];
+                        $updateData['final_salary'] = $salaryData['final_salary'];
                     }
 
-                    $overtimeMinutes = 0;
-                    $overtimePay = 0;
+                    $absensi->update($updateData);
 
-                    // HITUNG LEMBUR (hanya untuk tipe lembur yang punya data jam)
-                    if (strtolower($absensi->tipe ?? '') === 'lembur' && $absensi->lembur_start && $absensi->lembur_end) {
-                        try {
-                            $overtimeData = Absensi::calculateOvertimeFromInput(
-                                $absensi->lembur_start,
-                                $absensi->lembur_end,
-                                (bool) $absensi->lembur_rest,
-                                (bool) $absensi->is_weekend_overtime
-                            );
+                    Notification::create([
+                        'user_id' => $absensi->user_id,
+                        'title' => 'Pengajuan Koreksi Disetujui ✅',
+                        'message' => "Pengajuan koreksi absen kamu telah disetujui oleh $currentApprover.",
+                        'type' => 'koreksi_approved',
+                        'target_page' => '/absensi',
+                        'target_id' => $absensi->id,
+                    ]);
 
-                            $overtimeMinutes = $overtimeData['minutes'];
-                            $overtimePay = $overtimeData['pay'];
+                    ActivityLog::log('Approve Koreksi Final', "Koreksi ID: {$absensi->id} dari {$absensi->user->name}", "Persetujuan final oleh: {$currentApprover}");
+                });
 
-                            Log::info('✅ [OVERTIME] Calculated', [
-                                'minutes' => $overtimeMinutes,
-                                'pay' => $overtimePay
-                            ]);
+                return back()->with('success', 'Koreksi berhasil disetujui.');
+            }
 
-                        } catch (\Exception $e) {
-                            Log::error('❌ Gagal kalkulasi lembur saat approval', [
-                                'absensi_id' => $absensi->id,
-                                'error' => $e->getMessage()
-                            ]);
-                            $overtimeMinutes = 0;
-                            $overtimePay = 0;
+            // 🔥 FIX: CEK APAKAH INI IZIN/SAKIT (BUKAN LEMBUR/HADIR)
+            $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
+                           in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
+
+            Log::info('🔍 [APPROVAL] Processing final approval', [
+                'id' => $absensi->id,
+                'tipe' => $absensi->tipe,
+                'status' => $absensi->status,
+                'is_leave_type' => $isLeaveType,
+                'has_children' => $absensi->children()->exists(),
+            ]);
+
+            // 🔥 FIX: JANGAN HITUNG GAJI UNTUK IZIN/SAKIT
+            // 🔥 MODIFIKASI FINAL APPROVAL UNTUK IZIN/SAKIT 🔥
+            if ($isLeaveType) {
+                Log::info('⏭️ [FINAL APPROVAL] Leave type processing');
+
+                DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover, $submissionType, $targetPage) {
+                    // 1. UPDATE DATA UTAMA (PARENT)
+                    $updateData = [
+                        'status_approval' => 'approved',
+                        'approved_at' => now(),
+                        'workflow_status' => $workflowStatus,
+                        'rejected_by' => null,
+                        'rejected_at' => null,
+                        'overtime_minutes' => 0,
+                        'overtime_pay' => 0,
+                        'base_salary' => 0,
+                        'late_penalty' => 0,
+                        'final_salary' => 0,
+                    ];
+
+                    // 🆕 LOGIKA IZIN SETENGAH HARI
+                    if ($absensi->jam_pulang_rencana) {
+                        $checkInDate = Carbon::parse($absensi->check_in_at)->format('Y-m-d');
+                        $checkOutDateTime = Carbon::parse($checkInDate.' '.$absensi->jam_pulang_rencana);
+                        $updateData['check_out_at'] = $checkOutDateTime;
+
+                        // Hitung gaji ulang karena jam pulang berubah
+                        $salaryData = Absensi::calculateSalary(
+                            $absensi->late_minutes ?? 0,
+                            'hadir', // Anggap hadir karena kerja setengah hari
+                            null,
+                            $absensi->is_weekend_overtime ?? false,
+                            $absensi->check_in_at,
+                            $checkOutDateTime,
+                            $absensi->user->kategori_absensi,
+                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                            $absensi->user->dailyRateAt($absensi->check_in_at),
+                        );
+
+                        $updateData['status'] = 'hadir'; // Ubah status jadi hadir tapi durasi kurang
+                        $updateData['base_salary'] = $salaryData['base_salary'];
+                        $updateData['late_penalty'] = $salaryData['late_penalty'];
+                        $updateData['final_salary'] = $salaryData['final_salary'];
+                    }
+
+                    $absensi->update($updateData);
+
+                    $user = User::find($absensi->user_id);
+
+                    if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
+                        $hariCuti = $absensi->hari_potong_cuti;
+
+                        $user->update([
+                            'sisa_cuti' => max(0, $user->sisa_cuti - $hariCuti),
+                            'total_cuti_diambil' => $user->total_cuti_diambil + $hariCuti,
+                        ]);
+                        Log::info('✅ [CUTI] Berhasil potong saldo saat approve', [
+                            'user' => $user->name,
+                            'hari_potong' => $hariCuti,
+                            'hari_unpaid' => $absensi->hari_unpaid,
+                            'sisa_cuti_sekarang' => $user->fresh()->sisa_cuti,
+                        ]);
+                    } else {
+                        Log::info('⏭️ [CUTI] Skip potong — bukan parent atau tidak ada hari yang dipotong.');
+                    }
+
+                    // 3. UPDATE SEMUA ANAKNYA (CHILD RECORDS) JIKA MULTI-DAY
+                    if ($absensi->children()->exists()) {
+                        $absensi->children()->update([
+                            'status_approval' => 'approved',
+                            'workflow_status' => $workflowStatus,
+                            'current_approval_level' => $absensi->current_approval_level,
+                            'approved_at' => now(),
+                            'rejected_by' => null,
+                            'rejected_at' => null,
+                            'base_salary' => 0,
+                            'late_penalty' => 0,
+                            'final_salary' => 0,
+                        ]);
+                        Log::info('✅ [SYNC] Anak record ikut di-approve');
+                    }
+
+                    // 4. KIRIM NOTIFIKASI KE USER
+                    Notification::create([
+                        'user_id' => $absensi->user_id,
+                        'title' => 'Pengajuan '.ucfirst($submissionType).' Disetujui ✅',
+                        'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
+                        'type' => "{$submissionType}_approved",
+                        'target_page' => $targetPage,
+                        'target_id' => $absensi->id,
+                    ]);
+
+                    ActivityLog::log('Approve Pengajuan Final', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name}", "Persetujuan final oleh: {$currentApprover}");
+                });
+
+            } else {
+
+                // Detect kategori
+                $idKaryawan = $absensi->user->id_karyawan ?? '';
+                $kategori = strtolower($absensi->user->employment_type ?? 'organik');
+                if (strpos($idKaryawan, 'CS-AMB') === 0) {
+                    $kategori = 'borongan';
+                } elseif (strpos($idKaryawan, 'MG-AMB') === 0) {
+                    $kategori = 'magang';
+                } elseif (strpos($idKaryawan, 'AMB') === 0) {
+                    $kategori = 'freelance';
+                }
+
+                // Pastikan base_salary & late_penalty ada
+                if ($absensi->base_salary === null) {
+                    $salaryData = Absensi::calculateSalary(
+                        $absensi->late_minutes ?? 0,
+                        $absensi->status,
+                        $absensi->tipe,
+                        false,
+                        $absensi->check_in_at,
+                        $absensi->check_out_at,
+                        $kategori,
+                        $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                        $absensi->user->dailyRateAt($absensi->check_in_at),
+                    );
+                    $absensi->base_salary = $salaryData['base_salary'];
+                    $absensi->late_penalty = $salaryData['late_penalty'];
+                    $absensi->save();
+                    $absensi->refresh();
+                }
+
+                $overtimeMinutes = 0;
+                $overtimePay = 0;
+
+                // HITUNG LEMBUR (hanya untuk tipe lembur yang punya data jam)
+                if (strtolower($absensi->tipe ?? '') === 'lembur' && $absensi->lembur_start && $absensi->lembur_end) {
+                    try {
+                        $overtimeData = Absensi::calculateOvertimeFromInput(
+                            $absensi->lembur_start,
+                            $absensi->lembur_end,
+                            (bool) $absensi->lembur_rest,
+                            (bool) $absensi->is_weekend_overtime
+                        );
+
+                        $overtimeMinutes = $overtimeData['minutes'];
+                        $overtimePay = $overtimeData['pay'];
+
+                        Log::info('✅ [OVERTIME] Calculated', [
+                            'minutes' => $overtimeMinutes,
+                            'pay' => $overtimePay,
+                        ]);
+
+                    } catch (\Exception $e) {
+                        Log::error('❌ Gagal kalkulasi lembur saat approval', [
+                            'absensi_id' => $absensi->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                        $overtimeMinutes = 0;
+                        $overtimePay = 0;
+                    }
+                }
+
+                // HITUNG FINAL SALARY
+                $gajiPokok = $absensi->base_salary ?? 0;
+                $potongan = $absensi->late_penalty ?? 0;
+                $newFinalSalary = ($gajiPokok - $potongan) + $overtimePay;
+
+                Log::info('💰 [SALARY] Calculation', [
+                    'base' => $gajiPokok,
+                    'penalty' => $potongan,
+                    'overtime' => $overtimePay,
+                    'final' => $newFinalSalary,
+                ]);
+
+                DB::transaction(function () use ($absensi, $workflowStatus, $overtimeMinutes, $overtimePay, $newFinalSalary, $currentApprover, $submissionType, $targetPage) {
+
+                    // 🔥 FIX: JIKA INI RECORD ANAK, UPDATE DATA KE PARENT
+                    if ($absensi->parent_id) {
+                        $parent = Absensi::find($absensi->parent_id);
+                        if ($parent) {
+                            // Jika anak adalah 'telat', reset parent's late_minutes ke 0 DAN JAM MASUK KE 08:00
+                            if ($absensi->tipe === 'telat') {
+                                $checkInDate = Carbon::parse($parent->check_in_at)->format('Y-m-d');
+                                $parent->update([
+                                    'check_in_at' => $checkInDate.' 08:00:00', // <--- Pindah ke parent!
+                                    'late_minutes' => 0,
+                                    'late_penalty' => 0,
+                                    'final_salary' => $parent->base_salary + ($parent->overtime_pay ?? 0),
+                                ]);
+                            }
+                            // Jika anak adalah 'lembur', update parent's overtime
+                            if ($absensi->tipe === 'lembur') {
+                                $parent->update([
+                                    'overtime_minutes' => ($parent->overtime_minutes ?? 0) + $overtimeMinutes,
+                                    'overtime_pay' => ($parent->overtime_pay ?? 0) + $overtimePay,
+                                    'final_salary' => ($parent->base_salary ?? 0) - ($parent->late_penalty ?? 0) + (($parent->overtime_pay ?? 0) + $overtimePay),
+                                ]);
+                            }
                         }
                     }
 
-                    // HITUNG FINAL SALARY
-                    $gajiPokok = $absensi->base_salary ?? 0;
-                    $potongan  = $absensi->late_penalty ?? 0;
-                    $newFinalSalary = ($gajiPokok - $potongan) + $overtimePay;
+                    // ✅ KALAU TIPE TELAT DAN DIAPPROVE → STATUS APPROVED
+                    $updateData = [
+                        'status_approval' => 'approved',
+                        'approved_at' => now(),
+                        'workflow_status' => $workflowStatus,
+                        'rejected_by' => null,
+                        'rejected_at' => null,
+                        'overtime_minutes' => $overtimeMinutes,
+                        'overtime_pay' => $overtimePay,
+                        'final_salary' => $newFinalSalary,
+                    ];
 
-                    Log::info('💰 [SALARY] Calculation', [
-                        'base' => $gajiPokok,
-                        'penalty' => $potongan,
-                        'overtime' => $overtimePay,
-                        'final' => $newFinalSalary
+                    if (strtolower($absensi->tipe ?? '') === 'telat') {
+                        // Tipe tetap telat di child, tapi parent sudah direset
+                        $updateData['tipe'] = 'telat';
+
+                        Log::info('✅ [TELAT APPROVED] Parent record updated', [
+                            'id' => $absensi->id,
+                            'parent_id' => $absensi->parent_id,
+                        ]);
+                    }
+
+                    $absensi->update($updateData);
+
+                    Log::info('✅ [APPROVED] Attendance/Overtime record updated', [
+                        'id' => $absensi->id,
+                        'final_salary' => $newFinalSalary,
                     ]);
 
-                    
-                        DB::transaction(function () use ($absensi, $workflowStatus, $overtimeMinutes, $overtimePay, $newFinalSalary, $currentApprover, $submissionType, $targetPage) {
+                    // Notifikasi
+                    Notification::create([
+                        'user_id' => $absensi->user_id,
+                        'title' => 'Pengajuan '.ucfirst($submissionType).' Disetujui ✅',
+                        'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
+                        'type' => "{$submissionType}_approved",
+                        'target_page' => $targetPage,
+                        'target_id' => $absensi->id,
+                    ]);
 
-                            // 🔥 FIX: JIKA INI RECORD ANAK, UPDATE DATA KE PARENT
-                            if ($absensi->parent_id) {
-                                $parent = \App\Models\Absensi::find($absensi->parent_id);
-                                if ($parent) {
-                                    // Jika anak adalah 'telat', reset parent's late_minutes ke 0 DAN JAM MASUK KE 08:00
-                                    if ($absensi->tipe === 'telat') {
-                                        $checkInDate = \Carbon\Carbon::parse($parent->check_in_at)->format('Y-m-d');
-                                        $parent->update([
-                                            'check_in_at' => $checkInDate . ' 08:00:00', // <--- Pindah ke parent!
-                                            'late_minutes' => 0,
-                                            'late_penalty' => 0,
-                                            'final_salary' => $parent->base_salary + ($parent->overtime_pay ?? 0),
-                                        ]);
-                                    }
-                                    // Jika anak adalah 'lembur', update parent's overtime
-                                    if ($absensi->tipe === 'lembur') {
-                                        $parent->update([
-                                            'overtime_minutes' => ($parent->overtime_minutes ?? 0) + $overtimeMinutes,
-                                            'overtime_pay' => ($parent->overtime_pay ?? 0) + $overtimePay,
-                                            'final_salary' => ($parent->base_salary ?? 0) - ($parent->late_penalty ?? 0) + (($parent->overtime_pay ?? 0) + $overtimePay),
-                                        ]);
-                                    }
-                                }
-                            }
-
-                            // ✅ KALAU TIPE TELAT DAN DIAPPROVE → STATUS APPROVED
-                            $updateData = [
-                                'status_approval' => 'approved',
-                                'approved_at'     => now(),
-                                'workflow_status' => $workflowStatus,
-                                'rejected_by'     => null,
-                                'rejected_at'     => null,
-                                'overtime_minutes'=> $overtimeMinutes,
-                                'overtime_pay'    => $overtimePay,
-                                'final_salary'    => $newFinalSalary,
-                            ];
-
-                            if (strtolower($absensi->tipe ?? '') === 'telat') {
-                                // Tipe tetap telat di child, tapi parent sudah direset
-                                $updateData['tipe'] = 'telat'; 
-                                
-                                Log::info('✅ [TELAT APPROVED] Parent record updated', [
-                                    'id' => $absensi->id,
-                                    'parent_id' => $absensi->parent_id
-                                ]);
-                            }
-
-                            $absensi->update($updateData);
-
-                            Log::info('✅ [APPROVED] Attendance/Overtime record updated', [
-                                'id' => $absensi->id,
-                                'final_salary' => $newFinalSalary
-                            ]);
-
-                            // Notifikasi
-                            Notification::create([
-                                'user_id' => $absensi->user_id,
-                                'title' => "Pengajuan " . ucfirst($submissionType) . " Disetujui ✅",
-                                'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
-                                'type' => "{$submissionType}_approved",
-                                'target_page' => $targetPage,
-                                'target_id' => $absensi->id,
-                            ]);
-
-                            \App\Models\ActivityLog::log('Approve Pengajuan Final', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name} (Gaji Dihitung)", "Persetujuan final oleh: {$currentApprover}");
-                        });
-                }
-
+                    ActivityLog::log('Approve Pengajuan Final', "Pengajuan ID: {$absensi->id} dari {$absensi->user->name} (Gaji Dihitung)", "Persetujuan final oleh: {$currentApprover}");
+                });
             }
 
             return back()->with('success', 'Berhasil disetujui.');
@@ -767,7 +761,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
     {
         $this->ensureHrdApprover();
         $ids = $request->input('ids', []);
-        
+
         if (empty($ids)) {
             return back()->with('error', 'Tidak ada data yang dipilih.');
         }
@@ -779,7 +773,7 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
                 // Gunakan logic yang sama dengan handleAction
                 // Untuk mempermudah, kita panggil logic approval di sini
                 // Kita asumsikan action adalah 'approve' karena tombolnya 'Approve Terpilih'
-                
+
                 $this->approveSingleRecord($absensi);
                 $count++;
             }
@@ -792,8 +786,6 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
     {
         $userTipe = $absensi->user->work_location ?? 'office';
         $currentApprover = 'HRD';
-        $currentLevel = 1;
-        $maxLevel = 1;
         $workflowKey = 'hrd';
 
         $workflowStatus = ['hrd' => 'pending'];
@@ -801,177 +793,179 @@ if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
         $workflowStatus[$workflowKey] = 'approved';
         $submissionType = $absensi->tipe ?? 'absensi';
         $targetPageMap = [
-            'lembur'  => '/lembur_detail',
-            'sakit'   => '/sakit_detail',
-            'izin'    => '/izin_detail',
+            'lembur' => '/lembur_detail',
+            'sakit' => '/sakit_detail',
+            'izin' => '/izin_detail',
             'absensi' => '/absensi_detail',
         ];
         $targetPage = $targetPageMap[$submissionType] ?? '/absensi';
 
-        if ($currentLevel >= $maxLevel) {
-            // HRD is the only approval level.
-            $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
+        // HRD is the only approval level.
+        $isLeaveType = in_array(strtolower($absensi->status ?? ''), ['izin', 'sakit']) ||
                            in_array(strtolower($absensi->tipe ?? ''), ['izin', 'sakit']);
 
-            if ($isLeaveType) {
-                DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover, $submissionType, $targetPage) {
-                    // Cek jika izin pulang cepat
-                    $updateData = [
-                        'status_approval' => 'approved',
-                        'approved_at' => now(),
-                        'workflow_status' => $workflowStatus,
-                        'rejected_by' => null,
-                        'rejected_at' => null,
-                        'overtime_minutes' => 0,
-                        'overtime_pay' => 0,
-                    ];
+        if ($isLeaveType) {
+            DB::transaction(function () use ($absensi, $workflowStatus, $currentApprover, $submissionType, $targetPage) {
+                // Cek jika izin pulang cepat
+                $updateData = [
+                    'status_approval' => 'approved',
+                    'approved_at' => now(),
+                    'workflow_status' => $workflowStatus,
+                    'rejected_by' => null,
+                    'rejected_at' => null,
+                    'overtime_minutes' => 0,
+                    'overtime_pay' => 0,
+                ];
 
-                    if ($absensi->submission_type === 'izin_pulang_cepat' && $absensi->jam_pulang_rencana) {
-                        $checkIn = \Carbon\Carbon::parse($absensi->check_in_at);
-                        $checkOut = \Carbon\Carbon::parse($absensi->check_in_at)->setTimeFromTimeString($absensi->jam_pulang_rencana);
-                        
-                        $updateData['check_out_at'] = $checkOut;
-                        
-                        $isWeekend = \App\Models\Absensi::isWeekend($checkIn);
-                        $kategori = $absensi->user->kategori_absensi ?? 'organik';
-                        $lateMinutes = $absensi->late_minutes ?? 0;
-                        
-                        $salaryData = \App\Models\Absensi::calculateSalary(
-                            $lateMinutes,
-                            'hadir',
-                            null,
-                            $isWeekend,
-                            $checkIn,
-                            $checkOut,
-                            $kategori,
-                            $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
-                            $absensi->user->dailyRateAt($checkIn),
-                        );
-                        
-                        $updateData['base_salary'] = $salaryData['base_salary'];
-                        $updateData['late_penalty'] = $salaryData['late_penalty'];
-                        $updateData['final_salary'] = $salaryData['final_salary'];
-                    } else {
-                        $updateData['base_salary'] = 0;
-                        $updateData['late_penalty'] = 0;
-                        $updateData['final_salary'] = 0;
-                    }
+                if ($absensi->submission_type === 'izin_pulang_cepat' && $absensi->jam_pulang_rencana) {
+                    $checkIn = Carbon::parse($absensi->check_in_at);
+                    $checkOut = Carbon::parse($absensi->check_in_at)->setTimeFromTimeString($absensi->jam_pulang_rencana);
 
-                    $absensi->update($updateData);
+                    $updateData['check_out_at'] = $checkOut;
 
-                    $user = \App\Models\User::find($absensi->user_id);
-                    if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) { 
-                        $hariCuti = $absensi->hari_potong_cuti;
-                        $user->update([
-                            'sisa_cuti' => $user->sisa_cuti - $hariCuti,
-                            'total_cuti_diambil' => $user->total_cuti_diambil + $hariCuti,
-                        ]);
-                        Log::info('✅ [CUTI] Berhasil potong saldo (bulk approval)', [
-                            'user' => $user->name,
-                            'submission_type' => $absensi->submission_type,
-                            'hari' => $hariCuti
-                        ]);
-                    }
+                    $isWeekend = Absensi::isWeekend($checkIn);
+                    $kategori = $absensi->user->kategori_absensi ?? 'organik';
+                    $lateMinutes = $absensi->late_minutes ?? 0;
 
-                    if ($absensi->children()->exists()) {
-                        $absensi->children()->update([
-                            'status_approval' => 'approved',
-                            'workflow_status' => $workflowStatus,
-                            'current_approval_level' => $absensi->current_approval_level,
-                            'approved_at' => now(),
-                            'rejected_by' => null,
-                            'rejected_at' => null,
-                            'base_salary' => 0,
-                            'late_penalty' => 0,
-                            'final_salary' => 0,
-                        ]);
-                    }
-
-                    Notification::create([
-                        'user_id' => $absensi->user_id,
-                        'title' => "Pengajuan " . ucfirst($submissionType) . " Disetujui ✅",
-                        'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
-                        'type' => "{$submissionType}_approved",
-                        'target_page' => $targetPage,
-                        'target_id' => $absensi->id,
-                    ]);
-
-                    \App\Models\ActivityLog::log('Approve Pengajuan Final (Bulk)', "Pengajuan ID: {$absensi->id}", "Persetujuan final oleh: {$currentApprover}");
-                });
-            } else {
-                // HADIR/LEMBUR
-                $idKaryawan = $absensi->user->id_karyawan ?? '';
-                $kategori = strtolower($absensi->user->employment_type ?? 'organik');
-                if (strpos($idKaryawan, 'CS-AMB') === 0) $kategori = 'borongan';
-                elseif (strpos($idKaryawan, 'MG-AMB') === 0) $kategori = 'magang';
-                elseif (strpos($idKaryawan, 'AMB') === 0) $kategori = 'freelance';
-
-                if ($absensi->base_salary === null) {
                     $salaryData = Absensi::calculateSalary(
-                        $absensi->late_minutes ?? 0,
-                        $absensi->status,
-                        $absensi->tipe,
-                        false,
-                        $absensi->check_in_at,
-                        $absensi->check_out_at,
+                        $lateMinutes,
+                        'hadir',
+                        null,
+                        $isWeekend,
+                        $checkIn,
+                        $checkOut,
                         $kategori,
                         $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
-                        $absensi->user->dailyRateAt($absensi->check_in_at),
+                        $absensi->user->dailyRateAt($checkIn),
                     );
-                    $absensi->base_salary = $salaryData['base_salary'];
-                    $absensi->late_penalty = $salaryData['late_penalty'];
-                    $absensi->save();
-                    $absensi->refresh();
+
+                    $updateData['base_salary'] = $salaryData['base_salary'];
+                    $updateData['late_penalty'] = $salaryData['late_penalty'];
+                    $updateData['final_salary'] = $salaryData['final_salary'];
+                } else {
+                    $updateData['base_salary'] = 0;
+                    $updateData['late_penalty'] = 0;
+                    $updateData['final_salary'] = 0;
                 }
 
-                $overtimePay = 0;
-                $overtimeMinutes = 0;
-                if (strtolower($absensi->tipe ?? '') === 'lembur' && $absensi->lembur_start && $absensi->lembur_end) {
-                    $overtimeData = Absensi::calculateOvertimeFromInput($absensi->lembur_start, $absensi->lembur_end, (bool) $absensi->lembur_rest, (bool) $absensi->is_weekend_overtime);
-                    $overtimeMinutes = $overtimeData['minutes'];
-                    $overtimePay = $overtimeData['pay'];
-                }
+                $absensi->update($updateData);
 
-                $gajiPokok = $absensi->base_salary ?? 0;
-                $potongan  = $absensi->late_penalty ?? 0;
-                $newFinalSalary = ($gajiPokok - $potongan) + $overtimePay;
-
-                DB::transaction(function () use ($absensi, $workflowStatus, $overtimeMinutes, $overtimePay, $newFinalSalary, $currentApprover, $submissionType, $targetPage) {
-                    $updateData = [
-                        'status_approval' => 'approved',
-                        'approved_at'     => now(),
-                        'workflow_status' => $workflowStatus,
-                        'rejected_by'     => null,
-                        'rejected_at'     => null,
-                        'overtime_minutes'=> $overtimeMinutes,
-                        'overtime_pay'    => $overtimePay,
-                        'final_salary'    => $newFinalSalary,
-                    ];
-
-                    if (strtolower($absensi->tipe ?? '') === 'telat') {
-                        $checkInDate = \Carbon\Carbon::parse($absensi->check_in_at)->format('Y-m-d');
-                        $updateData['check_in_at']  = $checkInDate . ' 08:00:00';
-                        $updateData['late_minutes'] = 0;
-                        $updateData['rounded_late_minutes'] = 0;
-                        $updateData['late_penalty'] = 0;
-                        $updateData['tipe']         = null;
-                        $updateData['final_salary'] = $absensi->base_salary ?? $newFinalSalary;
-                    }
-
-                    $absensi->update($updateData);
-
-                    Notification::create([
-                        'user_id' => $absensi->user_id,
-                        'title' => "Pengajuan " . ucfirst($submissionType) . " Disetujui ✅",
-                        'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
-                        'type' => "{$submissionType}_approved",
-                        'target_page' => $targetPage,
-                        'target_id' => $absensi->id,
+                $user = User::find($absensi->user_id);
+                if ($user && $absensi->parent_id === null && $absensi->hari_potong_cuti > 0) {
+                    $hariCuti = $absensi->hari_potong_cuti;
+                    $user->update([
+                        'sisa_cuti' => $user->sisa_cuti - $hariCuti,
+                        'total_cuti_diambil' => $user->total_cuti_diambil + $hariCuti,
                     ]);
+                    Log::info('✅ [CUTI] Berhasil potong saldo (bulk approval)', [
+                        'user' => $user->name,
+                        'submission_type' => $absensi->submission_type,
+                        'hari' => $hariCuti,
+                    ]);
+                }
 
-                    \App\Models\ActivityLog::log('Approve Pengajuan Final (Bulk)', "Pengajuan ID: {$absensi->id}", "Persetujuan final oleh: {$currentApprover}");
-                });
+                if ($absensi->children()->exists()) {
+                    $absensi->children()->update([
+                        'status_approval' => 'approved',
+                        'workflow_status' => $workflowStatus,
+                        'current_approval_level' => $absensi->current_approval_level,
+                        'approved_at' => now(),
+                        'rejected_by' => null,
+                        'rejected_at' => null,
+                        'base_salary' => 0,
+                        'late_penalty' => 0,
+                        'final_salary' => 0,
+                    ]);
+                }
+
+                Notification::create([
+                    'user_id' => $absensi->user_id,
+                    'title' => 'Pengajuan '.ucfirst($submissionType).' Disetujui ✅',
+                    'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
+                    'type' => "{$submissionType}_approved",
+                    'target_page' => $targetPage,
+                    'target_id' => $absensi->id,
+                ]);
+
+                ActivityLog::log('Approve Pengajuan Final (Bulk)', "Pengajuan ID: {$absensi->id}", "Persetujuan final oleh: {$currentApprover}");
+            });
+        } else {
+            // HADIR/LEMBUR
+            $idKaryawan = $absensi->user->id_karyawan ?? '';
+            $kategori = strtolower($absensi->user->employment_type ?? 'organik');
+            if (strpos($idKaryawan, 'CS-AMB') === 0) {
+                $kategori = 'borongan';
+            } elseif (strpos($idKaryawan, 'MG-AMB') === 0) {
+                $kategori = 'magang';
+            } elseif (strpos($idKaryawan, 'AMB') === 0) {
+                $kategori = 'freelance';
             }
+
+            if ($absensi->base_salary === null) {
+                $salaryData = Absensi::calculateSalary(
+                    $absensi->late_minutes ?? 0,
+                    $absensi->status,
+                    $absensi->tipe,
+                    false,
+                    $absensi->check_in_at,
+                    $absensi->check_out_at,
+                    $kategori,
+                    $absensi->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN',
+                    $absensi->user->dailyRateAt($absensi->check_in_at),
+                );
+                $absensi->base_salary = $salaryData['base_salary'];
+                $absensi->late_penalty = $salaryData['late_penalty'];
+                $absensi->save();
+                $absensi->refresh();
+            }
+
+            $overtimePay = 0;
+            $overtimeMinutes = 0;
+            if (strtolower($absensi->tipe ?? '') === 'lembur' && $absensi->lembur_start && $absensi->lembur_end) {
+                $overtimeData = Absensi::calculateOvertimeFromInput($absensi->lembur_start, $absensi->lembur_end, (bool) $absensi->lembur_rest, (bool) $absensi->is_weekend_overtime);
+                $overtimeMinutes = $overtimeData['minutes'];
+                $overtimePay = $overtimeData['pay'];
+            }
+
+            $gajiPokok = $absensi->base_salary ?? 0;
+            $potongan = $absensi->late_penalty ?? 0;
+            $newFinalSalary = ($gajiPokok - $potongan) + $overtimePay;
+
+            DB::transaction(function () use ($absensi, $workflowStatus, $overtimeMinutes, $overtimePay, $newFinalSalary, $currentApprover, $submissionType, $targetPage) {
+                $updateData = [
+                    'status_approval' => 'approved',
+                    'approved_at' => now(),
+                    'workflow_status' => $workflowStatus,
+                    'rejected_by' => null,
+                    'rejected_at' => null,
+                    'overtime_minutes' => $overtimeMinutes,
+                    'overtime_pay' => $overtimePay,
+                    'final_salary' => $newFinalSalary,
+                ];
+
+                if (strtolower($absensi->tipe ?? '') === 'telat') {
+                    $checkInDate = Carbon::parse($absensi->check_in_at)->format('Y-m-d');
+                    $updateData['check_in_at'] = $checkInDate.' 08:00:00';
+                    $updateData['late_minutes'] = 0;
+                    $updateData['rounded_late_minutes'] = 0;
+                    $updateData['late_penalty'] = 0;
+                    $updateData['tipe'] = null;
+                    $updateData['final_salary'] = $absensi->base_salary ?? $newFinalSalary;
+                }
+
+                $absensi->update($updateData);
+
+                Notification::create([
+                    'user_id' => $absensi->user_id,
+                    'title' => 'Pengajuan '.ucfirst($submissionType).' Disetujui ✅',
+                    'message' => "Pengajuan kamu telah disetujui penuh oleh $currentApprover.",
+                    'type' => "{$submissionType}_approved",
+                    'target_page' => $targetPage,
+                    'target_id' => $absensi->id,
+                ]);
+
+                ActivityLog::log('Approve Pengajuan Final (Bulk)', "Pengajuan ID: {$absensi->id}", "Persetujuan final oleh: {$currentApprover}");
+            });
         }
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Http\Resources;
 
-use Illuminate\Http\Resources\Json\JsonResource;
+use App\Models\Absensi;
 use Carbon\Carbon;
+use Illuminate\Http\Resources\Json\JsonResource;
 
+/** @mixin Absensi */
 class AbsensiResource extends JsonResource
 {
-    public function toArray($request)
+    public function toArray($request): array
     {
         return [
             'id' => $this->id,
@@ -37,25 +39,33 @@ class AbsensiResource extends JsonResource
                 ? Carbon::parse($this->lembur_end)->format('H:i')
                 : null,
             'durasi_lembur' => ($this->lembur_start && $this->lembur_end)
-                ? Carbon::parse($this->lembur_start)->diffInMinutes(Carbon::parse($this->lembur_end)) . ' Menit'
+                ? Carbon::parse($this->lembur_start)->diffInMinutes(Carbon::parse($this->lembur_end)).' Menit'
                 : '0 Menit',
 
             // Bukti & Lokasi
-            'foto_masuk_url' => $this->foto_masuk ? url('storage/' . $this->foto_masuk) : null,
-            'foto_keluar_url' => $this->foto_pulang ? url('storage/' . $this->foto_pulang) : null,
-            'file_bukti_url' => $this->file_bukti ? url('storage/' . $this->file_bukti) : null,
+            'foto_masuk_url' => $this->foto_masuk ? url('storage/'.$this->foto_masuk) : null,
+            'foto_keluar_url' => $this->foto_pulang ? url('storage/'.$this->foto_pulang) : null,
+            'file_bukti_url' => $this->file_bukti ? url('storage/'.$this->file_bukti) : null,
 
-            'lokasi_masuk' => [
-                'lat' => explode(',', $this->lokasi_masuk)[0] ?? null,
-                'long' => explode(',', $this->lokasi_masuk)[1] ?? null,
-            ],
-            'lokasi_pulang' => [
-                'lat' => explode(',', $this->lokasi_pulang)[0] ?? null,
-                'long' => explode(',', $this->lokasi_pulang)[1] ?? null,
-            ],
+            'lokasi_masuk' => $this->formatLocation($this->lokasi_masuk),
+            'lokasi_pulang' => $this->formatLocation($this->lokasi_pulang),
 
             // Meta Data
-            'terakhir_update' => $this->updated_at->diffForHumans(),
+            'terakhir_update' => $this->updated_at?->diffForHumans(),
         ];
+    }
+
+    /**
+     * @return array{lat: string|null, long: string|null}
+     */
+    private function formatLocation(?string $location): array
+    {
+        if ($location === null || trim($location) === '') {
+            return ['lat' => null, 'long' => null];
+        }
+
+        [$latitude, $longitude] = array_pad(explode(',', $location, 2), 2, null);
+
+        return ['lat' => $latitude, 'long' => $longitude];
     }
 }

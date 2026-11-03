@@ -24,7 +24,7 @@
             right: 0;
             width: 50%;
             height: 50%;
-            background: radial-gradient(circle at 70% 30%, rgba(16, 185, 129, 0.08), transparent 70%);
+            background: radial-gradient(circle at 70% 30%, rgba(64, 64, 64, 0.08), transparent 70%);
             pointer-events: none;
             z-index: -1;
         }
@@ -42,7 +42,7 @@
                 <!-- Brand -->
                 <div class="px-8 mb-8">
                     <a href="{{ route('dashboard') }}" class="inline-flex group">
-                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Logo Followme Indonesia" class="w-48 max-w-full h-auto rounded-xl object-contain shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-[1.03]">
+                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Logo Followme Indonesia" class="w-48 max-w-full h-auto rounded-xl object-contain grayscale shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-[1.03]">
                     </a>
                 </div>
 

@@ -10,16 +10,18 @@ class VerifyKpiApiKey
 {
     public function handle(Request $request, Closure $next): Response
     {
-        // Ambil token dari file .env
-        $validKey = env('KPI_INTEGRATION_KEY');
-        
+        $validKey = config('services.kpi.api_key');
+
         // Cek API Key dari Header (atau bearer token)
         $providedKey = $request->header('X-API-KEY') ?? $request->bearerToken();
 
-        if (!$validKey || $providedKey !== $validKey) {
+        if (! is_string($validKey)
+            || $validKey === ''
+            || ! is_string($providedKey)
+            || ! hash_equals($validKey, $providedKey)) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Unauthorized. API Key tidak valid.'
+                'message' => 'Unauthorized. API Key tidak valid.',
             ], 401);
         }
 

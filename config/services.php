@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'kpi' => [
+        'api_key' => env('KPI_INTEGRATION_KEY'),
+    ],
+
 ];

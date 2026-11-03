@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Notification;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 
 class NotificationController extends Controller
 {
@@ -22,7 +21,7 @@ class NotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $notifications
+            'data' => $notifications,
         ]);
     }
 
@@ -32,19 +31,19 @@ class NotificationController extends Controller
     public function markAsRead($id)
     {
         // ✅ VALIDASI ID
-        if (!is_numeric($id) || $id <= 0) {
+        if (! is_numeric($id) || $id <= 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'ID tidak valid'
+                'message' => 'ID tidak valid',
             ], 400);
         }
 
         $notification = Notification::find($id);
 
-        if (!$notification) {
+        if (! $notification) {
             return response()->json([
                 'success' => false,
-                'message' => 'Notifikasi tidak ditemukan'
+                'message' => 'Notifikasi tidak ditemukan',
             ], 404);
         }
 
@@ -52,7 +51,7 @@ class NotificationController extends Controller
         if ($notification->user_id !== auth()->id()) {
             return response()->json([
                 'success' => false,
-                'message' => 'Akses ditolak'
+                'message' => 'Akses ditolak',
             ], 403);
         }
 
@@ -60,13 +59,13 @@ class NotificationController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Notifikasi ditandai sebagai dibaca'
+            'message' => 'Notifikasi ditandai sebagai dibaca',
         ]);
     }
 
     /**
      * ✅ FIXED: Buat notifikasi baru (KHUSUS ADMIN!)
-     * 
+     *
      * Endpoint ini dipanggil dari Admin Panel (Web Laravel)
      * untuk kirim notifikasi ke user Flutter
      */
@@ -74,12 +73,12 @@ class NotificationController extends Controller
     {
         // ✅ CEK APAKAH USER ADALAH ADMIN
         $user = $request->user();
-        
+
         // ✅ VALIDASI: Hanya admin yang bisa kirim notifikasi
-        if (!$user || !$this->isAdmin($user)) {
+        if (! $user || ! $this->isAdmin($user)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthorized. Hanya admin yang bisa mengirim notifikasi.'
+                'message' => 'Unauthorized. Hanya admin yang bisa mengirim notifikasi.',
             ], 403);
         }
 
@@ -107,13 +106,13 @@ class NotificationController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Notifikasi berhasil dikirim',
-            'data' => $notif
+            'data' => $notif,
         ], 201);
     }
 
     /**
      * ✅ HELPER: Cek apakah user adalah admin
-     * 
+     *
      * Sesuaikan dengan struktur database lu!
      * Ada beberapa cara cek admin:
      */

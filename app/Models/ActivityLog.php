@@ -3,7 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int|null $user_id
+ * @property-read User|null $user
+ */
 class ActivityLog extends Model
 {
     protected $fillable = [
@@ -14,7 +19,10 @@ class ActivityLog extends Model
         'ip_address',
     ];
 
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }

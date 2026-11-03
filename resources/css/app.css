@@ -4,27 +4,27 @@
 
 @layer base {
   :root {
-    --brand-emerald: 16, 185, 129;
-    --brand-teal: 13, 148, 136;
-    --brand-indigo: 79, 70, 229;
+    --brand-emerald: 168, 100, 47;
+    --brand-teal: 196, 122, 60;
+    --brand-indigo: 64, 64, 64;
     
-    --lucent-bg: rgba(255, 255, 255, 0.65);
-    --lucent-border: rgba(255, 255, 255, 0.4);
-    --lucent-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+    --lucent-bg: rgba(255, 255, 255, 0.92);
+    --lucent-border: rgba(229, 229, 229, 0.9);
+    --lucent-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.06);
     
-    --surface-main: #f8fafc;
-    --text-main: #0f172a;
-    --text-muted: #64748b;
+    --surface-main: #f5f5f5;
+    --text-main: #171717;
+    --text-muted: #737373;
   }
 
   .dark {
-    --lucent-bg: rgba(15, 23, 42, 0.7);
+    --lucent-bg: rgba(23, 23, 23, 0.7);
     --lucent-border: rgba(255, 255, 255, 0.08);
     --lucent-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
     
-    --surface-main: #020617;
-    --text-main: #f1f5f9;
-    --text-muted: #94a3b8;
+    --surface-main: #0a0a0a;
+    --text-main: #f5f5f5;
+    --text-muted: #a3a3a3;
   }
 
   body {
@@ -32,6 +32,8 @@
     background-color: var(--surface-main);
     color: var(--text-main);
   }
+
+
 }
 
 @layer components {
@@ -45,7 +47,7 @@
   
   .lucent-panel:hover {
     @apply border-emerald-500/30;
-    box-shadow: 0 12px 40px 0 rgba(16, 185, 129, 0.1);
+    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.1);
   }
 
   /* Bento Grid System */
@@ -77,7 +79,7 @@
 
   /* Interactive Inputs */
   .lucent-input {
-    @apply w-full bg-white/50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 outline-none backdrop-blur-sm;
+    @apply w-full bg-gray-100 dark:bg-gray-800 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 outline-none backdrop-blur-sm;
   }
 
   /* Table System */
@@ -112,13 +114,13 @@
   /* Sidebar Premium Styles */
   .premium-sidebar {
     @apply fixed inset-y-4 left-4 w-64 rounded-3xl z-50 transition-transform duration-500 lg:translate-x-0 backdrop-blur-xl border;
-    background: rgba(255, 255, 255, 0.35);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 20px 40px 0 rgba(31, 38, 135, 0.06), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(229, 229, 229, 0.9);
+    box-shadow: 0 16px 38px 0 rgba(0, 0, 0, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
   }
 
   .dark .premium-sidebar {
-    background: rgba(15, 23, 42, 0.45);
+    background: rgba(24, 24, 24, 0.88);
     border-color: rgba(255, 255, 255, 0.06);
     box-shadow: 0 20px 40px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
   }
@@ -143,7 +145,7 @@
   .login-visual::before {
     content: '';
     @apply absolute inset-0 opacity-20;
-    background-image: radial-gradient(circle at 50% 50%, #10b981 1px, transparent 1px);
+    background-image: radial-gradient(circle at 50% 50%, #737373 1px, transparent 1px);
     background-size: 30px 30px;
   }
 
@@ -153,7 +155,7 @@
 
   .login-work-scene {
     width: min(100%, 28rem);
-    filter: drop-shadow(0 22px 28px rgb(15 118 92 / 12%));
+    filter: drop-shadow(0 22px 28px rgb(0 0 0 / 12%));
   }
 
   .login-work-art {
@@ -324,6 +326,18 @@
 
 .animate-float {
   animation: float 6s ease-in-out infinite;
+}
+
+input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+select,
+textarea {
+  background-color: #f3f4f6;
+}
+
+.dark input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea {
+  background-color: #262626;
 }
 
 /* Scrollbar refinement */

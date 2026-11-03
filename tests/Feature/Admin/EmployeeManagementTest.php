@@ -1,7 +1,7 @@
 <?php
 
-use App\Models\User;
 use App\Models\Holiday;
+use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -51,7 +51,7 @@ it('shows employee data in the HRD page data employees section', function () {
             'employee_status' => 'active',
             'employee_search' => $employee->name,
             'employee_page' => 2,
-    ]));
+        ]));
 
     $this->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertOk()

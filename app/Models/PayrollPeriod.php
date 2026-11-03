@@ -7,6 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $revision
+ * @property Carbon $start_date
+ * @property Carbon $end_date
+ */
 class PayrollPeriod extends Model
 {
     public const STATUS_DRAFT = 'draft';
@@ -55,6 +61,9 @@ class PayrollPeriod extends Model
         ];
     }
 
+    /**
+     * @return HasMany<PayrollItem, $this>
+     */
     public function items(): HasMany
     {
         return $this->hasMany(PayrollItem::class);

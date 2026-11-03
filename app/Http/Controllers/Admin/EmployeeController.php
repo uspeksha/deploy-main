@@ -74,6 +74,7 @@ class EmployeeController extends Controller
 
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
+            'gender' => ['nullable', 'in:male,female'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)],
             'id_karyawan' => ['required', 'string', 'max:255', Rule::unique('users', 'id_karyawan')->ignore($user->id)],
             'phone' => ['required', 'string', 'max:30'],

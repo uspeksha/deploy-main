@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('file_bukti')->nullable(); // Untuk bukti sakit/izin/cuti
 
             // Kolom TAMBAHAN untuk menyimpan Catatan/Alasan saat status Izin atau Sakit
-            $table->text('keterangan_izin_sakit')->nullable();  
+            $table->text('keterangan_izin_sakit')->nullable();
 
             // Waktu absensi
             $table->timestamp('check_in_at')->nullable();

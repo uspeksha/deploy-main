@@ -1,0 +1,17 @@
+node_modules
+vendor
+.git
+.github
+.env*
+.swp
+public/build
+public/hot
+database/*.sqlite
+tests
+bootstrap/cache/*.php
+public/storage
+storage/app/*
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*

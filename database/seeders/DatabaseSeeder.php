@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
 use App\Models\Absensi;
-use Illuminate\Database\Seeder;
+use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class DatabaseSeeder extends Seeder
 {

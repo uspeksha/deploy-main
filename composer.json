@@ -65,7 +65,9 @@
         "test": [
             "@php artisan config:clear --ansi",
             "@php artisan test"
-        ]
+        ],
+        "format:check": "vendor/bin/pint --test",
+        "analyse": "vendor/bin/phpstan analyse --no-progress"
     },
     "extra": {
         "laravel": {

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Absensi;
+use App\Models\PayrollItem;
 use App\Models\PayrollPeriod;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
@@ -54,7 +55,7 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                 ->get()
                 ->keyBy(fn (Absensi $attendance) => $attendance->user_id.'|'.Carbon::parse($attendance->check_in_at)->toDateString());
 
-        return $items->flatMap(function ($item) use ($attendances): Collection {
+        return $items->flatMap(function (PayrollItem $item) use ($attendances): array {
             $snapshot = $item->attendance_snapshot ?? [];
             $latenessByDate = $item->latenessDetails->keyBy(fn ($detail) => Carbon::parse($detail->work_date)->toDateString());
             if (array_key_exists('daily_details', $snapshot)) {
@@ -85,7 +86,8 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                             'attendance_status' => $attendance?->status,
                             'check_in_at' => $attendance?->check_in_at?->toDateTimeString(),
                             'check_out_at' => $attendance?->check_out_at?->toDateTimeString(),
-                            'late_minutes' => $attendance?->late_minutes ?? 0,
+                            'daily_rate' => $item->daily_rate,
+                            'late_minutes' => $attendance->late_minutes ?? 0,
                             'overtime_status' => $approvedOvertime->isNotEmpty()
                                 ? 'approved'
                                 : ($overtimeRecords->isNotEmpty() ? 'pending' : null),
@@ -94,10 +96,10 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                             'overtime_rest' => $approvedOvertime->contains(fn ($record) => (bool) $record->lembur_rest),
                             'overtime_minutes' => $approvedOvertime->isNotEmpty()
                                 ? $approvedOvertime->sum('overtime_minutes')
-                                : ($overtimeRecords->isNotEmpty() ? 0 : ($attendance?->overtime_minutes ?? 0)),
+                                : ($overtimeRecords->isNotEmpty() ? 0 : ($attendance->overtime_minutes ?? 0)),
                             'overtime_pay' => $approvedOvertime->isNotEmpty()
                                 ? $approvedOvertime->sum('overtime_pay')
-                                : ($overtimeRecords->isNotEmpty() ? 0 : ($attendance?->overtime_pay ?? 0)),
+                                : ($overtimeRecords->isNotEmpty() ? 0 : ($attendance->overtime_pay ?? 0)),
                         ];
                     });
             }
@@ -105,8 +107,8 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
             return $dailyDetails->map(function (array $detail) use ($item, $latenessByDate): array {
                 $date = Carbon::parse($detail['work_date'])->toDateString();
                 $lateness = $latenessByDate->get($date);
-                $lateDeduction = (int) ($lateness?->deduction_amount ?? 0);
-                $dailyRate = (int) ($detail['daily_rate'] ?? $item->daily_rate);
+                $lateDeduction = (int) ($lateness->deduction_amount ?? 0);
+                $dailyRate = (int) $detail['daily_rate'];
                 $overtimeStatus = match ($detail['overtime_status'] ?? null) {
                     'approved' => 'Disetujui',
                     'pending' => 'Belum disetujui',
@@ -121,8 +123,8 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                     $detail['attendance_status'] ?? 'Data absensi tidak tersedia',
                     ! empty($detail['check_in_at']) ? Carbon::parse($detail['check_in_at'])->format('H:i') : null,
                     ! empty($detail['check_out_at']) ? Carbon::parse($detail['check_out_at'])->format('H:i') : null,
-                    $lateness?->late_minutes ?? $detail['late_minutes'] ?? 0,
-                    $lateness?->penalty_blocks ?? 0,
+                    $lateness->late_minutes ?? $detail['late_minutes'],
+                    $lateness->penalty_blocks ?? 0,
                     $lateDeduction,
                     $overtimeStatus,
                     $this->formatTimes($detail['overtime_start'] ?? []),
@@ -133,7 +135,7 @@ class PayrollDailyDetailSheet implements FromCollection, ShouldAutoSize, WithCol
                     $dailyRate,
                     $dailyRate - $lateDeduction,
                 ];
-            });
+            })->all();
         })->values();
     }
 

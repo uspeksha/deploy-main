@@ -1,16 +1,15 @@
 <?php
+
 // FILE: app/Http/Controllers/Api/AuthController.php
 
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use App\Models\ActivityLog;
-use Laravel\Sanctum\PersonalAccessToken;
-
 
 class AuthController extends Controller
 {
@@ -25,15 +24,15 @@ class AuthController extends Controller
                 'password' => 'required|string',
             ]);
 
-            if (!Auth::attempt($request->only('email', 'password'))) {
+            if (! Auth::attempt($request->only('email', 'password'))) {
                 // JAWABAN SOPAN kalo email/pw salah
                 return response()->json([
-                    'message' => 'Email atau Password yang Anda masukkan salah.'
+                    'message' => 'Email atau Password yang Anda masukkan salah.',
                 ], 401);
             }
 
             $user = User::where('email', $request->email)->firstOrFail();
-            if ($user->registration_status !== 'approved' || !$user->is_active) {
+            if ($user->registration_status !== 'approved' || ! $user->is_active) {
                 Auth::logout();
 
                 $message = match (true) {
@@ -49,7 +48,7 @@ class AuthController extends Controller
 
             $token = $user->createToken('authToken')->plainTextToken;
             $user->profile_photo_url = $user->profilePhotoDisplayUrl();
-            ActivityLog::log('Login User', "User: {$user->name}", "User login via API.");
+            ActivityLog::log('Login User', "User: {$user->name}", 'User login via API.');
 
             return response()->json([
 
@@ -69,7 +68,7 @@ class AuthController extends Controller
             // JARING 2: Kulkas (Semua Error Lainnya)
             return response()->json([
                 'message' => 'Terjadi kesalahan pada server.',
-                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+                'error_debug' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
     }
@@ -81,7 +80,7 @@ class AuthController extends Controller
     {
         $accessToken = $request->user()->currentAccessToken();
 
-        if ($accessToken instanceof PersonalAccessToken) {
+        if ($request->bearerToken() !== null) {
             $accessToken->delete();
         } else {
             Auth::guard('web')->logout();
@@ -90,41 +89,41 @@ class AuthController extends Controller
         }
 
         return response()->json([
-            'message' => 'Successfully logged out'
+            'message' => 'Successfully logged out',
         ]);
     }
 
     /**
      * Get the authenticated user.
      */
-   public function user(Request $request)
-{
-    $user = $request->user();
+    public function user(Request $request)
+    {
+        $user = $request->user();
 
-    // Reset cuti kalau tahun baru (khusus organik)
-    if ($user->employment_type === 'organik') {
-        $user->resetCutiTahunan();
-        $user->refresh();
+        // Reset cuti kalau tahun baru (khusus organik)
+        if ($user->employment_type === 'organik') {
+            $user->resetCutiTahunan();
+            $user->refresh();
+        }
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'employment_type' => $user->employment_type,
+            'work_location' => $user->work_location,
+            'id_karyawan' => $user->id_karyawan,
+            'departemen' => $user->departemen,
+            'role' => $user->role,
+            'profile_photo_path' => $user->profile_photo_path,
+            'profile_photo_url' => $user->profilePhotoDisplayUrl(),
+            'is_admin' => $user->is_admin,
+            // ✅ Data cuti (hanya organik, freelance null)
+            'sisa_cuti' => $user->employment_type === 'organik' ? ($user->sisa_cuti ?? 12) : null,
+            'total_cuti_diambil' => $user->employment_type === 'organik' ? ($user->total_cuti_diambil ?? 0) : null,
+            'tahun_cuti' => $user->tahun_cuti ?? date('Y'),
+        ]);
     }
-
-    return response()->json([
-        'id' => $user->id,
-        'name' => $user->name,
-        'email' => $user->email,
-        'employment_type' => $user->employment_type,
-        'work_location' => $user->work_location,
-        'id_karyawan' => $user->id_karyawan,
-        'departemen' => $user->departemen,
-        'role' => $user->role,
-        'profile_photo_path' => $user->profile_photo_path,
-        'profile_photo_url' => $user->profilePhotoDisplayUrl(),
-        'is_admin' => $user->is_admin,
-        // ✅ Data cuti (hanya organik, freelance null)
-        'sisa_cuti' => $user->employment_type === 'organik' ? ($user->sisa_cuti ?? 12) : null,
-        'total_cuti_diambil' => $user->employment_type === 'organik' ? ($user->total_cuti_diambil ?? 0) : null,
-        'tahun_cuti' => $user->tahun_cuti ?? date('Y'),
-    ]);
-}
 
     /**
      * Update the user's employment type (organik/freelance).
@@ -139,7 +138,7 @@ class AuthController extends Controller
      */
     public function updateEmploymentType(Request $request)
     {
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
@@ -165,7 +164,7 @@ class AuthController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Failed to update employment type.',
-                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.'
+                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
             ], 500);
         }
     }
