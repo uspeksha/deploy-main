@@ -61,7 +61,7 @@ class PayrollItem extends Model
         return match ($rates->count()) {
             0 => (int) $this->daily_rate,
             1 => (int) $rates->first(),
-            default => 'Bervariasi',
+            default => 'Tarif',
         };
     }
 
