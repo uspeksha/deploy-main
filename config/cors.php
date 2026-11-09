@@ -19,7 +19,17 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://absensi.anselmudaberkarya.my.id'],
+    'allowed_origins' => array_merge(
+        ['https://absensi.anselmudaberkarya.my.id'],
+        env('APP_ENV') === 'local'
+            ? [
+                'http://127.0.0.1:5174',
+                'http://localhost:5174',
+                'http://127.0.0.1:5175',
+                'http://localhost:5175',
+            ]
+            : [],
+    ),
 
     'allowed_origins_patterns' => [],
 

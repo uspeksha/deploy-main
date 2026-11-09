@@ -4,6 +4,9 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Department;
+use App\Models\Position;
+use App\Models\PtkpStatus;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -64,6 +67,13 @@ class EmployeeController extends Controller
             'dailyRate' => $user->dailyRateAt(),
             'nextEffectiveAt' => $nextEffectiveAt,
             'employeeListQuery' => $this->employeeListQuery($request),
+            'departments' => Department::query()->orderBy('name')->get(),
+            'positions' => Position::query()->with('department')->orderBy('name')->get(),
+            'profile' => $user->profile,
+            'ptkpStatuses' => PtkpStatus::query()->effectiveOn(today())->orderBy('code')->get(),
+            'families' => $user->families()->orderBy('id')->get(),
+            'employmentHistories' => $user->employmentHistories()->orderByDesc('start_date')->get(),
+            'documents' => $user->documents()->orderByDesc('created_at')->get(),
         ]);
     }
 
@@ -80,6 +90,8 @@ class EmployeeController extends Controller
             'phone' => ['required', 'string', 'max:30'],
             'address' => ['required', 'string', 'max:1000'],
             'departemen' => ['required', 'string', 'max:255'],
+            'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'employment_type' => ['required', 'in:organik,freelance'],
             'work_location' => ['required', 'in:office,produksi'],
             'nik' => ['required', 'digits:16'],

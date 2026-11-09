@@ -51,8 +51,29 @@
                 </div>
                 <div>
                     <x-input-label for="employee_department" value="Departemen" />
+                    <p class="mb-1 text-xs text-gray-500 dark:text-gray-400">Legacy (teks lama, tetap digunakan oleh alur yang sudah ada)</p>
                     <x-text-input id="employee_department" name="departemen" class="mt-1 w-full ui-control" :value="old('departemen', $user->departemen)" required />
                     <x-input-error :messages="$errors->get('departemen')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="employee_department_id" value="Departemen (struktur baru)" />
+                    <select id="employee_department_id" name="department_id" class="mt-1 w-full ui-control">
+                        <option value="">Tidak dipilih</option>
+                        @foreach ($departments as $department)
+                            <option value="{{ $department->id }}" @selected((string) old('department_id', $user->department_id) === (string) $department->id)>{{ $department->name }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('department_id')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="employee_position_id" value="Jabatan (struktur baru)" />
+                    <select id="employee_position_id" name="position_id" class="mt-1 w-full ui-control">
+                        <option value="">Tidak dipilih</option>
+                        @foreach ($positions as $position)
+                            <option value="{{ $position->id }}" @selected((string) old('position_id', $user->position_id) === (string) $position->id)>{{ $position->name }} — {{ $position->department->name }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('position_id')" class="mt-2" />
                 </div>
                 <div>
                     <x-input-label for="employee_type" value="Jenis karyawan" />
@@ -114,5 +135,6 @@
                 </div>
             </form>
         </section>
+        @include('admin.employees.hr-data')
     </div>
 </x-app-layout>

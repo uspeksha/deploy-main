@@ -3,32 +3,31 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
-                <h1 class="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-                    Attendance <span class="text-emerald-500">Monitor</span>
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                    Ringkasan Absensi
                 </h1>
                 <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                    Pantau kehadiran karyawan secara real-time melalui dashboard interaktif.
+                    Pantau kehadiran karyawan dan tren bulanan.
                 </p>
             </div>
         </div>
     </x-slot>
 
-    <div class="space-y-8">
-        {{-- Filter Section (Compact & Aesthetic) --}}
-        <section class="lucent-panel rounded-2xl p-4 md:p-5">
-            <form method="GET" class="flex flex-col md:flex-row items-center justify-between gap-4">
+    <div class="ui-page">
+        <section class="lucent-panel rounded-xl p-4 md:p-5">
+            <form method="GET" class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-center gap-3 w-full md:w-auto">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
                         <i class="fas fa-filter"></i>
                     </div>
                     <div>
                         <h3 class="font-bold text-sm">Filter Statistik</h3>
-                        <p class="text-[11px] text-slate-500">Pilih bulan & tahun periode</p>
+                        <p class="text-xs text-slate-500">Pilih bulan dan tahun periode</p>
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3 w-full md:w-auto">
-                    <select name="month" class="lucent-input py-2 text-xs">
+                <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_7rem_auto] lg:w-auto">
+                    <select name="month" class="lucent-input">
                         @for ($m = 1; $m <= 12; $m++)
                             <option value="{{ $m }}" {{ request('month', $month) == $m ? 'selected' : '' }}>
                                 {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
@@ -36,44 +35,41 @@
                         @endfor
                     </select>
 
-                    <select name="year" class="lucent-input py-2 text-xs">
+                    <select name="year" class="lucent-input">
                         @for ($y = date('Y'); $y >= 2020; $y--)
                             <option value="{{ $y }}" {{ request('year', $year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                         @endfor
                     </select>
 
-                    <button type="submit" class="btn-premium py-2 px-5 text-xs shrink-0">
-                        <i class="fas fa-sync-alt text-[10px]"></i>
-                        <span>Perbarui</span>
+                    <button type="submit" class="btn-premium whitespace-nowrap">
+                        <i class="fas fa-filter" aria-hidden="true"></i>
+                        <span>Terapkan</span>
                     </button>
                 </div>
             </form>
         </section>
 
-        {{-- Summary Cards (Bento Style) --}}
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
             @php
                 $statCards = [
-                    ['tone' => 'emerald', 'label' => 'Total Kehadiran', 'value' => $totalHadir,  'icon' => 'fa-check-circle', 'desc' => 'Karyawan hadir'],
-                    ['tone' => 'red',     'label' => 'Total Telat',     'value' => $totalTelat,  'icon' => 'fa-user-clock',   'desc' => 'Karyawan terlambat'],
-                    ['tone' => 'amber',   'label' => 'Total Izin',      'value' => $totalIzin,   'icon' => 'fa-sticky-note',  'desc' => 'Izin disetujui'],
-                    ['tone' => 'rose',    'label' => 'Total Sakit',     'value' => $totalSakit,  'icon' => 'fa-medkit',       'desc' => 'Keterangan sakit'],
-                    ['tone' => 'indigo',  'label' => 'Total Lembur',    'value' => $totalLembur, 'icon' => 'fa-clock',        'desc' => 'Jam lembur tercatat'],
+                    ['icon_classes' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'label' => 'Total Kehadiran', 'value' => $totalHadir,  'icon' => 'fa-check-circle', 'desc' => 'Karyawan hadir'],
+                    ['icon_classes' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300', 'label' => 'Total Telat', 'value' => $totalTelat, 'icon' => 'fa-user-clock', 'desc' => 'Karyawan terlambat'],
+                    ['icon_classes' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300', 'label' => 'Total Izin', 'value' => $totalIzin, 'icon' => 'fa-sticky-note', 'desc' => 'Izin disetujui'],
+                    ['icon_classes' => 'bg-orange-500/10 text-orange-700 dark:text-orange-300', 'label' => 'Total Sakit', 'value' => $totalSakit, 'icon' => 'fa-medkit', 'desc' => 'Keterangan sakit'],
+                    ['icon_classes' => 'bg-teal-500/10 text-teal-700 dark:text-teal-300', 'label' => 'Total Lembur', 'value' => $totalLembur, 'icon' => 'fa-clock', 'desc' => 'Jam lembur tercatat'],
                 ];
             @endphp
             @foreach ($statCards as $card)
-                <div class="lucent-panel rounded-3xl p-6 group relative overflow-hidden">
-                    <div class="absolute -right-4 -top-4 w-24 h-24 bg-{{ $card['tone'] }}-500/5 rounded-full blur-2xl group-hover:bg-{{ $card['tone'] }}-500/10 transition-colors"></div>
-                    
-                    <div class="relative flex flex-col h-full">
-                        <div class="w-12 h-12 rounded-2xl bg-{{ $card['tone'] }}-500/10 text-{{ $card['tone'] }}-600 flex items-center justify-center mb-4 transition-transform group-hover:scale-110 group-hover:rotate-3">
+                <div class="lucent-panel rounded-xl p-4 sm:p-5">
+                    <div class="flex h-full flex-col">
+                        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg {{ $card['icon_classes'] }}">
                             <i class="fas {{ $card['icon'] }} text-xl"></i>
                         </div>
-                        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{{ $card['label'] }}</p>
+                        <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
                         <div class="flex items-baseline gap-2">
-                            <span class="text-3xl font-black text-slate-900 dark:text-white">{{ $card['value'] }}</span>
+                            <span class="text-2xl font-bold text-slate-900 dark:text-white">{{ $card['value'] }}</span>
                         </div>
-                        <p class="text-[10px] text-slate-400 mt-2 italic">
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
                             {{ $card['desc'] }} · {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
                         </p>
                     </div>
@@ -81,7 +77,7 @@
             @endforeach
         </div>
 
-        <section class="space-y-5">
+        <section class="space-y-4">
             <div>
                 <h2 class="text-xl font-black text-slate-900 dark:text-white">Statistik Karyawan</h2>
                 <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -95,8 +91,8 @@
                     ['label' => 'Perempuan', 'value' => $employeeGenderStats['female'], 'icon' => 'fa-venus', 'icon_classes' => 'bg-pink-500/10 text-pink-600'],
                     ['label' => 'Belum diisi', 'value' => $employeeGenderStats['unspecified'], 'icon' => 'fa-user', 'icon_classes' => 'bg-slate-500/10 text-slate-600'],
                 ] as $genderCard)
-                    <div class="lucent-panel flex items-center gap-4 rounded-2xl p-5">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-xl {{ $genderCard['icon_classes'] }}">
+                    <div class="lucent-panel flex items-center gap-4 rounded-xl p-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg {{ $genderCard['icon_classes'] }}">
                             <i class="fas {{ $genderCard['icon'] }} text-lg"></i>
                         </div>
                         <div>
@@ -107,66 +103,40 @@
                 @endforeach
             </div>
 
-            <div class="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 @foreach ([
-                    ['key' => 'attendance', 'title' => 'Paling Rajin Hadir', 'column' => 'attendance_count', 'icon' => 'fa-trophy', 'icon_classes' => 'bg-emerald-500/10 text-emerald-600', 'text_class' => 'text-emerald-600'],
-                    ['key' => 'sick', 'title' => 'Paling Sering Sakit', 'column' => 'sick_count', 'icon' => 'fa-medkit', 'icon_classes' => 'bg-rose-500/10 text-rose-600', 'text_class' => 'text-rose-600'],
-                    ['key' => 'late', 'title' => 'Paling Sering Terlambat', 'column' => 'late_count', 'icon' => 'fa-user-clock', 'icon_classes' => 'bg-amber-500/10 text-amber-600', 'text_class' => 'text-amber-600'],
-                    ['key' => 'leave', 'title' => 'Paling Banyak Izin', 'column' => 'leave_count', 'icon' => 'fa-calendar-minus', 'icon_classes' => 'bg-indigo-500/10 text-indigo-600', 'text_class' => 'text-indigo-600'],
+                    ['key' => 'attendance', 'title' => 'Paling Rajin Hadir', 'column' => 'attendance_count', 'icon' => 'fa-trophy', 'icon_classes' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'text_class' => 'text-emerald-700 dark:text-emerald-300'],
+                    ['key' => 'sick', 'title' => 'Paling Sering Sakit', 'column' => 'sick_count', 'icon' => 'fa-medkit', 'icon_classes' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300', 'text_class' => 'text-rose-700 dark:text-rose-300'],
+                    ['key' => 'late', 'title' => 'Paling Sering Terlambat', 'column' => 'late_count', 'icon' => 'fa-user-clock', 'icon_classes' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300', 'text_class' => 'text-amber-700 dark:text-amber-300'],
+                    ['key' => 'leave', 'title' => 'Paling Banyak Izin', 'column' => 'leave_count', 'icon' => 'fa-calendar-minus', 'icon_classes' => 'bg-teal-500/10 text-teal-700 dark:text-teal-300', 'text_class' => 'text-teal-700 dark:text-teal-300'],
                 ] as $ranking)
-                    <section class="lucent-panel overflow-hidden rounded-2xl">
-                        <div class="flex items-center gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-                            <div class="flex h-10 w-10 items-center justify-center rounded-xl {{ $ranking['icon_classes'] }}">
+                    <section class="lucent-panel overflow-hidden rounded-xl">
+                        <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-lg {{ $ranking['icon_classes'] }}">
                                 <i class="fas {{ $ranking['icon'] }}"></i>
                             </div>
-                            <h3 class="font-bold text-slate-900 dark:text-white">{{ $ranking['title'] }}</h3>
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $ranking['title'] }}</h3>
                         </div>
-                        <div class="grid grid-cols-3 items-end gap-2 px-3 py-6 sm:gap-4 sm:px-6">
-                            @foreach ([1, 0, 2] as $podiumPosition)
+                        <ol class="divide-y divide-slate-100 px-4 dark:divide-slate-800">
+                            @foreach ([1, 2, 3] as $rank)
                                 @php
-                                    $rank = $podiumPosition + 1;
                                     $employee = $employeeRankings[$ranking['key']]->get($rank - 1);
-                                    $podiumStyles = [
-                                        1 => [
-                                            'height' => 'h-24',
-                                            'base' => 'border-amber-300 bg-gradient-to-b from-amber-100 to-amber-200 text-amber-800 dark:border-amber-700 dark:from-amber-900/60 dark:to-amber-950/70 dark:text-amber-200',
-                                            'medal' => 'text-amber-500',
-                                        ],
-                                        2 => [
-                                            'height' => 'h-16',
-                                            'base' => 'border-slate-300 bg-gradient-to-b from-slate-100 to-slate-200 text-slate-700 dark:border-slate-600 dark:from-slate-700 dark:to-slate-800 dark:text-slate-200',
-                                            'medal' => 'text-slate-400',
-                                        ],
-                                        3 => [
-                                            'height' => 'h-12',
-                                            'base' => 'border-orange-300 bg-gradient-to-b from-orange-100 to-orange-200 text-orange-800 dark:border-orange-800 dark:from-orange-950/70 dark:to-orange-950 dark:text-orange-200',
-                                            'medal' => 'text-orange-600',
-                                        ],
-                                    ][$rank];
                                 @endphp
-                                <div data-ranking-slot="{{ $ranking['key'] }}-{{ $rank }}" class="flex min-w-0 flex-col items-center text-center">
-                                    <div class="mb-3 flex min-h-24 w-full flex-col items-center justify-end">
-                                        <i class="fas fa-medal mb-1 text-xl {{ $podiumStyles['medal'] }}" aria-hidden="true"></i>
-                                        <p class="w-full truncate text-xs font-bold text-slate-800 dark:text-slate-100 sm:text-sm">
+                                <li data-ranking-slot="{{ $ranking['key'] }}-{{ $rank }}" class="flex min-h-14 items-center gap-3 py-2.5">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $rank === 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300' }}">
+                                        {{ $rank }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-medium {{ $employee ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500' }}">
                                             {{ $employee?->name ?? 'Belum ada data' }}
                                         </p>
-                                        @if ($employee)
-                                            <p class="mt-1 text-[11px] font-semibold {{ $ranking['text_class'] }}">
-                                                {{ $employee->{$ranking['column']} }} {{ $ranking['key'] === 'attendance' ? 'hari' : 'kali' }}
-                                            </p>
-                                        @else
-                                            <p class="mt-1 text-[11px] text-slate-400">—</p>
-                                        @endif
                                     </div>
-                                    <div class="flex w-full flex-col items-center justify-center rounded-t-xl border-x border-t {{ $podiumStyles['height'] }} {{ $podiumStyles['base'] }}">
-                                        <span class="text-2xl font-black sm:text-3xl">{{ $rank }}</span>
-                                        <span class="text-[9px] font-extrabold tracking-[0.16em] sm:text-[10px]">
-                                            {{ $rank === 1 ? 'JUARA' : 'RANK' }}
-                                        </span>
-                                    </div>
-                                </div>
+                                    <span class="shrink-0 text-xs font-semibold {{ $employee ? $ranking['text_class'] : 'text-slate-400 dark:text-slate-500' }}">
+                                        {{ $employee ? $employee->{$ranking['column']} . ' ' . ($ranking['key'] === 'attendance' ? 'hari' : 'kali') : '—' }}
+                                    </span>
+                                </li>
                             @endforeach
-                        </div>
+                        </ol>
                     </section>
                 @endforeach
             </div>
@@ -324,7 +294,7 @@
                 ->map(fn ($point, $index) => ($index === 0 ? 'M ' : 'L ').round($point['x'], 1).' '.round($point['y'], 1))
                 ->implode(' ');
             $areaPath = $linePath.' L 700 216 L 50 216 Z';
-            $statusColors = ['#525252', '#737373', '#262626', '#a3a3a3'];
+            $statusColors = ['#265970', '#4b7484', '#d29a43', '#8795a0'];
             $statusTotal = array_sum($grafikStatus['values']);
             $statusCircumference = 2 * pi() * 72;
             $statusOffset = 0;
@@ -345,7 +315,7 @@
 
         {{-- Charts Section --}}
         <div class="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-2">
-            <div class="lucent-panel min-w-0 rounded-3xl p-6 md:p-8">
+            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
                 <div class="mb-5 flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
                         <i class="fas fa-chart-line"></i>
@@ -355,7 +325,7 @@
                         <p class="text-xs text-slate-500">Kehadiran freelance per bulan, {{ $year }}</p>
                     </div>
                 </div>
-                <div class="relative h-64 min-w-0 rounded-2xl bg-gradient-to-br from-emerald-50/80 to-white/40 p-3 dark:from-emerald-950/20 dark:to-slate-900/30 sm:h-72 sm:p-4">
+                <div class="relative h-64 min-w-0 rounded-lg bg-emerald-50/60 p-3 dark:bg-emerald-950/20 sm:h-72 sm:p-4">
                     <svg class="h-full w-full overflow-visible" viewBox="0 0 720 260" role="img"
                          aria-label="Grafik tren kehadiran freelance per bulan">
                         @foreach ([0, 1, 2, 3] as $gridStep)
@@ -367,16 +337,16 @@
                         @endforeach
                         <defs>
                             <linearGradient id="attendance-area" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stop-color="#525252" stop-opacity="0.24" />
-                                <stop offset="100%" stop-color="#525252" stop-opacity="0.01" />
+                                <stop offset="0%" stop-color="#265970" stop-opacity="0.24" />
+                                <stop offset="100%" stop-color="#265970" stop-opacity="0.01" />
                             </linearGradient>
                         </defs>
                         <path d="{{ $areaPath }}" fill="url(#attendance-area)" />
-                        <path d="{{ $linePath }}" fill="none" stroke="#525252" stroke-width="4"
+                        <path d="{{ $linePath }}" fill="none" stroke="#265970" stroke-width="3"
                               stroke-linecap="round" stroke-linejoin="round" />
                         @foreach ($chartPoints as $index => $point)
                             <circle cx="{{ round($point['x'], 1) }}" cy="{{ round($point['y'], 1) }}" r="5"
-                                    fill="#525252" stroke="white" stroke-width="2">
+                                    fill="#265970" stroke="white" stroke-width="2">
                                 <title>{{ $chartMonths[$index] }}: {{ $point['value'] }} kehadiran</title>
                             </circle>
                             <text x="{{ round($point['x'], 1) }}" y="242" text-anchor="middle"
@@ -386,7 +356,7 @@
                 </div>
             </div>
 
-            <div class="lucent-panel min-w-0 rounded-3xl p-6 md:p-8">
+            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
                 <div class="mb-5 flex items-center gap-4">
                     <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
                         <i class="fas fa-chart-pie"></i>
@@ -398,7 +368,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="relative flex h-64 min-w-0 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-50/70 to-white/40 p-4 dark:from-indigo-950/20 dark:to-slate-900/30 sm:h-72">
+                <div class="relative flex h-64 min-w-0 items-center justify-center rounded-lg bg-teal-50/70 p-4 dark:bg-teal-950/20 sm:h-72">
                     <div class="flex w-full flex-col items-center justify-center gap-6 sm:flex-row sm:gap-10">
                         <div class="relative h-44 w-44 shrink-0">
                             <svg class="h-full w-full -rotate-90" viewBox="0 0 180 180" role="img"

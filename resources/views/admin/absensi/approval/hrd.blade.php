@@ -13,7 +13,7 @@
         </div>
     </x-slot>
 
-    <div class="ui-page" x-data="{ section: @js(request('section') === 'employees' || $errors->any() ? 'employees' : 'approvals') }">
+    <div class="ui-page" x-data="{ section: @js(request('section') === 'employees' || ($errors->any() && ! $errors->has('catatan_admin')) ? 'employees' : 'approvals') }">
         @foreach (['success', 'warning', 'error'] as $flashType)
             @if (session($flashType))
                 <div class="rounded-xl border px-4 py-3 text-sm {{ [
@@ -55,8 +55,8 @@
                 @endforeach
             </div>
 
-            <section class="ui-panel">
-                <h3 class="mb-5 text-lg font-bold text-gray-900 dark:text-white">Pengajuan absensi ({{ $submissions->count() }})</h3>
+            <section class="space-y-4">
+                <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Pengajuan absensi <span class="ml-1 font-normal text-gray-500">({{ $submissions->count() }})</span></h3>
                 @include('admin.absensi.approval.table', ['submissions' => $submissions])
             </section>
 

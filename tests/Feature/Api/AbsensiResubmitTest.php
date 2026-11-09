@@ -127,3 +127,41 @@ it('resubmits a rejected overtime application on the same record', function () {
     expect(Absensi::where('user_id', $user->id)->count())->toBe(1)
         ->and($absensi->fresh()->status_approval)->toBe('pending');
 });
+
+it('includes rejected child applications in the employee attendance history', function () {
+    $user = User::factory()->create();
+    $attendance = Absensi::factory()->create([
+        'user_id' => $user->id,
+        'status' => 'hadir',
+        'tipe' => 'hadir',
+        'status_approval' => 'approved',
+        'check_in_at' => now()->startOfDay(),
+    ]);
+    $rejectedApplication = Absensi::factory()->create([
+        'user_id' => $user->id,
+        'parent_id' => $attendance->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'status_approval' => 'rejected',
+        'check_in_at' => now()->startOfDay(),
+        'lembur_start' => now()->setTime(17, 0),
+        'lembur_end' => now()->setTime(18, 0),
+        'workflow_status' => ['hrd' => 'rejected'],
+    ]);
+
+    DB::table('absensis')->where('id', $rejectedApplication->id)->update([
+        'catatan_admin' => 'Pengajuan lembur ditolak',
+        'rejected_by' => 'HRD',
+        'rejected_at' => now(),
+    ]);
+
+    $this->actingAs($user, 'sanctum')
+        ->getJson('/api/v1/absensi/me?month='.now()->month.'&year='.now()->year)
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $attendance->id)
+        ->assertJsonPath('data.0.tipe', 'lembur')
+        ->assertJsonPath('data.0.status_approval', 'rejected')
+        ->assertJsonPath('data.0.catatan_admin', 'Pengajuan lembur ditolak')
+        ->assertJsonPath('data.0.rejected_by', 'HRD')
+        ->assertJsonPath('data.0.workflow_status.hrd', 'rejected');
+});

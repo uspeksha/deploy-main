@@ -14,6 +14,8 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->call(ReferenceSeeder::class);
+
         // Jangan membuat user dummy tanpa id_karyawan karyawan yang valid.
 
         // 2. Buat beberapa user dummy tambahan (opsional)

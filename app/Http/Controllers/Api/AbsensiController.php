@@ -484,13 +484,36 @@ class AbsensiController extends Controller
                             $item->keterangan_izin_sakit = $pendingChild->keterangan_izin_sakit;
                         }
                     } else {
+                        $rejectedChild = $item->children
+                            ->whereIn('status_approval', ['rejected', 'ditolak'])
+                            ->sortByDesc('updated_at')
+                            ->first();
 
-                        $approvedChild = $item->children->where('status_approval', 'approved')->first();
-                        if ($approvedChild) {
-                            $item->tipe = $approvedChild->tipe;
-                            $item->status_approval = 'approved';
+                        if ($rejectedChild) {
+                            $item->tipe = $rejectedChild->tipe;
+                            $item->status_approval = $rejectedChild->status_approval;
+                            $item->workflow_status = $rejectedChild->workflow_status;
+                            $item->catatan_admin = $rejectedChild->catatan_admin;
+                            $item->rejected_by = $rejectedChild->rejected_by;
+                            $item->rejected_at = $rejectedChild->rejected_at;
 
-                            $item->workflow_status = $approvedChild->workflow_status;
+                            if ($rejectedChild->tipe === 'lembur') {
+                                $item->lembur_start = $rejectedChild->lembur_start;
+                                $item->lembur_end = $rejectedChild->lembur_end;
+                                $item->overtime_minutes = $rejectedChild->overtime_minutes;
+                            }
+                            if ($rejectedChild->tipe === 'telat') {
+                                $item->file_bukti_url = $rejectedChild->file_bukti ? Storage::url($rejectedChild->file_bukti) : null;
+                                $item->keterangan_izin_sakit = $rejectedChild->keterangan_izin_sakit;
+                            }
+                        } else {
+                            $approvedChild = $item->children->where('status_approval', 'approved')->first();
+                            if ($approvedChild) {
+                                $item->tipe = $approvedChild->tipe;
+                                $item->status_approval = 'approved';
+
+                                $item->workflow_status = $approvedChild->workflow_status;
+                            }
                         }
                     }
                 }

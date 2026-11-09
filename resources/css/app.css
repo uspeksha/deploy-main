@@ -4,27 +4,26 @@
 
 @layer base {
   :root {
-    --brand-emerald: 168, 100, 47;
-    --brand-teal: 196, 122, 60;
-    --brand-indigo: 64, 64, 64;
+    --brand-emerald: 38, 89, 112;
+    --brand-teal: 75, 116, 132;
     
-    --lucent-bg: rgba(255, 255, 255, 0.92);
-    --lucent-border: rgba(229, 229, 229, 0.9);
-    --lucent-shadow: 0 8px 28px 0 rgba(0, 0, 0, 0.06);
+    --lucent-bg: #ffffff;
+    --lucent-border: #dce4e9;
+    --lucent-shadow: 0 2px 8px 0 rgba(30, 48, 61, 0.045);
     
-    --surface-main: #f5f5f5;
-    --text-main: #171717;
-    --text-muted: #737373;
+    --surface-main: #f3f6f8;
+    --text-main: #263746;
+    --text-muted: #697986;
   }
 
   .dark {
-    --lucent-bg: rgba(23, 23, 23, 0.7);
-    --lucent-border: rgba(255, 255, 255, 0.08);
-    --lucent-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    --lucent-bg: #1d2b35;
+    --lucent-border: #344854;
+    --lucent-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.2);
     
-    --surface-main: #0a0a0a;
-    --text-main: #f5f5f5;
-    --text-muted: #a3a3a3;
+    --surface-main: #15212a;
+    --text-main: #edf2f5;
+    --text-muted: #a5b4be;
   }
 
   body {
@@ -33,58 +32,46 @@
     color: var(--text-main);
   }
 
-
 }
 
 @layer components {
-  /* Lucent Glass Panel */
   .lucent-panel {
-    @apply backdrop-blur-xl border transition-all duration-300;
+    @apply border;
     background-color: var(--lucent-bg);
     border-color: var(--lucent-border);
     box-shadow: var(--lucent-shadow);
-  }
-  
-  .lucent-panel:hover {
-    @apply border-emerald-500/30;
-    box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.1);
+    border-radius: 0.875rem !important;
   }
 
-  /* Bento Grid System */
   .bento-container {
-    @apply grid gap-6;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    @apply grid gap-4;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   }
 
-  /* Refined Buttons */
   .btn-premium {
-    @apply relative inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl font-bold transition-all duration-300 overflow-hidden active:scale-95;
-    background: linear-gradient(135deg, rgb(var(--brand-emerald)), rgb(var(--brand-teal)));
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-4 py-2 font-semibold transition-colors duration-150;
+    background: rgb(var(--brand-emerald));
     color: white;
   }
-  
-  .btn-premium::before {
-    content: '';
-    @apply absolute inset-0 opacity-0 transition-opacity duration-300;
-    background: linear-gradient(135deg, rgba(255,255,255,0.2), transparent);
-  }
-  
+
   .btn-premium:hover {
-    @apply shadow-lg shadow-emerald-500/30 -translate-y-0.5;
-  }
-  
-  .btn-premium:hover::before {
-    @apply opacity-100;
+    background: rgb(29, 68, 87);
   }
 
-  /* Interactive Inputs */
   .lucent-input {
-    @apply w-full bg-gray-100 dark:bg-gray-800 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all duration-300 outline-none backdrop-blur-sm;
+    @apply w-full rounded-lg border px-3.5 py-2.5 text-sm transition-colors duration-150 outline-none;
+    background-color: var(--lucent-bg);
+    border-color: var(--lucent-border);
+    color: var(--text-main);
   }
 
-  /* Table System */
+  .lucent-input:focus {
+    border-color: rgb(var(--brand-emerald));
+    box-shadow: 0 0 0 3px rgba(var(--brand-emerald), 0.14);
+  }
+
   .lucent-table-wrapper {
-    @apply lucent-panel rounded-2xl overflow-hidden;
+    @apply lucent-panel overflow-hidden;
   }
   
   .lucent-table {
@@ -92,15 +79,19 @@
   }
   
   .lucent-table thead {
-    @apply border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50;
+    @apply border-b;
+    background: rgba(var(--brand-teal), 0.07);
+    border-color: var(--lucent-border);
   }
   
   .lucent-table th {
-    @apply px-6 py-4 font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider text-xs;
+    @apply px-5 py-3.5 font-semibold uppercase tracking-[0.08em] text-xs;
+    color: var(--text-muted);
   }
   
   .lucent-table td {
-    @apply px-6 py-4 border-b border-slate-100 dark:border-slate-900/50 transition-colors;
+    @apply px-5 py-3.5 border-b transition-colors;
+    border-color: var(--lucent-border);
   }
   
   .lucent-table tr:last-child td {
@@ -108,21 +99,19 @@
   }
   
   .lucent-table tr:hover td {
-    @apply bg-emerald-500/5;
+    background: rgba(var(--brand-teal), 0.055);
   }
 
-  /* Sidebar Premium Styles */
   .premium-sidebar {
-    @apply fixed inset-y-4 left-4 w-64 rounded-3xl z-50 transition-transform duration-500 lg:translate-x-0 backdrop-blur-xl border;
-    background: rgba(255, 255, 255, 0.82);
-    border-color: rgba(229, 229, 229, 0.9);
-    box-shadow: 0 16px 38px 0 rgba(0, 0, 0, 0.07), inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    @apply fixed inset-y-0 left-0 z-50 w-72 border-r transition-transform duration-200;
+    background: #1c3443;
+    border-color: #294453;
+    box-shadow: 8px 0 24px rgba(22, 38, 49, 0.1);
   }
 
   .dark .premium-sidebar {
-    background: rgba(24, 24, 24, 0.88);
-    border-color: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 20px 40px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    background: #142630;
+    border-color: #2e4653;
   }
 
   /* Login Page Styles */
@@ -237,38 +226,65 @@
   }
 
   .nav-item {
-    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors duration-200 mx-2;
-    color: var(--text-muted);
+    @apply mx-3 flex min-h-11 items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors duration-150;
+    color: #c1cdd4;
   }
   
   .nav-item:hover {
-    @apply bg-slate-100 text-slate-900 dark:bg-slate-800 dark:text-white;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
   }
   
   .nav-item.active {
-    @apply bg-emerald-600 text-white shadow-sm shadow-emerald-900/10;
+    background: #265970;
+    color: #ffffff;
+    box-shadow: inset 3px 0 #9cc4d0;
   }
 
   .nav-icon {
-    @apply flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200;
-    background: rgba(var(--brand-emerald), 0.1);
+    @apply flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors duration-150;
+    background: rgba(255, 255, 255, 0.08);
+    color: #a9c5d0;
   }
   
   .nav-item.active .nav-icon {
-    @apply bg-white/20;
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
   }
 
   .nav-section-label {
-    @apply px-4 pt-5 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500;
+    @apply px-6 pb-2 pt-6 text-[10px] font-bold uppercase tracking-[0.14em];
+    color: #94a8b3;
   }
 
-  /* UI System (Unified Admin & User Components) */
   .ui-page {
-    @apply space-y-6 lg:space-y-8;
+    @apply space-y-5 lg:space-y-6;
+  }
+
+  .ui-tabs {
+    @apply flex max-w-full gap-1 overflow-x-auto rounded-xl border p-1;
+    background: var(--lucent-bg);
+    border-color: var(--lucent-border);
+    scrollbar-width: thin;
+  }
+
+  .ui-tab {
+    @apply inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg px-3 py-2 text-sm font-medium transition-colors;
+    color: var(--text-muted);
+  }
+
+  .ui-tab:hover {
+    background: rgba(var(--brand-teal), 0.08);
+    color: var(--text-main);
+  }
+
+  .ui-tab.active {
+    background: rgb(var(--brand-emerald));
+    color: #ffffff;
   }
   
   .ui-panel {
-    @apply lucent-panel rounded-2xl p-6 lg:p-8;
+    @apply lucent-panel p-4 sm:p-5 lg:p-6;
   }
   
   .ui-control {
@@ -280,42 +296,107 @@
   }
   
   .ui-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-sm backdrop-blur-sm active:scale-95;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors;
+    border-color: var(--lucent-border);
+    background: var(--lucent-bg);
+    color: var(--text-main);
+  }
+
+  .ui-button-secondary:hover {
+    background: rgba(var(--brand-teal), 0.08);
   }
   
   .ui-button-danger {
-    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-semibold bg-rose-500 text-white hover:bg-rose-600 shadow-lg shadow-rose-500/20 transition-all text-sm active:scale-95;
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-rose-800;
   }
   
   .ui-table-shell {
-    @apply overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm shadow-sm;
+    @apply overflow-x-auto rounded-xl border;
+    border-color: var(--lucent-border);
+    background: var(--lucent-bg);
+    box-shadow: var(--lucent-shadow);
   }
-  
+
   .ui-table {
     @apply lucent-table;
   }
   
   .ui-empty-state {
-    @apply text-center py-12 text-slate-400 dark:text-slate-500 text-sm italic;
+    @apply py-10 text-center text-sm text-slate-500 dark:text-slate-400;
   }
   
   .ui-section-heading {
-    @apply flex items-center gap-4;
+    @apply flex min-w-0 items-center gap-3;
   }
   
   .ui-section-icon {
-    @apply w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center text-xl shrink-0;
+    @apply w-11 h-11 rounded-xl flex items-center justify-center text-lg shrink-0;
+    background: rgba(var(--brand-emerald), 0.12);
+    color: rgb(var(--brand-emerald));
+  }
+
+  .admin-quick-link {
+    @apply flex min-h-24 items-start gap-4 rounded-xl border p-4 transition-colors;
+    background: var(--lucent-bg);
+    border-color: var(--lucent-border);
+  }
+
+  .admin-quick-link:hover {
+    border-color: rgba(var(--brand-emerald), 0.55);
+    background: rgba(var(--brand-emerald), 0.035);
+  }
+
+  .admin-quick-link-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg;
+    background: rgba(var(--brand-emerald), 0.11);
+    color: rgb(var(--brand-emerald));
+  }
+
+  .admin-page-header h1,
+  .admin-page-header h2 {
+    @apply text-2xl font-semibold leading-tight tracking-tight;
+    color: var(--text-main);
+  }
+
+  .admin-page-header p {
+    @apply mt-1 text-sm leading-5;
+    color: var(--text-muted);
+  }
+
+  .admin-page-content {
+    @apply space-y-5 lg:space-y-6;
+  }
+
+  .admin-page-content input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+  .admin-page-content select,
+  .admin-page-content textarea {
+    border-radius: 0.5rem;
+  }
+
+  @media (max-width: 639px) {
+    .admin-page-header {
+      @apply items-start;
+    }
+
+    .admin-page-header > div:last-child {
+      @apply w-full;
+    }
   }
 }
 
 @layer utilities {
   .text-gradient-emerald {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-500;
+    color: rgb(var(--brand-emerald));
   }
   
   .glass-morph {
     @apply backdrop-blur-md bg-white/70 dark:bg-slate-900/70 border border-white/20 dark:border-white/5 shadow-xl;
   }
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 3px solid rgba(var(--brand-emerald), 0.55);
+  outline-offset: 2px;
 }
 
 /* Animations */
@@ -331,13 +412,9 @@
 input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
 select,
 textarea {
-  background-color: #f3f4f6;
-}
-
-.dark input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
-.dark select,
-.dark textarea {
-  background-color: #262626;
+  background-color: var(--lucent-bg);
+  color: var(--text-main);
+  border-color: var(--lucent-border);
 }
 
 /* Scrollbar refinement */
@@ -348,5 +425,20 @@ textarea {
   @apply bg-transparent;
 }
 ::-webkit-scrollbar-thumb {
-  @apply bg-slate-300 dark:bg-slate-700 rounded-full hover:bg-emerald-500/50 transition-colors;
+  @apply rounded-full transition-colors;
+  background: #bdc9d0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--brand-emerald));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }
