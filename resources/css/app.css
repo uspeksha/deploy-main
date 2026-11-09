@@ -104,14 +104,26 @@
 
   .premium-sidebar {
     @apply fixed inset-y-0 left-0 z-50 w-72 border-r transition-transform duration-200;
-    background: #1c3443;
-    border-color: #294453;
-    box-shadow: 8px 0 24px rgba(22, 38, 49, 0.1);
+    background: linear-gradient(155deg, #274657, #1c3443);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: 8px 0 32px rgba(22, 38, 49, 0.18);
+    -webkit-backdrop-filter: blur(20px) saturate(155%);
+    backdrop-filter: blur(20px) saturate(155%);
   }
 
   .dark .premium-sidebar {
-    background: #142630;
-    border-color: #2e4653;
+    background: linear-gradient(155deg, rgba(33, 57, 68, 0.9), rgba(14, 32, 41, 0.88));
+    border-color: rgba(180, 207, 220, 0.16);
+  }
+
+  @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    .premium-sidebar {
+      background: linear-gradient(155deg, rgba(39, 70, 87, 0.88), rgba(28, 52, 67, 0.84));
+    }
+
+    .dark .premium-sidebar {
+      background: linear-gradient(155deg, rgba(33, 57, 68, 0.88), rgba(14, 32, 41, 0.84));
+    }
   }
 
   /* Login Page Styles */
