@@ -54,7 +54,7 @@
             </div>
         </aside>
 
-        <main class="min-w-0 flex-1 lg:ml-72 px-4 py-5 md:px-7 lg:px-9">
+        <main class="min-w-0 flex-1 lg:ml-[19rem] px-4 py-5 md:px-7 lg:px-9">
             <header class="admin-page-header mb-6 flex min-h-12 flex-wrap items-center justify-between gap-4 border-b border-[#dce4e9] pb-5 dark:border-slate-700">
                 <div class="flex min-w-0 flex-1 items-center gap-3">
                     <button @click="sidebarOpen = !sidebarOpen" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#dce4e9] bg-white text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 lg:hidden" aria-label="Buka menu">

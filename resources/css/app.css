@@ -103,26 +103,26 @@
   }
 
   .premium-sidebar {
-    @apply fixed inset-y-0 left-0 z-50 w-72 border-r transition-transform duration-200;
-    background: linear-gradient(155deg, #274657, #1c3443);
-    border-color: rgba(255, 255, 255, 0.18);
-    box-shadow: 8px 0 32px rgba(22, 38, 49, 0.18);
-    -webkit-backdrop-filter: blur(20px) saturate(155%);
-    backdrop-filter: blur(20px) saturate(155%);
+    @apply fixed inset-y-3 left-3 z-50 w-72 rounded-[1.75rem] border transition-transform duration-200;
+    background: linear-gradient(150deg, #435565, #263846);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 55px rgba(25, 39, 51, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    -webkit-backdrop-filter: blur(24px) saturate(145%);
+    backdrop-filter: blur(24px) saturate(145%);
   }
 
   .dark .premium-sidebar {
-    background: linear-gradient(155deg, rgba(33, 57, 68, 0.9), rgba(14, 32, 41, 0.88));
-    border-color: rgba(180, 207, 220, 0.16);
+    background: linear-gradient(150deg, #354754, #1e2d38);
+    border-color: rgba(203, 213, 225, 0.18);
   }
 
   @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .premium-sidebar {
-      background: linear-gradient(155deg, rgba(39, 70, 87, 0.88), rgba(28, 52, 67, 0.84));
+      background: linear-gradient(150deg, rgba(67, 85, 101, 0.86), rgba(38, 56, 70, 0.82));
     }
 
     .dark .premium-sidebar {
-      background: linear-gradient(155deg, rgba(33, 57, 68, 0.88), rgba(14, 32, 41, 0.84));
+      background: linear-gradient(150deg, rgba(53, 71, 84, 0.88), rgba(30, 45, 56, 0.84));
     }
   }
 
