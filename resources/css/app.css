@@ -104,7 +104,7 @@
 
   .premium-sidebar {
     @apply fixed inset-y-3 left-3 z-50 w-72 rounded-[1.75rem] border transition-transform duration-200;
-    background: linear-gradient(150deg, #435565, #263846);
+    background: linear-gradient(150deg, #294f73, #1c3f62);
     border-color: rgba(255, 255, 255, 0.2);
     box-shadow: 0 20px 55px rgba(25, 39, 51, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.12);
     -webkit-backdrop-filter: blur(24px) saturate(145%);
@@ -112,17 +112,17 @@
   }
 
   .dark .premium-sidebar {
-    background: linear-gradient(150deg, #354754, #1e2d38);
+    background: linear-gradient(150deg, #234667, #183855);
     border-color: rgba(203, 213, 225, 0.18);
   }
 
   @supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
     .premium-sidebar {
-      background: linear-gradient(150deg, rgba(67, 85, 101, 0.86), rgba(38, 56, 70, 0.82));
+      background: linear-gradient(150deg, rgba(41, 79, 115, 0.88), rgba(28, 63, 98, 0.84));
     }
 
     .dark .premium-sidebar {
-      background: linear-gradient(150deg, rgba(53, 71, 84, 0.88), rgba(30, 45, 56, 0.84));
+      background: linear-gradient(150deg, rgba(35, 70, 103, 0.9), rgba(24, 56, 85, 0.86));
     }
   }
 
