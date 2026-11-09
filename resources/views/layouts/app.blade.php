@@ -38,15 +38,17 @@
                 </nav>
 
                 <div class="mt-auto px-3 pt-4">
-                    <div class="flex items-center gap-3 rounded-xl border border-[#dce4e9] bg-[#f3f6f8] p-3 dark:border-slate-700 dark:bg-slate-800">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-700 font-bold text-white">
+                    <div class="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-3 shadow-lg shadow-slate-950/10 backdrop-blur-md">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-sky-100/15 font-bold text-sky-50">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="truncate text-sm font-semibold text-slate-900 dark:text-white">{{ Auth::user()->name }}</p>
-                            <p class="truncate text-xs capitalize text-slate-500 dark:text-slate-300">{{ Auth::user()->role }}</p>
+                            <p class="truncate text-sm font-semibold text-white">{{ Auth::user()->name }}</p>
+                            <p class="mt-1 inline-flex max-w-full truncate rounded-full border border-sky-100/20 bg-sky-100/10 px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-sky-100">
+                                {{ Auth::user()->role }}
+                            </p>
                         </div>
-                        <button @click="darkMode = !darkMode" class="flex h-9 w-9 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-white" aria-label="Ganti tema">
+                        <button @click="darkMode = !darkMode" class="flex h-9 w-9 items-center justify-center rounded-lg text-sky-100/75 transition-colors hover:bg-white/10 hover:text-white" aria-label="Ganti tema">
                             <i class="fas" :class="darkMode ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
                         </button>
                     </div>
