@@ -132,3 +132,11 @@ test('overtime below thirty minutes is excluded and exactly thirty minutes remai
         ->and($atThreshold['minutes'])->toBe(30)
         ->and($atThreshold['pay'])->toBeGreaterThan(0);
 });
+
+test('overtime calculation rejects an end time earlier than its start', function () {
+    $start = Carbon::parse('2026-10-18 23:00:00');
+    $end = Carbon::parse('2026-10-18 01:00:00');
+
+    expect(fn () => Absensi::calculateOvertimeFromInput($start, $end, false))
+        ->toThrow(InvalidArgumentException::class, 'Waktu selesai lembur harus setelah waktu mulai.');
+});

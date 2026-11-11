@@ -4,7 +4,10 @@ use App\Http\Controllers\Admin\AbsensiAdminController;
 use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeHrDataController;
+use App\Http\Controllers\Admin\EmployeeHrRequestController as AdminEmployeeHrRequestController;
 use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\HrMasterDataController;
 use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Middleware\ActivityLogMiddleware;
@@ -57,6 +60,20 @@ Route::middleware(['auth', 'active.account'])->group(function () {
 
 Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::class])->prefix('admin')->group(function () {
 
+    Route::get('/hr-requests', [AdminEmployeeHrRequestController::class, 'index'])
+        ->name('admin.hr-requests.index');
+    Route::post('/hr-requests/reimbursements/{reimbursement}/{action}', [AdminEmployeeHrRequestController::class, 'reimbursementAction'])
+        ->where('action', 'approve|reject|paid')
+        ->name('admin.hr-requests.reimbursements.action');
+    Route::post('/hr-requests/loans/{loan}/{action}', [AdminEmployeeHrRequestController::class, 'loanAction'])
+        ->where('action', 'approve|reject')
+        ->name('admin.hr-requests.loans.action');
+    Route::post('/hr-requests/installments/{installment}/paid', [AdminEmployeeHrRequestController::class, 'installmentPaid'])
+        ->whereNumber('installment')
+        ->name('admin.hr-requests.installments.paid');
+    Route::get('/hr-requests/reimbursements/{reimbursement}/receipt', [AdminEmployeeHrRequestController::class, 'downloadReceipt'])
+        ->name('admin.hr-requests.reimbursements.receipt');
+
     Route::prefix('absensi')->group(function () {
 
         // ✅ Dashboard & List
@@ -99,6 +116,32 @@ Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::cla
         Route::post('/sync', [HolidayController::class, 'sync'])->name('admin.holidays.sync');
     });
 
+    Route::prefix('master-data')->name('admin.master-data.')->group(function () {
+        $resources = 'companies|branches|departments|job-levels|payroll-components|positions|reimbursement-types|shifts|leave-types';
+
+        Route::get('/{resource}', [HrMasterDataController::class, 'index'])
+            ->where('resource', $resources)
+            ->name('index');
+        Route::get('/{resource}/create', [HrMasterDataController::class, 'create'])
+            ->where('resource', $resources)
+            ->name('create');
+        Route::post('/{resource}', [HrMasterDataController::class, 'store'])
+            ->where('resource', $resources)
+            ->name('store');
+        Route::get('/{resource}/{record}/edit', [HrMasterDataController::class, 'edit'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('edit');
+        Route::put('/{resource}/{record}', [HrMasterDataController::class, 'update'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('update');
+        Route::delete('/{resource}/{record}', [HrMasterDataController::class, 'destroy'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('destroy');
+    });
+
     // APPROVAL ABSENSI
     Route::prefix('approval')->group(function () {
         Route::get('/hrd', [ApprovalController::class, 'hrd'])->name('admin.absensi.approval.hrd');
@@ -119,6 +162,32 @@ Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::cla
         ->name('admin.absensi.approval.employees.resend');
     Route::get('/employees/{user}/edit', [EmployeeController::class, 'edit'])->name('admin.employees.edit');
     Route::put('/employees/{user}', [EmployeeController::class, 'update'])->name('admin.employees.update');
+    Route::put('/employees/{user}/hr-profile', [EmployeeHrDataController::class, 'updateProfile'])
+        ->name('admin.employees.hr-profile.update');
+    Route::post('/employees/{user}/families', [EmployeeHrDataController::class, 'storeFamily'])
+        ->name('admin.employees.families.store');
+    Route::put('/employees/{user}/families/{family}', [EmployeeHrDataController::class, 'updateFamily'])
+        ->whereNumber('family')
+        ->name('admin.employees.families.update');
+    Route::delete('/employees/{user}/families/{family}', [EmployeeHrDataController::class, 'destroyFamily'])
+        ->whereNumber('family')
+        ->name('admin.employees.families.destroy');
+    Route::post('/employees/{user}/employment-histories', [EmployeeHrDataController::class, 'storeHistory'])
+        ->name('admin.employees.employment-histories.store');
+    Route::put('/employees/{user}/employment-histories/{history}', [EmployeeHrDataController::class, 'updateHistory'])
+        ->whereNumber('history')
+        ->name('admin.employees.employment-histories.update');
+    Route::delete('/employees/{user}/employment-histories/{history}', [EmployeeHrDataController::class, 'destroyHistory'])
+        ->whereNumber('history')
+        ->name('admin.employees.employment-histories.destroy');
+    Route::post('/employees/{user}/documents', [EmployeeHrDataController::class, 'storeDocument'])
+        ->name('admin.employees.documents.store');
+    Route::get('/employees/{user}/documents/{document}', [EmployeeHrDataController::class, 'downloadDocument'])
+        ->whereNumber('document')
+        ->name('admin.employees.documents.download');
+    Route::delete('/employees/{user}/documents/{document}', [EmployeeHrDataController::class, 'destroyDocument'])
+        ->whereNumber('document')
+        ->name('admin.employees.documents.destroy');
     Route::patch('/employees/{user}/activate', [EmployeeController::class, 'activate'])->name('admin.employees.activate');
     Route::delete('/employees/{user}', [EmployeeController::class, 'deactivate'])->name('admin.employees.deactivate');
     Route::delete('/employees/{user}/permanent', [EmployeeController::class, 'destroy'])->name('admin.employees.destroy');

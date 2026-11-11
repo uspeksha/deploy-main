@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $revision
  * @property Carbon $start_date
  * @property Carbon $end_date
+ * @property Carbon|null $paid_at
  */
 class PayrollPeriod extends Model
 {

@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 
 class UserProfileController extends Controller
 {
@@ -49,7 +48,7 @@ class UserProfileController extends Controller
     }
 
     /**
-     * Memperbarui data profil pengguna (nama, id_karyawan, departemen, dan foto).
+     * Memperbarui data profil pengguna (nama, departemen, dan foto).
      */
     public function update(Request $request)
     {
@@ -58,7 +57,7 @@ class UserProfileController extends Controller
         // Validasi input
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
-            'id_karyawan' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
+            'id_karyawan' => 'prohibited',
             'departemen' => 'sometimes|required|string|max:255',
             'profile_photo' => 'nullable|image|max:2048', // Maksimal 2MB (Cegah Bom Penyimpanan)
         ]);
@@ -88,10 +87,6 @@ class UserProfileController extends Controller
             DB::transaction(function () use ($user, $validated, $newPhotoPath): void {
                 if (array_key_exists('name', $validated)) {
                     $user->name = $validated['name'];
-                }
-
-                if (array_key_exists('id_karyawan', $validated)) {
-                    $user->id_karyawan = $validated['id_karyawan'];
                 }
 
                 if (array_key_exists('departemen', $validated)) {

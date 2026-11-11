@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Absensi;
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\User;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -231,4 +233,40 @@ it('requires valid GPS accuracy for check-in and check-out', function () {
         ])
         ->assertUnprocessable()
         ->assertJsonValidationErrors('accuracy_meters');
+});
+
+it('returns branch-specific geofence settings to the assigned employee', function () {
+    $company = Company::query()->create(['name' => 'PT Contoh']);
+    $branch = Branch::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Kantor Pusat',
+        'latitude' => -6.2,
+        'longitude' => 106.8,
+        'radius_m' => 250,
+    ]);
+    $employee = User::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($employee, 'sanctum')
+        ->getJson('/api/v1/attendance/geofence')
+        ->assertOk()
+        ->assertJsonPath('data.latitude', -6.2)
+        ->assertJsonPath('data.longitude', 106.8)
+        ->assertJsonPath('data.radius_meters', 250)
+        ->assertJsonPath('data.maximum_accuracy_meters', 100);
+});
+
+it('does not provide attendance settings for a branch without a complete geofence', function () {
+    $company = Company::query()->create(['name' => 'PT Contoh']);
+    $branch = Branch::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Belum Dipetakan',
+        'latitude' => null,
+        'longitude' => null,
+        'radius_m' => null,
+    ]);
+    $employee = User::factory()->create(['branch_id' => $branch->id]);
+
+    $this->actingAs($employee, 'sanctum')
+        ->getJson('/api/v1/attendance/geofence')
+        ->assertServerError();
 });

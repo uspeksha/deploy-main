@@ -44,9 +44,18 @@ class ApprovalController extends Controller
             });
         }
 
-        return $query->where(function ($query) {
+        return $query->where(function ($query) use ($status) {
             $query->whereNull('parent_id')
-                ->orWhereIn('absensis.tipe', ['telat', 'lembur']);
+                ->orWhereIn('absensis.tipe', ['telat', 'lembur'])
+                ->when($status === 'rejected', function ($query) {
+                    $query->orWhere(function ($query) {
+                        $query->whereNotNull('absensis.parent_id')
+                            ->where('absensis.status_approval', 'rejected')
+                            ->whereHas('parent', function ($parentQuery) {
+                                $parentQuery->where('status_approval', '!=', 'rejected');
+                            });
+                    });
+                });
         })
             ->join('users', 'absensis.user_id', '=', 'users.id')
             ->select('absensis.*')
@@ -280,6 +289,13 @@ class ApprovalController extends Controller
 
         if ($absensi->status_approval !== 'pending') {
             return back()->with('error', 'Pengajuan sudah diproses sebelumnya.');
+        }
+
+        if ($action === 'approve' && ! $this->hasValidOvertimeInterval($absensi)) {
+            return back()->with(
+                'error',
+                'Pengajuan lembur tidak dapat disetujui karena jam selesai harus setelah jam mulai.',
+            );
         }
 
         $currentApprover = 'HRD';
@@ -767,9 +783,16 @@ class ApprovalController extends Controller
         }
 
         $count = 0;
+        $invalidOvertimeCount = 0;
         foreach ($ids as $id) {
             $absensi = Absensi::find($id);
             if ($absensi && $absensi->status_approval === 'pending') {
+                if (! $this->hasValidOvertimeInterval($absensi)) {
+                    $invalidOvertimeCount++;
+
+                    continue;
+                }
+
                 // Gunakan logic yang sama dengan handleAction
                 // Untuk mempermudah, kita panggil logic approval di sini
                 // Kita asumsikan action adalah 'approve' karena tombolnya 'Approve Terpilih'
@@ -779,7 +802,27 @@ class ApprovalController extends Controller
             }
         }
 
-        return back()->with('success', "Berhasil menyetujui {$count} pengajuan sekaligus.");
+        $response = back()->with('success', "Berhasil menyetujui {$count} pengajuan sekaligus.");
+        if ($invalidOvertimeCount > 0) {
+            $response->with(
+                'error',
+                "{$invalidOvertimeCount} pengajuan lembur dilewati karena jam selesai harus setelah jam mulai.",
+            );
+        }
+
+        return $response;
+    }
+
+    private function hasValidOvertimeInterval(Absensi $absensi): bool
+    {
+        if (strtolower($absensi->tipe ?? '') !== 'lembur'
+            || ! $absensi->lembur_start
+            || ! $absensi->lembur_end) {
+            return true;
+        }
+
+        return Carbon::parse($absensi->lembur_end)
+            ->greaterThan(Carbon::parse($absensi->lembur_start));
     }
 
     private function approveSingleRecord(Absensi $absensi)

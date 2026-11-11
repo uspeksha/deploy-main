@@ -142,30 +142,6 @@ class AuthController extends Controller
             return response()->json(['message' => 'Unauthenticated.'], 401);
         }
 
-        try {
-            $request->validate([
-                'employment_type' => 'required|in:organik,freelance',
-            ]);
-
-            $user = $request->user();
-            $user->employment_type = $request->employment_type;
-            $user->save();
-
-            return response()->json([
-                'message' => 'Employment type updated successfully',
-                'user' => $user,
-            ], 200);
-
-        } catch (ValidationException $e) {
-            return response()->json([
-                'message' => 'Validation error',
-                'errors' => $e->errors(),
-            ], 422);
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to update employment type.',
-                'error' => config('app.debug') ? $e->getMessage() : 'Silakan hubungi Admin.',
-            ], 500);
-        }
+        abort(403, 'Employment type changes must be managed by HRD.');
     }
 }

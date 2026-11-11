@@ -47,7 +47,7 @@
                 </div>
             @endif
 
-            <div class="ui-panel">
+            <section class="space-y-4">
                 <div class="ui-table-shell">
                     <table class="ui-table">
                         <thead>
@@ -105,11 +105,11 @@
                     </table>
                 </div>
                 @if($holidays->hasPages())
-                    <div class="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <div class="rounded-xl border border-[#e6e1d7] bg-[#fffefa] px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
                         {{ $holidays->links() }}
                     </div>
                 @endif
-            </div>
+            </section>
 
     </div>
 </x-app-layout>

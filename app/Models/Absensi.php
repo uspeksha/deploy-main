@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Facades\Log;
 
 /**
  * @property int $id
@@ -72,6 +71,12 @@ class Absensi extends Model
 
     protected $fillable = [
         'user_id',
+        'shift_id',
+        'leave_type_id',
+        'check_in_lat',
+        'check_in_lng',
+        'check_out_lat',
+        'check_out_lng',
         'status',
         'tipe',
         'submission_type',
@@ -130,6 +135,10 @@ class Absensi extends Model
     protected $casts = [
         'check_in_at' => 'datetime',
         'check_out_at' => 'datetime',
+        'check_in_lat' => 'decimal:7',
+        'check_in_lng' => 'decimal:7',
+        'check_out_lat' => 'decimal:7',
+        'check_out_lng' => 'decimal:7',
         'end_date' => 'date',
         'approved_at' => 'datetime',
         'lembur_start' => 'datetime',
@@ -295,42 +304,30 @@ class Absensi extends Model
     // ===================================================================
     public static function calculateOvertimeFromInput($startTime, $endTime, bool $hasRest, bool $isWeekend = false): array
     {
-        try {
-            $start = Carbon::parse($startTime);
-            $end = Carbon::parse($endTime);
+        $start = Carbon::parse($startTime);
+        $end = Carbon::parse($endTime);
+        $totalOvertimeMinutes = (int) $start->diffInMinutes($end, false);
 
-            $totalOvertimeMinutes = abs($end->diffInMinutes($start, false));
+        if ($totalOvertimeMinutes <= 0) {
+            throw new \InvalidArgumentException('Waktu selesai lembur harus setelah waktu mulai.');
+        }
 
-            if ($totalOvertimeMinutes < 30) {
-                return ['minutes' => 0, 'pay' => 0.0];
-            }
-
-            $deduction = $hasRest ? self::OVERTIME_REST_DEDUCTION_MINUTES : 0;
-            $finalOvertimeMinutes = $totalOvertimeMinutes - $deduction;
-
-            if ($finalOvertimeMinutes < 0) {
-                $finalOvertimeMinutes = 0;
-            }
-
-            $isHoliday = Holiday::isHoliday($startTime);
-            $isMultiplierDay = $isWeekend || $isHoliday;
-
-            // 🆕 Pake rate sesuai weekend atau bukan
-            $hourlyRate = $isMultiplierDay ? self::WEEKEND_HOURLY_SALARY : self::HOURLY_SALARY;
-            $overtimePay = ($finalOvertimeMinutes / 60) * $hourlyRate;
-
-            return [
-                'minutes' => (int) round($finalOvertimeMinutes),
-                'pay' => (float) round($overtimePay, 2),
-            ];
-
-        } catch (\Exception $e) {
-            Log::error('--- [CRITICAL] ERROR DI KALKULASI LEMBUR ---', [
-                'error' => $e->getMessage(),
-            ]);
-
+        if ($totalOvertimeMinutes < 30) {
             return ['minutes' => 0, 'pay' => 0.0];
         }
+
+        $deduction = $hasRest ? self::OVERTIME_REST_DEDUCTION_MINUTES : 0;
+        $finalOvertimeMinutes = max(0, $totalOvertimeMinutes - $deduction);
+
+        $isHoliday = Holiday::isHoliday($startTime);
+        $isMultiplierDay = $isWeekend || $isHoliday;
+        $hourlyRate = $isMultiplierDay ? self::WEEKEND_HOURLY_SALARY : self::HOURLY_SALARY;
+        $overtimePay = ($finalOvertimeMinutes / 60) * $hourlyRate;
+
+        return [
+            'minutes' => (int) round($finalOvertimeMinutes),
+            'pay' => (float) round($overtimePay, 2),
+        ];
     }
 
     // ===================================================================
@@ -389,6 +386,21 @@ class Absensi extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(AttendanceCorrection::class);
+    }
+
+    public function leaveType(): BelongsTo
+    {
+        return $this->belongsTo(LeaveType::class);
     }
 
     /**

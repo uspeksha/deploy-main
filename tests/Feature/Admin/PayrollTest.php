@@ -113,7 +113,7 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
 
     $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
         ->assertOk()
-        ->assertSee('min-w-0 flex-1 lg:ml-80', false)
+        ->assertSee('min-w-0 flex-1 lg:ml-[19rem]', false)
         ->assertSee('Rincian Payroll')
         ->assertSee(route('admin.payroll.index', ['period_id' => $period->id]).'#rincian-payroll')
         ->assertSee('Unduh Excel')
@@ -184,7 +184,7 @@ it('uses each attendance date rate in payroll snapshots and leaves generated pay
     $originalSnapshot = $item->attendance_snapshot;
 
     expect($item->gross_pay)->toBe(250000)
-        ->and($item->daily_rate_summary)->toBe('Bervariasi')
+        ->and($item->daily_rate_summary)->toBe('Tarif')
         ->and(array_column($item->attendance_snapshot['daily_details'], 'daily_rate'))->toBe([100000, 150000]);
 
     $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
@@ -888,10 +888,11 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
         'net_pay' => 1192500,
         'attendance_snapshot' => [
             'attendance_ids' => [$attendanceId],
-            'work_dates' => ['2026-10-03'],
+            'work_dates' => ['2026-10-03', '2026-10-04'],
             'daily_details' => [
                 [
                     'work_date' => '2026-10-03',
+                    'daily_rate' => 120000,
                     'attendance_status' => 'hadir',
                     'check_in_at' => '2026-10-03 08:30:00',
                     'check_out_at' => '2026-10-03 17:00:00',
@@ -902,6 +903,10 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
                     'overtime_rest' => false,
                     'overtime_minutes' => 120,
                     'overtime_pay' => 30000,
+                ],
+                [
+                    'work_date' => '2026-10-04',
+                    'daily_rate' => 150000,
                 ],
             ],
         ],
@@ -975,7 +980,7 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
             ->and($worksheet->getCell('B7')->getValue())->toBe('Zoe Zulu')
             ->and($worksheet->getCell('C7')->getValue())->toBe('001234567890')
             ->and($worksheet->getCell('C7')->getDataType())->toBe('s')
-            ->and($worksheet->getCell('D7')->getValue())->toBe(120000)
+            ->and($worksheet->getCell('D7')->getValue())->toBe('Tarif')
             ->and($worksheet->getCell('D7')->getStyle()->getNumberFormat()->getFormatCode())->toBe('"Rp" #,##0;[Red]-"Rp" #,##0;"Rp" -')
             ->and($worksheet->getCell('G7')->getValue())->toBe(1200000)
             ->and($worksheet->getCell('J7')->getValue())->toBe(30000.0)

@@ -6,7 +6,9 @@ use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -41,6 +43,10 @@ class User extends Authenticatable implements MustVerifyEmail
         'role',
         'registration_status',
         'is_active',
+        'department_id',
+        'branch_id',
+        'position_id',
+        'role_id',
         'nik',
         'phone',
         'address',
@@ -105,6 +111,114 @@ class User extends Authenticatable implements MustVerifyEmail
     public function absensis(): HasMany
     {
         return $this->hasMany(Absensi::class);
+    }
+
+    public function department(): BelongsTo
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    public function position(): BelongsTo
+    {
+        return $this->belongsTo(Position::class);
+    }
+
+    public function rbacRole(): BelongsTo
+    {
+        return $this->belongsTo(Role::class, 'role_id');
+    }
+
+    public function profile(): HasOne
+    {
+        return $this->hasOne(EmployeeProfile::class);
+    }
+
+    /**
+     * @return HasMany<EmploymentHistory, $this>
+     */
+    public function employmentHistories(): HasMany
+    {
+        return $this->hasMany(EmploymentHistory::class);
+    }
+
+    /**
+     * @return HasMany<EmployeeFamily, $this>
+     */
+    public function families(): HasMany
+    {
+        return $this->hasMany(EmployeeFamily::class);
+    }
+
+    /**
+     * @return HasMany<EmployeeDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(EmployeeDocument::class);
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(EmployeeSchedule::class);
+    }
+
+    public function attendanceCorrections(): HasMany
+    {
+        return $this->hasMany(AttendanceCorrection::class);
+    }
+
+    public function leaveBalances(): HasMany
+    {
+        return $this->hasMany(LeaveBalance::class);
+    }
+
+    public function employeeComponents(): HasMany
+    {
+        return $this->hasMany(EmployeeComponent::class);
+    }
+
+    /**
+     * @return HasMany<Loan, $this>
+     */
+    public function loans(): HasMany
+    {
+        return $this->hasMany(Loan::class);
+    }
+
+    public function approvedLoans(): HasMany
+    {
+        return $this->hasMany(Loan::class, 'approved_by');
+    }
+
+    /**
+     * @return HasMany<Reimbursement, $this>
+     */
+    public function reimbursements(): HasMany
+    {
+        return $this->hasMany(Reimbursement::class);
+    }
+
+    public function approvedReimbursements(): HasMany
+    {
+        return $this->hasMany(Reimbursement::class, 'approved_by');
+    }
+
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class, 'created_by');
+    }
+
+    public function approvalLogs(): HasMany
+    {
+        return $this->hasMany(ApprovalLog::class, 'approver_id');
     }
 
     /**

@@ -11,111 +11,87 @@
     <title>{{ config('app.name', 'Laravel') }}</title>
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" />
-
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
         [x-cloak] { display: none !important; }
-        
-        .bg-glow {
-            position: fixed;
-            top: 0;
-            right: 0;
-            width: 50%;
-            height: 50%;
-            background: radial-gradient(circle at 70% 30%, rgba(64, 64, 64, 0.08), transparent 70%);
-            pointer-events: none;
-            z-index: -1;
-        }
     </style>
 </head>
 
 <body class="font-sans antialiased text-slate-900 dark:text-slate-100 min-h-screen">
-    <div class="bg-glow"></div>
-    
     <div class="flex min-h-screen">
-        <!-- Floating Sidebar -->
-        <aside class="premium-sidebar lg:translate-x-0 transition-transform duration-300"
-               :class="sidebarOpen ? 'translate-x-4' : '-translate-x-full lg:translate-x-0'">
-            <div class="flex flex-col h-full py-6">
-                <!-- Brand -->
-                <div class="px-8 mb-8">
-                    <a href="{{ route('dashboard') }}" class="inline-flex group">
-                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Logo Followme Indonesia" class="w-48 max-w-full h-auto rounded-xl object-contain grayscale shadow-lg shadow-emerald-500/20 transition-transform group-hover:scale-[1.03]">
+        <button x-cloak x-show="sidebarOpen" @click="sidebarOpen = false"
+                class="fixed inset-0 z-40 bg-slate-950/45 lg:hidden"
+                aria-label="Tutup menu"></button>
+
+        <aside class="premium-sidebar"
+               :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'">
+            <div class="flex h-full flex-col py-5">
+                <div class="mb-6 px-5">
+                    <a href="{{ route('dashboard') }}" class="inline-flex rounded-lg focus-visible:outline-white">
+                        <img src="{{ asset('images/followme-horizontal.png') }}" alt="Followme Indonesia" class="h-auto w-44 max-w-full rounded-md object-contain">
                     </a>
                 </div>
 
-                <!-- Navigation -->
-                <nav aria-label="Menu utama" class="flex-1 space-y-1 overflow-y-auto custom-scrollbar">
+                <nav aria-label="Menu utama" class="flex-1 overflow-y-auto custom-scrollbar">
                     @include('layouts.navigation')
                 </nav>
 
-                <!-- Profile Mini -->
-                <div class="px-4 mt-auto">
-                    <div class="lucent-panel rounded-2xl p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center text-white font-bold">
+                <div class="mt-auto px-3 pt-4">
+                    <div class="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-3 shadow-lg shadow-slate-950/10 backdrop-blur-md">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-sky-100/15 font-bold text-sky-50">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                         <div class="flex-1 min-w-0">
-                            <p class="text-sm font-bold truncate">{{ Auth::user()->name }}</p>
-                            <p class="text-xs text-slate-500 truncate">{{ Auth::user()->role }}</p>
+                            <p class="truncate text-sm font-semibold text-white">{{ Auth::user()->name }}</p>
+                            <p class="mt-1 inline-flex max-w-full truncate rounded-full border border-sky-100/20 bg-sky-100/10 px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-sky-100">
+                                {{ Auth::user()->role }}
+                            </p>
                         </div>
-                        <button @click="darkMode = !darkMode" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                            <i class="fas" :class="darkMode ? 'fa-sun text-amber-400' : 'fa-moon text-slate-400'"></i>
+                        <button @click="darkMode = !darkMode" class="flex h-9 w-9 items-center justify-center rounded-lg text-sky-100/75 transition-colors hover:bg-white/10 hover:text-white" aria-label="Ganti tema">
+                            <i class="fas" :class="darkMode ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
                         </button>
                     </div>
                 </div>
             </div>
         </aside>
 
-        <!-- Main Content -->
-        <main class="min-w-0 flex-1 lg:ml-80 p-4 lg:p-8">
-            <!-- Top Header -->
-            <header class="flex items-center justify-between mb-8">
-                <div class="flex items-center gap-4 lg:hidden">
-                    <button @click="sidebarOpen = !sidebarOpen" class="w-10 h-10 lucent-panel rounded-xl flex items-center justify-center">
+        <main class="min-w-0 flex-1 lg:ml-[19rem] px-4 py-5 md:px-7 lg:px-9">
+            <header class="admin-page-header mb-6 flex min-h-12 flex-wrap items-center justify-between gap-4 border-b border-[#dce4e9] pb-5 dark:border-slate-700">
+                <div class="flex min-w-0 flex-1 items-center gap-3">
+                    <button @click="sidebarOpen = !sidebarOpen" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#dce4e9] bg-white text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 lg:hidden" aria-label="Buka menu">
                         <i class="fas fa-bars"></i>
                     </button>
+                    @if (isset($header))
+                        <div class="min-w-0 flex-1">
+                            {{ $header }}
+                        </div>
+                    @endif
                 </div>
-                
-                @if (isset($header))
-                    <div class="flex-1">
-                        {{ $header }}
-                    </div>
-                @endif
 
-                <div class="flex items-center gap-4">
-                    <!-- Global Actions -->
+                <div class="ml-auto flex items-center gap-3">
                     <div class="hidden sm:flex items-center gap-2">
-                        <span class="text-xs font-medium px-3 py-1 bg-emerald-500/10 text-emerald-600 rounded-full dark:bg-emerald-500/20 dark:text-emerald-400">
+                        <span class="rounded-lg border border-[#dce4e9] bg-white px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                             {{ now()->translatedFormat('d F Y') }}
                         </span>
                     </div>
                     
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="w-10 h-10 lucent-panel rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:border-rose-500/30 transition-colors">
-                            <i class="fas fa-power-off"></i>
+                        <button type="submit" class="flex h-10 items-center gap-2 rounded-lg border border-[#dce4e9] bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-rose-900 dark:hover:bg-rose-950/30 dark:hover:text-rose-300">
+                            <i class="fas fa-arrow-right-from-bracket"></i>
+                            <span class="hidden md:inline">Keluar</span>
                         </button>
                     </form>
                 </div>
             </header>
 
-            <!-- Page Content -->
-            <div class="min-w-0 animate-fade-in-up">
+            <div class="admin-page-content mx-auto min-w-0 max-w-[1600px]">
                 {{ $slot }}
             </div>
         </main>
     </div>
 
     @stack('scripts')
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"></script>
-    <script>
-        AOS.init({
-            duration: 800,
-            once: true,
-        });
-    </script>
 </body>
 </html>

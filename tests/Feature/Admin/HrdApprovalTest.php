@@ -2,6 +2,7 @@
 
 use App\Models\Absensi;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 it('shows the HRD approval page only to HRD and removes legacy approval URLs', function () {
@@ -160,6 +161,112 @@ it('lets HRD approve leave and reject a late-excuse request', function () {
         ->and($lateExcuse->fresh()->catatan_admin)->toBe('Bukti tidak memenuhi ketentuan.');
 });
 
+it('shows rejected child leave requests in the rejected HRD approval tab', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['name' => 'Karyawan Ditolak']);
+    $attendance = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => null,
+        'check_in_at' => '2026-11-08 09:00:00',
+        'status_approval' => 'approved',
+    ]);
+    $rejectedLeave = Absensi::create([
+        'user_id' => $employee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'izin',
+        'tipe' => 'izin',
+        'submission_type' => 'cuti_tahunan',
+        'check_in_at' => '2026-11-08 00:00:00',
+        'status_approval' => 'rejected',
+    ]);
+    DB::table('absensis')
+        ->where('id', $rejectedLeave->id)
+        ->update(['catatan_admin' => 'Dokumen pendukung belum sesuai.']);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.approval.hrd', ['status' => 'rejected']))
+        ->assertOk()
+        ->assertSee('Karyawan Ditolak')
+        ->assertSee('Dokumen pendukung belum sesuai.')
+        ->assertSee('cuti tahunan');
+});
+
+it('keeps the approval tab selected when a rejection reason is invalid', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['registration_status' => 'approved']);
+    $submission = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'sakit',
+        'tipe' => 'sakit',
+        'status_approval' => 'pending',
+        'check_in_at' => '2026-11-09 00:00:00',
+        'keterangan_izin_sakit' => 'Sedang sakit',
+    ]);
+    $approvalUrl = route('admin.absensi.approval.hrd');
+
+    $this->actingAs($hrd)
+        ->from($approvalUrl)
+        ->post(route('admin.absensi.approval.action', [
+            'absensi' => $submission->id,
+            'action' => 'reject',
+        ]), ['catatan_admin' => 'ok'])
+        ->assertSessionHasErrors('catatan_admin')
+        ->assertRedirect($approvalUrl);
+
+    $response = $this->get($approvalUrl)->assertOk();
+    preg_match('/section:\s*["\'](approvals|employees)["\']/', html_entity_decode($response->getContent()), $matches);
+
+    expect($matches[1] ?? null)->toBe('approvals');
+});
+
+it('does not approve overtime with an end time before its start', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create();
+    $overtime = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'lembur_start' => '2026-11-09 23:00:00',
+        'lembur_end' => '2026-11-09 01:00:00',
+        'status_approval' => 'pending',
+        'overtime_minutes' => 120,
+        'overtime_pay' => 37500,
+    ]);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.action', [
+            'absensi' => $overtime->id,
+            'action' => 'approve',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect($overtime->fresh()->status_approval)->toBe('pending')
+        ->and($overtime->fresh()->overtime_minutes)->toBe(120)
+        ->and((float) $overtime->fresh()->overtime_pay)->toBe(37500.0);
+});
+
+it('skips invalid overtime intervals during bulk approval', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create();
+    $overtime = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'lembur_start' => '2026-11-09 23:00:00',
+        'lembur_end' => '2026-11-09 01:00:00',
+        'status_approval' => 'pending',
+    ]);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.bulk-action'), ['ids' => [$overtime->id]])
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect($overtime->fresh()->status_approval)->toBe('pending');
+});
+
 it('shows only freelance employees on the dashboard and marks missing check-ins correctly', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
     $freelanceEmployee = null;
@@ -223,7 +330,7 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         ->assertSee('Grafik tren kehadiran freelance per bulan')
         ->assertSee('Grafik distribusi status absensi freelance')
         ->assertSee('Status absensi freelance')
-        ->assertSee('space-y-8', false)
+        ->assertSee('ui-page', false)
         ->assertSee('attendance-area', false)
         ->assertSee('>1</strong>', false)
         ->assertSee('<svg', false)

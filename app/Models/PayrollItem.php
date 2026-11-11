@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * @property int $id
@@ -61,7 +62,7 @@ class PayrollItem extends Model
         return match ($rates->count()) {
             0 => (int) $this->daily_rate,
             1 => (int) $rates->first(),
-            default => 'Bervariasi',
+            default => 'Tarif',
         };
     }
 
@@ -87,5 +88,30 @@ class PayrollItem extends Model
     public function latenessDetails(): HasMany
     {
         return $this->hasMany(PayrollLatenessDetail::class);
+    }
+
+    public function componentSnapshots(): HasMany
+    {
+        return $this->hasMany(PayrollItemComponent::class);
+    }
+
+    public function bpjsSnapshots(): HasMany
+    {
+        return $this->hasMany(PayrollItemBpjs::class);
+    }
+
+    public function tax(): HasOne
+    {
+        return $this->hasOne(PayrollItemTax::class);
+    }
+
+    public function loanInstallments(): HasMany
+    {
+        return $this->hasMany(LoanInstallment::class);
+    }
+
+    public function reimbursements(): HasMany
+    {
+        return $this->hasMany(Reimbursement::class);
     }
 }
