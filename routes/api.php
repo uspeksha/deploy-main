@@ -1,7 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\AbsensiController;
+use App\Http\Controllers\Api\AttendanceGeofenceController;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\EmployeeHrRequestController;
+use App\Http\Controllers\Api\EmployeePayrollController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\KpiIntegrationController;
 use App\Http\Controllers\Api\NotificationController;
@@ -56,6 +59,16 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
         // ========== AUTH & PROFILE ==========
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
+        Route::get('/attendance/geofence', [AttendanceGeofenceController::class, 'show']);
+        Route::get('/payroll/slips', [EmployeePayrollController::class, 'index']);
+        Route::get('/payroll/slips/{item}/download', [EmployeePayrollController::class, 'download'])
+            ->whereNumber('item')
+            ->middleware('throttle:10,1');
+        Route::get('/hr-requests', [EmployeeHrRequestController::class, 'index']);
+        Route::post('/hr-requests/reimbursements', [EmployeeHrRequestController::class, 'storeReimbursement'])
+            ->middleware('throttle:5,1');
+        Route::post('/hr-requests/loans', [EmployeeHrRequestController::class, 'storeLoan'])
+            ->middleware('throttle:5,1');
         Route::put('/user/password', [UserPasswordController::class, 'update'])
             ->middleware('throttle:10,1');
 

@@ -18,11 +18,15 @@
     <div class="ui-page">
         <nav class="ui-tabs" aria-label="Kategori master data HR">
             @foreach([
+                'companies' => 'Perusahaan',
+                'branches' => 'Cabang',
                 'departments' => 'Departemen',
                 'job-levels' => 'Level Jabatan',
+                'payroll-components' => 'Komponen Payroll',
                 'positions' => 'Jabatan',
                 'shifts' => 'Shift',
                 'leave-types' => 'Jenis Cuti',
+                'reimbursement-types' => 'Kategori Reimbursement',
             ] as $key => $label)
                 <a href="{{ route('admin.master-data.index', ['resource' => $key]) }}"
                    @class(['ui-tab', 'active' => $resource === $key])>

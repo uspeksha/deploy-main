@@ -6,6 +6,7 @@ vendor
 .swp
 public/build
 public/hot
+/followme
 database/*.sqlite
 tests
 bootstrap/cache/*.php

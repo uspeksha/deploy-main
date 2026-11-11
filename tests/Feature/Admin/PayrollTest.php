@@ -113,7 +113,7 @@ it('restricts payroll to HRD and generates an immutable snapshot from approved f
 
     $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
         ->assertOk()
-        ->assertSee('min-w-0 flex-1 lg:ml-72', false)
+        ->assertSee('min-w-0 flex-1 lg:ml-[19rem]', false)
         ->assertSee('Rincian Payroll')
         ->assertSee(route('admin.payroll.index', ['period_id' => $period->id]).'#rincian-payroll')
         ->assertSee('Unduh Excel')

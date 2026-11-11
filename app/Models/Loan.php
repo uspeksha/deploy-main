@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use InvalidArgumentException;
 
+/**
+ * @property Carbon|null $approved_at
+ * @property Carbon|null $created_at
+ */
 class Loan extends Model
 {
     use HasFactory;
@@ -23,6 +28,9 @@ class Loan extends Model
         'approved_by',
         'principal',
         'tenor_months',
+        'purpose',
+        'rejection_reason',
+        'approved_at',
         'status',
     ];
 
@@ -31,6 +39,7 @@ class Loan extends Model
         return [
             'principal' => 'integer',
             'tenor_months' => 'integer',
+            'approved_at' => 'datetime',
         ];
     }
 
@@ -47,6 +56,9 @@ class Loan extends Model
         });
     }
 
+    /**
+     * @return HasMany<LoanInstallment, $this>
+     */
     public function installments(): HasMany
     {
         return $this->hasMany(LoanInstallment::class);

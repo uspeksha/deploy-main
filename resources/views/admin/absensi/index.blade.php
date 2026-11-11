@@ -14,6 +14,37 @@
     </x-slot>
 
     <div class="ui-page">
+        <section class="lucent-panel rounded-xl p-4 md:p-5" aria-labelledby="work-queue-title">
+            <div class="mb-4">
+                <h2 id="work-queue-title" class="text-lg font-bold text-slate-900 dark:text-white">Perlu ditindaklanjuti</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Antrean yang masih menunggu proses admin.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 {{ auth()->user()?->role === 'hrd' ? 'xl:grid-cols-4' : '' }}">
+                <a href="{{ auth()->user()?->role === 'hrd' ? route('admin.absensi.approval.hrd', ['status' => 'pending']) : route('admin.absensi.index') }}"
+                   class="rounded-xl border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-400 dark:border-amber-900 dark:bg-amber-950/30">
+                    <span class="text-sm font-semibold text-amber-900 dark:text-amber-200">Pengajuan absensi menunggu</span>
+                    <span class="mt-1 block text-2xl font-black text-amber-950 dark:text-amber-100">{{ $pendingAttendanceCount }}</span>
+                </a>
+                @if (auth()->user()?->role === 'hrd')
+                    <a href="{{ route('admin.absensi.approval.hrd', ['section' => 'employees']) }}"
+                       class="rounded-xl border border-sky-200 bg-sky-50 p-4 transition hover:border-sky-400 dark:border-sky-900 dark:bg-sky-950/30">
+                        <span class="text-sm font-semibold text-sky-900 dark:text-sky-200">Akun karyawan menunggu</span>
+                        <span class="mt-1 block text-2xl font-black text-sky-950 dark:text-sky-100">{{ $pendingEmployeeCount }}</span>
+                    </a>
+                    <a href="{{ route('admin.payroll.index', ['status' => 'pending_approval']) }}"
+                       class="rounded-xl border border-violet-200 bg-violet-50 p-4 transition hover:border-violet-400 dark:border-violet-900 dark:bg-violet-950/30">
+                        <span class="text-sm font-semibold text-violet-900 dark:text-violet-200">Payroll menunggu persetujuan</span>
+                        <span class="mt-1 block text-2xl font-black text-violet-950 dark:text-violet-100">{{ $pendingPayrollCount }}</span>
+                    </a>
+                    <a href="{{ route('admin.hr-requests.index') }}"
+                       class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition hover:border-emerald-400 dark:border-emerald-900 dark:bg-emerald-950/30">
+                        <span class="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Pengajuan HR menunggu</span>
+                        <span class="mt-1 block text-2xl font-black text-emerald-950 dark:text-emerald-100">{{ $pendingHrRequestCount }}</span>
+                    </a>
+                @endif
+            </div>
+        </section>
+
         <section class="lucent-panel rounded-xl p-4 md:p-5">
             <form method="GET" class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
                 <div class="flex items-center gap-3 w-full md:w-auto">

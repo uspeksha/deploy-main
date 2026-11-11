@@ -44,6 +44,7 @@ class User extends Authenticatable implements MustVerifyEmail
         'registration_status',
         'is_active',
         'department_id',
+        'branch_id',
         'position_id',
         'role_id',
         'nik',
@@ -117,6 +118,14 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->belongsTo(Department::class);
     }
 
+    /**
+     * @return BelongsTo<Branch, $this>
+     */
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
     public function position(): BelongsTo
     {
         return $this->belongsTo(Position::class);
@@ -176,6 +185,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(EmployeeComponent::class);
     }
 
+    /**
+     * @return HasMany<Loan, $this>
+     */
     public function loans(): HasMany
     {
         return $this->hasMany(Loan::class);
@@ -186,6 +198,9 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Loan::class, 'approved_by');
     }
 
+    /**
+     * @return HasMany<Reimbursement, $this>
+     */
     public function reimbursements(): HasMany
     {
         return $this->hasMany(Reimbursement::class);

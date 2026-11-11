@@ -11,6 +11,9 @@ use App\Exports\SlipGajiPdfExport;
 use App\Http\Controllers\Controller;
 use App\Models\Absensi;
 use App\Models\Holiday;
+use App\Models\Loan;
+use App\Models\PayrollPeriod;
+use App\Models\Reimbursement;
 use App\Models\User;
 use App\Services\FreelancePayrollCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -266,6 +269,21 @@ class AbsensiAdminController extends Controller
             'labels' => ['Hadir', 'Izin', 'Sakit', 'Lainnya'],
             'values' => [$totalHadir, $totalIzin, $totalSakit, $totalLainnya],
         ];
+        $pendingAttendanceCount = Absensi::query()
+            ->where('status_approval', 'pending')
+            ->whereNull('parent_id')
+            ->count();
+        $pendingEmployeeCount = User::query()
+            ->where('role', 'user')
+            ->where('registration_status', 'pending')
+            ->count();
+        $pendingPayrollCount = PayrollPeriod::query()
+            ->where('status', PayrollPeriod::STATUS_PENDING_APPROVAL)
+            ->count();
+        $pendingHrRequestCount = Reimbursement::query()
+            ->where('status', Reimbursement::STATUS_PENDING)
+            ->count()
+            + Loan::query()->where('status', Loan::STATUS_PENDING)->count();
 
         usort($dailyStatusesFreelance, fn ($a, $b) => strcasecmp($a['user']->name, $b['user']->name));
 
@@ -283,6 +301,10 @@ class AbsensiAdminController extends Controller
             'grafikStatus',
             'employeeGenderStats',
             'employeeRankings',
+            'pendingAttendanceCount',
+            'pendingEmployeeCount',
+            'pendingPayrollCount',
+            'pendingHrRequestCount',
         ));
     }
 

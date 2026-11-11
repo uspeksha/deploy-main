@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Position;
 use App\Models\PtkpStatus;
@@ -67,6 +68,7 @@ class EmployeeController extends Controller
             'dailyRate' => $user->dailyRateAt(),
             'nextEffectiveAt' => $nextEffectiveAt,
             'employeeListQuery' => $this->employeeListQuery($request),
+            'branches' => Branch::query()->orderBy('name')->get(),
             'departments' => Department::query()->orderBy('name')->get(),
             'positions' => Position::query()->with('department')->orderBy('name')->get(),
             'profile' => $user->profile,
@@ -91,6 +93,7 @@ class EmployeeController extends Controller
             'address' => ['required', 'string', 'max:1000'],
             'departemen' => ['required', 'string', 'max:255'],
             'department_id' => ['nullable', 'integer', 'exists:departments,id'],
+            'branch_id' => ['nullable', 'integer', 'exists:branches,id'],
             'position_id' => ['nullable', 'integer', 'exists:positions,id'],
             'employment_type' => ['required', 'in:organik,freelance'],
             'work_location' => ['required', 'in:office,produksi'],

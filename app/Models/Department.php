@@ -12,9 +12,15 @@ class Department extends Model
     use HasFactory;
 
     protected $fillable = [
+        'company_id',
         'parent_id',
         'name',
     ];
+
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     public function parent(): BelongsTo
     {

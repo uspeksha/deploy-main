@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApprovalController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\EmployeeHrDataController;
+use App\Http\Controllers\Admin\EmployeeHrRequestController as AdminEmployeeHrRequestController;
 use App\Http\Controllers\Admin\HolidayController;
 use App\Http\Controllers\Admin\HrMasterDataController;
 use App\Http\Controllers\Admin\PayrollController;
@@ -59,6 +60,20 @@ Route::middleware(['auth', 'active.account'])->group(function () {
 
 Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::class])->prefix('admin')->group(function () {
 
+    Route::get('/hr-requests', [AdminEmployeeHrRequestController::class, 'index'])
+        ->name('admin.hr-requests.index');
+    Route::post('/hr-requests/reimbursements/{reimbursement}/{action}', [AdminEmployeeHrRequestController::class, 'reimbursementAction'])
+        ->where('action', 'approve|reject|paid')
+        ->name('admin.hr-requests.reimbursements.action');
+    Route::post('/hr-requests/loans/{loan}/{action}', [AdminEmployeeHrRequestController::class, 'loanAction'])
+        ->where('action', 'approve|reject')
+        ->name('admin.hr-requests.loans.action');
+    Route::post('/hr-requests/installments/{installment}/paid', [AdminEmployeeHrRequestController::class, 'installmentPaid'])
+        ->whereNumber('installment')
+        ->name('admin.hr-requests.installments.paid');
+    Route::get('/hr-requests/reimbursements/{reimbursement}/receipt', [AdminEmployeeHrRequestController::class, 'downloadReceipt'])
+        ->name('admin.hr-requests.reimbursements.receipt');
+
     Route::prefix('absensi')->group(function () {
 
         // ✅ Dashboard & List
@@ -102,7 +117,7 @@ Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::cla
     });
 
     Route::prefix('master-data')->name('admin.master-data.')->group(function () {
-        $resources = 'departments|job-levels|positions|shifts|leave-types';
+        $resources = 'companies|branches|departments|job-levels|payroll-components|positions|reimbursement-types|shifts|leave-types';
 
         Route::get('/{resource}', [HrMasterDataController::class, 'index'])
             ->where('resource', $resources)

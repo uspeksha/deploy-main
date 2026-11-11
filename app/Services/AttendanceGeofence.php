@@ -9,15 +9,7 @@ class AttendanceGeofence
 {
     public function distanceFromWorkplace(User $user, float $latitude, float $longitude): float
     {
-        $workLocation = strtolower($user->work_location ?? 'office');
-        $workplace = config("attendance.geofence.locations.{$workLocation}");
-
-        if (! is_array($workplace)
-            || ! isset($workplace['latitude'], $workplace['longitude'])
-            || ! is_numeric($workplace['latitude'])
-            || ! is_numeric($workplace['longitude'])) {
-            throw new LogicException("Attendance geofence is not configured for work location [{$workLocation}].");
-        }
+        $workplace = $this->configurationFor($user);
 
         $earthRadiusMeters = 6_371_000;
         $latitudeDelta = deg2rad($latitude - (float) $workplace['latitude']);
@@ -33,9 +25,20 @@ class AttendanceGeofence
 
     public function isWithinAllowedRadius(float $distanceMeters, float $accuracyMeters = 0): bool
     {
-        $radiusMeters = config('attendance.geofence.radius_meters');
+        return $this->measurementIsWithinRadius(
+            $distanceMeters,
+            $accuracyMeters,
+            (float) config('attendance.geofence.radius_meters'),
+        );
+    }
 
-        if (! is_numeric($radiusMeters) || (float) $radiusMeters <= 0) {
+    public function measurementIsWithinRadius(
+        float $distanceMeters,
+        float $accuracyMeters,
+        float $radiusMeters,
+    ): bool {
+
+        if (! is_finite($radiusMeters) || $radiusMeters <= 0) {
             throw new LogicException('Attendance geofence radius must be configured as a positive number.');
         }
 
@@ -46,6 +49,50 @@ class AttendanceGeofence
             return false;
         }
 
-        return $distanceMeters + $accuracyMeters <= (float) $radiusMeters;
+        return $distanceMeters + $accuracyMeters <= $radiusMeters;
+    }
+
+    /**
+     * @return array{latitude: float, longitude: float, radius_meters: float, maximum_accuracy_meters: int}
+     */
+    public function configurationFor(User $user): array
+    {
+        if ($user->branch_id !== null) {
+            $branch = $user->branch;
+            if ($branch === null
+                || ! is_numeric($branch->latitude)
+                || ! is_numeric($branch->longitude)
+                || ! is_numeric($branch->radius_m)
+                || (float) $branch->radius_m <= 0) {
+                throw new LogicException('The assigned branch does not have a complete attendance geofence.');
+            }
+
+            return [
+                'latitude' => (float) $branch->latitude,
+                'longitude' => (float) $branch->longitude,
+                'radius_meters' => (float) $branch->radius_m,
+                'maximum_accuracy_meters' => 100,
+            ];
+        }
+
+        $workLocation = strtolower($user->work_location ?? 'office');
+        $workplace = config("attendance.geofence.locations.{$workLocation}");
+        $radius = config('attendance.geofence.radius_meters');
+
+        if (! is_array($workplace)
+            || ! isset($workplace['latitude'], $workplace['longitude'])
+            || ! is_numeric($workplace['latitude'])
+            || ! is_numeric($workplace['longitude'])
+            || ! is_numeric($radius)
+            || (float) $radius <= 0) {
+            throw new LogicException("Attendance geofence is not configured for work location [{$workLocation}].");
+        }
+
+        return [
+            'latitude' => (float) $workplace['latitude'],
+            'longitude' => (float) $workplace['longitude'],
+            'radius_meters' => (float) $radius,
+            'maximum_accuracy_meters' => 100,
+        ];
     }
 }

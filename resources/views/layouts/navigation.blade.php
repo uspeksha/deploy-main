@@ -14,6 +14,12 @@
             <span>Payroll Freelance</span>
         </a>
 
+        <a href="{{ route('admin.hr-requests.index') }}"
+           @class(['nav-item', 'active' => request()->routeIs('admin.hr-requests.*')])>
+            <span class="nav-icon"><i class="fas fa-file-circle-check"></i></span>
+            <span>Pengajuan HR</span>
+        </a>
+
         <a href="{{ route('admin.absensi.approval.hrd') }}"
            @class(['nav-item', 'active' => request()->routeIs('admin.absensi.approval.hrd') && request('section') !== 'employees'])>
             <span class="nav-icon"><i class="fas fa-user-check"></i></span>

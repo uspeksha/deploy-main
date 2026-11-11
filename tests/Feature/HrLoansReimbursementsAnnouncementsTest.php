@@ -96,8 +96,8 @@ it('validates loan, installment, and reimbursement statuses', function () {
         ->toThrow(InvalidArgumentException::class)
         ->and(fn () => LoanInstallment::factory()->create(['status' => 'settled']))
         ->toThrow(InvalidArgumentException::class)
-        ->and(fn () => Reimbursement::factory()->create(['status' => 'paid']))
-        ->toThrow(InvalidArgumentException::class);
+        ->and(Reimbursement::factory()->create(['status' => 'paid'])->status)
+        ->toBe('paid');
 });
 
 it('prevents deleting reimbursement types that have reimbursement records', function () {

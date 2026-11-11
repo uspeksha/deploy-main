@@ -55,9 +55,13 @@
                                 @else
                                     <option value="">Pilih {{ strtolower($field['label']) }}</option>
                                 @endif
-                                @foreach ($options[$field['source']] ?? [] as $option)
-                                    <option value="{{ $option->getKey() }}" @selected((string) $currentValue === (string) $option->getKey())>
-                                        {{ $option->name }}
+                                @foreach (($field['static_options'] ?? (isset($field['source']) ? ($options[$field['source']] ?? []) : [])) as $optionKey => $option)
+                                    @php
+                                        $optionValue = is_object($option) ? $option->getKey() : $optionKey;
+                                        $optionLabel = is_object($option) ? $option->name : $option;
+                                    @endphp
+                                    <option value="{{ $optionValue }}" @selected((string) $currentValue === (string) $optionValue)>
+                                        {{ $optionLabel }}
                                     </option>
                                 @endforeach
                             </select>

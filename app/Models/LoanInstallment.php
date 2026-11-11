@@ -2,11 +2,16 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use InvalidArgumentException;
 
+/**
+ * @property Carbon $due_date
+ * @property Carbon|null $paid_at
+ */
 class LoanInstallment extends Model
 {
     use HasFactory;
@@ -17,6 +22,8 @@ class LoanInstallment extends Model
 
     public const STATUS_REJECTED = 'rejected';
 
+    public const STATUS_PAID = 'paid';
+
     protected $fillable = [
         'loan_id',
         'payroll_item_id',
@@ -24,6 +31,8 @@ class LoanInstallment extends Model
         'amount',
         'due_date',
         'status',
+        'paid_at',
+        'payment_reference',
     ];
 
     protected function casts(): array
@@ -32,6 +41,7 @@ class LoanInstallment extends Model
             'installment_no' => 'integer',
             'amount' => 'integer',
             'due_date' => 'date',
+            'paid_at' => 'datetime',
         ];
     }
 
@@ -42,12 +52,16 @@ class LoanInstallment extends Model
                 self::STATUS_PENDING,
                 self::STATUS_APPROVED,
                 self::STATUS_REJECTED,
+                self::STATUS_PAID,
             ], true)) {
                 throw new InvalidArgumentException('Unsupported loan installment status.');
             }
         });
     }
 
+    /**
+     * @return BelongsTo<Loan, $this>
+     */
     public function loan(): BelongsTo
     {
         return $this->belongsTo(Loan::class);

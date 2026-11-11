@@ -129,7 +129,7 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
     ]), [
         'name' => 'Nama Diperbarui',
         'email' => $employee->email,
-        'id_karyawan' => $employee->id_karyawan,
+        'id_karyawan' => 'EMP-UPDATED',
         'phone' => '081111111111',
         'address' => 'Alamat baru',
         'departemen' => 'Operasional',
@@ -147,6 +147,7 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
     ]));
 
     expect($employee->fresh()->name)->toBe('Nama Diperbarui')
+        ->and($employee->fresh()->id_karyawan)->toBe('EMP-UPDATED')
         ->and($employee->fresh()->phone)->toBe('081111111111')
         ->and($employee->fresh()->bank_name)->toBe('BRI')
         ->and($employee->fresh()->is_active)->toBeFalse();

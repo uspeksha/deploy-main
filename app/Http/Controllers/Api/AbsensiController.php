@@ -64,20 +64,22 @@ class AbsensiController extends Controller
             }
 
             if ($request->status === 'hadir') {
+                $geofenceConfig = $geofence->configurationFor($user);
                 $distance = $geofence->distanceFromWorkplace(
                     $user,
                     (float) $request->input('lat'),
                     (float) $request->input('lng'),
                 );
 
-                if (! $geofence->isWithinAllowedRadius(
+                if (! $geofence->measurementIsWithinRadius(
                     $distance,
                     (float) ($request->input('accuracy_meters') ?? 0),
+                    $geofenceConfig['radius_meters'],
                 )) {
                     return response()->json([
                         'message' => 'Absensi ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
                         'distance_meters' => (int) round($distance),
-                        'allowed_radius_meters' => (int) config('attendance.geofence.radius_meters'),
+                        'allowed_radius_meters' => (int) $geofenceConfig['radius_meters'],
                     ], 403);
                 }
             }
@@ -264,20 +266,22 @@ class AbsensiController extends Controller
                 ], 403);
             }
 
+            $geofenceConfig = $geofence->configurationFor($user);
             $distance = $geofence->distanceFromWorkplace(
                 $user,
                 (float) $request->input('lat'),
                 (float) $request->input('lng'),
             );
 
-            if (! $geofence->isWithinAllowedRadius(
+            if (! $geofence->measurementIsWithinRadius(
                 $distance,
                 (float) ($request->input('accuracy_meters') ?? 0),
+                $geofenceConfig['radius_meters'],
             )) {
                 return response()->json([
                     'message' => 'Absen pulang ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
                     'distance_meters' => (int) round($distance),
-                    'allowed_radius_meters' => (int) config('attendance.geofence.radius_meters'),
+                    'allowed_radius_meters' => (int) $geofenceConfig['radius_meters'],
                 ], 403);
             }
 

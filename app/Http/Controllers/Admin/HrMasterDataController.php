@@ -4,10 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\JobLevel;
 use App\Models\LeaveType;
+use App\Models\PayrollComponent;
 use App\Models\Position;
+use App\Models\ReimbursementType;
 use App\Models\Shift;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
@@ -24,6 +28,49 @@ class HrMasterDataController extends Controller
     private function resources(): array
     {
         return [
+            'companies' => [
+                'model' => Company::class,
+                'label' => 'Perusahaan',
+                'description' => 'Kelola data perusahaan pemilik cabang.',
+                'columns' => ['name' => 'Nama', 'address' => 'Alamat'],
+                'with' => [],
+                'fields' => [
+                    'name' => ['label' => 'Nama perusahaan', 'type' => 'text', 'rules' => ['required', 'string', 'max:255']],
+                    'npwp' => ['label' => 'NPWP (opsional)', 'type' => 'text', 'rules' => ['nullable', 'string', 'max:255']],
+                    'address' => ['label' => 'Alamat (opsional)', 'type' => 'textarea', 'rules' => ['nullable', 'string', 'max:2000']],
+                ],
+            ],
+            'branches' => [
+                'model' => Branch::class,
+                'label' => 'Cabang',
+                'description' => 'Kelola lokasi kerja dan radius geofence. Cabang tanpa koordinat tidak dapat dipakai untuk validasi absensi.',
+                'columns' => ['name' => 'Nama', 'latitude' => 'Latitude', 'longitude' => 'Longitude', 'radius_m' => 'Radius (m)'],
+                'with' => [],
+                'fields' => [
+                    'company_id' => ['label' => 'Perusahaan', 'type' => 'select', 'source' => 'companies', 'rules' => ['required', 'integer', 'exists:companies,id']],
+                    'name' => ['label' => 'Nama cabang', 'type' => 'text', 'rules' => ['required', 'string', 'max:255']],
+                    'latitude' => ['label' => 'Latitude (opsional)', 'type' => 'number', 'step' => 'any', 'rules' => ['nullable', 'numeric', 'between:-90,90']],
+                    'longitude' => ['label' => 'Longitude (opsional)', 'type' => 'number', 'step' => 'any', 'rules' => ['nullable', 'numeric', 'between:-180,180']],
+                    'radius_m' => ['label' => 'Radius absensi (meter)', 'type' => 'number', 'step' => '1', 'rules' => ['nullable', 'integer', 'min:1', 'max:50000']],
+                ],
+            ],
+            'payroll-components' => [
+                'model' => PayrollComponent::class,
+                'label' => 'Komponen Payroll',
+                'description' => 'Kelola katalog komponen pendapatan dan potongan. Katalog ini belum otomatis mengubah perhitungan payroll freelance.',
+                'warning' => 'Aktivasi komponen hanya mencatat konfigurasi katalog; formula payroll produksi tetap mengikuti perhitungan yang sudah berjalan.',
+                'columns' => ['code' => 'Kode', 'name' => 'Nama', 'type' => 'Jenis', 'calc_type' => 'Metode', 'is_active' => 'Aktif'],
+                'with' => [],
+                'fields' => [
+                    'code' => ['label' => 'Kode komponen', 'type' => 'text', 'rules' => ['required', 'string', 'max:255', 'unique:payroll_components,code']],
+                    'name' => ['label' => 'Nama komponen', 'type' => 'text', 'rules' => ['required', 'string', 'max:255']],
+                    'type' => ['label' => 'Jenis', 'type' => 'select', 'static_options' => ['earning' => 'Pendapatan', 'deduction' => 'Potongan'], 'rules' => ['required', 'in:earning,deduction']],
+                    'calc_type' => ['label' => 'Metode perhitungan', 'type' => 'select', 'static_options' => ['fixed' => 'Nominal tetap', 'percent' => 'Persentase'], 'rules' => ['required', 'in:fixed,percent']],
+                    'is_taxable' => ['label' => 'Dikenai pajak', 'type' => 'checkbox', 'rules' => ['required', 'boolean']],
+                    'is_bpjs_base' => ['label' => 'Termasuk dasar BPJS', 'type' => 'checkbox', 'rules' => ['required', 'boolean']],
+                    'is_active' => ['label' => 'Aktif', 'type' => 'checkbox', 'rules' => ['required', 'boolean']],
+                ],
+            ],
             'departments' => [
                 'model' => Department::class,
                 'label' => 'Departemen',
@@ -87,6 +134,17 @@ class HrMasterDataController extends Controller
                     'need_attachment' => ['label' => 'Memerlukan lampiran', 'type' => 'checkbox', 'rules' => ['required', 'boolean']],
                 ],
             ],
+            'reimbursement-types' => [
+                'model' => ReimbursementType::class,
+                'label' => 'Kategori Reimbursement',
+                'description' => 'Tetapkan limit reimbursement bulanan per karyawan untuk setiap kategori.',
+                'columns' => ['name' => 'Nama kategori', 'monthly_limit' => 'Limit bulanan (Rp)'],
+                'with' => [],
+                'fields' => [
+                    'name' => ['label' => 'Nama kategori', 'type' => 'text', 'rules' => ['required', 'string', 'max:255']],
+                    'monthly_limit' => ['label' => 'Limit bulanan per karyawan (Rp)', 'type' => 'number', 'step' => '1', 'rules' => ['required', 'integer', 'min:1', 'max:1000000000']],
+                ],
+            ],
         ];
     }
 
@@ -132,6 +190,7 @@ class HrMasterDataController extends Controller
         $definition = $this->definition($resource);
         $validated = $this->validatedData($request, $definition);
         $this->validateDepartmentHierarchy($resource, $validated);
+        $this->validateBranchGeofence($resource, $validated);
 
         $model = new $definition['model'];
         $model->fill($validated);
@@ -160,8 +219,9 @@ class HrMasterDataController extends Controller
         $definition = $this->definition($resource);
         $modelClass = $definition['model'];
         $item = $modelClass::query()->findOrFail($record);
-        $validated = $this->validatedData($request, $definition);
+        $validated = $this->validatedData($request, $definition, $item);
         $this->validateDepartmentHierarchy($resource, $validated, $item instanceof Department ? $item : null);
+        $this->validateBranchGeofence($resource, $validated);
 
         $item->fill($validated);
         $item->save();
@@ -194,7 +254,7 @@ class HrMasterDataController extends Controller
             ->with('success', "{$definition['label']} berhasil dihapus.");
     }
 
-    private function validatedData(Request $request, array $definition): array
+    private function validatedData(Request $request, array $definition, ?Model $item = null): array
     {
         foreach ($definition['fields'] as $name => $field) {
             if ($field['type'] === 'checkbox') {
@@ -202,10 +262,30 @@ class HrMasterDataController extends Controller
             }
         }
 
-        return $request->validate(array_map(
-            fn (array $field): array => $field['rules'],
-            $definition['fields'],
-        ));
+        $rules = array_map(fn (array $field): array => $field['rules'], $definition['fields']);
+        if ($item instanceof PayrollComponent) {
+            $rules['code'] = ['required', 'string', 'max:255', 'unique:payroll_components,code,'.$item->id];
+        }
+
+        return $request->validate($rules);
+    }
+
+    private function validateBranchGeofence(string $resource, array $data): void
+    {
+        if ($resource !== 'branches') {
+            return;
+        }
+
+        $hasAnySetting = collect(['latitude', 'longitude', 'radius_m'])
+            ->contains(fn (string $field): bool => isset($data[$field]) && $data[$field] !== '');
+        $hasAllSettings = collect(['latitude', 'longitude', 'radius_m'])
+            ->every(fn (string $field): bool => isset($data[$field]) && $data[$field] !== '');
+
+        if ($hasAnySetting && ! $hasAllSettings) {
+            throw ValidationException::withMessages([
+                'latitude' => 'Latitude, longitude, dan radius harus diisi bersama agar geofence cabang aktif.',
+            ]);
+        }
     }
 
     private function validateDepartmentHierarchy(string $resource, array $data, ?Department $current = null): void
@@ -246,6 +326,7 @@ class HrMasterDataController extends Controller
 
         foreach ($sources as $source) {
             $options[$source] = match ($source) {
+                'companies' => Company::query()->orderBy('name')->get(),
                 'departments' => Department::query()
                     ->when($item instanceof Department, fn ($query) => $query->whereKeyNot($item->getKey()))
                     ->orderBy('name')
@@ -291,6 +372,32 @@ class HrMasterDataController extends Controller
             return $this->firstUsedReason([
                 [$item->balances(), 'masih memiliki saldo cuti'],
                 [$item->absensis(), 'masih digunakan oleh pengajuan absensi'],
+            ]);
+        }
+
+        if ($resource === 'branches' && $item instanceof Branch) {
+            return $this->firstUsedReason([
+                [$item->users(), 'masih digunakan oleh karyawan'],
+            ]);
+        }
+
+        if ($resource === 'companies' && $item instanceof Company) {
+            return $this->firstUsedReason([
+                [$item->branches(), 'masih memiliki cabang'],
+                [$item->departments(), 'masih memiliki departemen'],
+            ]);
+        }
+
+        if ($resource === 'payroll-components' && $item instanceof PayrollComponent) {
+            return $this->firstUsedReason([
+                [$item->employeeComponents(), 'masih ditetapkan pada profil karyawan'],
+                [$item->itemComponents(), 'masih tercatat pada snapshot payroll'],
+            ]);
+        }
+
+        if ($resource === 'reimbursement-types' && $item instanceof ReimbursementType) {
+            return $this->firstUsedReason([
+                [$item->reimbursements(), 'masih memiliki pengajuan reimbursement'],
             ]);
         }
 

@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\ActivityLog;
+use App\Models\Branch;
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\EmployeeSchedule;
 use App\Models\JobLevel;
@@ -24,17 +26,34 @@ it('denies access to admin master data for users who are not HRD', function (str
         ->assertForbidden();
 })->with(['admin', 'user', 'pkl']);
 
-it('removes company and branch master-data routes and tabs', function () {
+it('provides company and branch master-data resources', function () {
     $hrd = hrdForMasterData();
 
     $this->actingAs($hrd)
         ->get(route('admin.master-data.index', ['resource' => 'departments']))
         ->assertOk()
-        ->assertDontSee('Perusahaan')
-        ->assertDontSee('Cabang');
+        ->assertSee('Perusahaan')
+        ->assertSee('Cabang');
 
-    $this->get('/admin/master-data/companies')->assertNotFound();
-    $this->get('/admin/master-data/branches')->assertNotFound();
+    $this->get(route('admin.master-data.index', ['resource' => 'companies']))->assertOk();
+    $this->get(route('admin.master-data.index', ['resource' => 'branches']))->assertOk();
+
+    $this->post(route('admin.master-data.store', ['resource' => 'companies']), [
+        'name' => 'PT Contoh',
+        'npwp' => '01.234.567.8-901.000',
+        'address' => 'Jakarta',
+    ])->assertSessionHas('success');
+
+    $company = Company::query()->where('name', 'PT Contoh')->firstOrFail();
+    $this->post(route('admin.master-data.store', ['resource' => 'branches']), [
+        'company_id' => $company->id,
+        'name' => 'Kantor Pusat',
+        'latitude' => '-6.2',
+        'longitude' => '106.8',
+        'radius_m' => 250,
+    ])->assertSessionHas('success');
+
+    expect(Branch::query()->where('name', 'Kantor Pusat')->firstOrFail()->radius_m)->toBe(250);
 });
 
 it('shows placeholder warnings for shifts and leave types', function () {
@@ -189,6 +208,14 @@ it('records successful master-data deletion in activity logs', function () {
 });
 
 it('renders list, create, and edit forms for every master-data resource', function () {
+    $company = Company::query()->create(['name' => 'PT Contoh']);
+    $branch = Branch::query()->create([
+        'company_id' => $company->id,
+        'name' => 'Kantor Pusat',
+        'latitude' => -6.2,
+        'longitude' => 106.8,
+        'radius_m' => 250,
+    ]);
     $department = Department::factory()->create();
     $level = JobLevel::factory()->create();
     $position = Position::factory()->create([
@@ -196,6 +223,9 @@ it('renders list, create, and edit forms for every master-data resource', functi
         'job_level_id' => $level->id,
     ]);
     $records = [
+        'companies' => Company::query()->create(['name' => 'PT Contoh']),
+        'companies' => $company,
+        'branches' => $branch,
         'departments' => $department,
         'job-levels' => $level,
         'positions' => $position,
