@@ -38,13 +38,13 @@
 
     <div class="ui-page space-y-6">
         <section class="ui-panel">
-            <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-3 sm:gap-4">
+            <div class="grid grid-cols-[3rem_minmax(0,1fr)] items-center gap-2 sm:gap-3">
                 @if ($user->profile_photo_path)
                     <img src="{{ route('admin.storage.file', ['path' => $user->profile_photo_path]) }}"
                          alt="Foto profil {{ $user->name }}"
-                         class="h-[5.625rem] w-[4.5rem] rounded-lg border border-gray-200 object-cover dark:border-gray-700">
+                         class="h-[3.75rem] w-[3rem] rounded-md border border-gray-200 object-cover dark:border-gray-700">
                 @else
-                    <div class="flex h-[5.625rem] w-[4.5rem] items-center justify-center rounded-lg bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
+                    <div class="flex h-[3.75rem] w-[3rem] items-center justify-center rounded-md bg-gray-100 text-xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
                          aria-label="Belum ada foto profil">
                         <i class="fas fa-user"></i>
                     </div>
