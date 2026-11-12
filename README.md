@@ -42,6 +42,7 @@ Payroll is available to HRD accounts from the **Payroll Freelance** sidebar menu
 - The daily rate is Rp120.000. A full 30 minutes of stored lateness per work date deducts Rp7.500; other deductions are not added automatically.
 - The current attendance system stores lateness against its fixed 08:00 baseline. Payroll snapshots this stored value and labels the baseline; it does not recalculate or change attendance records.
 - Each period can be generated only once as a snapshot. Drafts move through **Draft → Menunggu Persetujuan → Disetujui → Dibayarkan**. “Dibayarkan” is a manual confirmation with a required reference, not a bank transfer.
+- When HRD confirms a period as paid, each employee linked to a payroll slip receives an in-app inbox notification. Opening it goes to the employee's own payslip list; unpaid periods and other employees' slips are not exposed by the notification.
 - Unpaid periods can be cancelled with a reason and recreated as a new draft for the same period using the **Buat Payroll Baru** action. The cancelled payroll remains in history, and the recreation is recorded automatically. Paid snapshots remain locked; any post-payment difference must be entered and settled through the manual reconciliation log and does not change the original slip or trigger a payment.
 - HRD can review details, export the period to Excel, preview/print a slip, and download its PDF. The Excel export includes bank, account number, and account-holder name from the employee profile; handle the file as confidential financial data. Employees cannot access another person’s slip through this admin feature.
 
@@ -53,6 +54,8 @@ The checked-in `.env.example` is for local development. Do not copy its values u
 - A production database connection and credentials. This application supports MySQL and PostgreSQL; install the matching PHP PDO driver. Do not point production at the development SQLite database.
 - Working mail credentials and a sender address on a domain authorized by the mail provider. Employee account activation and password-reset flows depend on mail delivery.
 - `SESSION_SECURE_COOKIE=true` when the public site uses HTTPS. Keep the session and cache stores backed by services that are available and migrated in production.
+- For the production hostname, point `sistemabsensi.followme.id` to the server, route it to this app through the reverse proxy, provision HTTPS, and set `APP_URL=https://sistemabsensi.followme.id`. Keep the previous `app.followme.id` hostname serving or proxying the API and APK update paths until existing mobile installations have updated.
+- Configure the private S3 backup destination with a bucket-scoped access key, correct region, and endpoint/path-style settings when using an S3-compatible provider. For Cloudflare R2, use `AWS_DEFAULT_REGION=auto` and `AWS_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com`; keep the bucket private and use R2 S3 API credentials scoped to that bucket. Set a unique `BACKUP_ARCHIVE_PASSWORD` outside source control and keep a separate copy in a password manager; losing it makes encrypted backups unrecoverable. The backup archive must not be stored only inside the application container or on the same server.
 
 Use PHP 8.2 or newer and install the PHP extensions required by `composer.json` and the selected database driver. The PHP runtime serving requests (PHP-FPM/Apache) must have the same required extensions as the CLI used for Artisan commands.
 
@@ -77,7 +80,8 @@ Use PHP 8.2 or newer and install the PHP extensions required by `composer.json` 
 
    Run these commands only against the intended production database. Never use `migrate:fresh` or run seeders as a deployment shortcut. The payroll schema is added by `database/migrations/2026_10_23_000000_create_payroll_tables.php`; review pending migrations and their impact before applying them.
 4. Ensure `storage/` and `bootstrap/cache/` are writable by the PHP-FPM/web-server account without making them world-writable. Run `php artisan storage:link` if the app serves files from the public disk.
-5. After setting environment values and applying migrations, build Laravel's production caches and verify that the release responds successfully at `/up`:
+5. After configuring the S3 destination and archive encryption password, run a backup explicitly to S3 and confirm it is listed as healthy and visible in the private bucket. Test restoring it into an isolated non-production database/environment before relying on it. Do not test restoration over the live database.
+6. After setting environment values and applying migrations, build Laravel's production caches and verify that the release responds successfully at `/up`:
 
    ```bash
    php artisan optimize

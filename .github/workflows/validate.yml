@@ -3,10 +3,11 @@ name: Validate
 on:
   pull_request:
     branches:
+      - main
       - develop
   push:
     branches:
-      - develop
+      - '**'
 
 concurrency:
   group: validate-${{ github.ref }}

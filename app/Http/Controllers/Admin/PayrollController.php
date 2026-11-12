@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Exports\PayrollSummaryExport;
 use App\Http\Controllers\Controller;
 use App\Models\ActivityLog;
+use App\Models\Notification;
 use App\Models\PayrollCorrection;
 use App\Models\PayrollItem;
 use App\Models\PayrollPeriod;
@@ -237,6 +238,20 @@ class PayrollController extends Controller
             $lockedPeriod->paid_by = auth()->id();
             $lockedPeriod->paid_at = now();
             $lockedPeriod->payment_reference = trim($validated['payment_reference']);
+
+            $lockedPeriod->items()
+                ->select(['id', 'user_id'])
+                ->get()
+                ->each(function (PayrollItem $item) use ($lockedPeriod): void {
+                    Notification::query()->create([
+                        'user_id' => $item->user_id,
+                        'title' => 'Slip gaji tersedia',
+                        'message' => "Slip gaji periode {$lockedPeriod->label} sudah tersedia di aplikasi.",
+                        'type' => 'payroll_slip',
+                        'target_id' => $item->id,
+                        'is_read' => false,
+                    ]);
+                });
 
             return [
                 'paid_by' => $lockedPeriod->paid_by,
