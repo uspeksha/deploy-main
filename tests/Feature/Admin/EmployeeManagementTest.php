@@ -111,7 +111,7 @@ it('opens a private employee detail page with the saved personal and work inform
         ->assertOk()
         ->assertSee('Detail Karyawan')
         ->assertSee('Karyawan Detail')
-        ->assertSee('h-28 w-[5.5rem]', false)
+        ->assertSee('h-[5.625rem] w-[4.5rem]', false)
         ->assertSee('EMP-DETAIL')
         ->assertSee('Telepon')
         ->assertSee('Email')

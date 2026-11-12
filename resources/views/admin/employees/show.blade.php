@@ -38,23 +38,23 @@
 
     <div class="ui-page space-y-6">
         <section class="ui-panel">
-            <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6">
+            <div class="grid grid-cols-[4.5rem_minmax(0,1fr)] items-center gap-3 sm:gap-4">
                 @if ($user->profile_photo_path)
                     <img src="{{ route('admin.storage.file', ['path' => $user->profile_photo_path]) }}"
                          alt="Foto profil {{ $user->name }}"
-                         class="h-28 w-[5.5rem] rounded-xl border border-gray-200 object-cover dark:border-gray-700 sm:h-[7.5rem] sm:w-24">
+                         class="h-[5.625rem] w-[4.5rem] rounded-lg border border-gray-200 object-cover dark:border-gray-700">
                 @else
-                    <div class="flex h-28 w-[5.5rem] items-center justify-center rounded-xl bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300 sm:h-[7.5rem] sm:w-24"
+                    <div class="flex h-[5.625rem] w-[4.5rem] items-center justify-center rounded-lg bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
                          aria-label="Belum ada foto profil">
                         <i class="fas fa-user"></i>
                     </div>
                 @endif
                 <div class="min-w-0">
-                    <div class="flex flex-wrap items-center gap-2">
-                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $user->name }}</h3>
-                        <span class="w-fit rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ $status }}</span>
+                    <div class="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">{{ $user->name }}</h3>
+                        <span class="w-fit rounded-full px-2.5 py-1 text-[11px] font-semibold {{ $statusClass }}">{{ $status }}</span>
                     </div>
-                    <dl class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                    <dl class="mt-2 grid gap-x-3 gap-y-1.5 sm:grid-cols-2">
                         @foreach ([
                             'ID karyawan' => $user->id_karyawan,
                             'Telepon' => $user->phone,
@@ -63,7 +63,7 @@
                         ] as $label => $value)
                             <div class="min-w-0">
                                 <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $label }}</dt>
-                                <dd class="mt-0.5 break-words text-xs font-medium text-gray-900 dark:text-gray-100">{{ filled($value) ? $value : 'Belum diisi' }}</dd>
+                                <dd class="mt-0.5 break-words text-[11px] font-medium leading-4 text-gray-900 dark:text-gray-100">{{ filled($value) ? $value : 'Belum diisi' }}</dd>
                             </div>
                         @endforeach
                     </dl>
