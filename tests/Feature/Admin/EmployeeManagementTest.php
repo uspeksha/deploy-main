@@ -82,6 +82,50 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertDontSee($inactiveEmployee->name);
 });
 
+it('opens a private employee detail page with the saved personal and work information', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = employeeManagementUser([
+        'name' => 'Karyawan Detail',
+        'email' => 'detail@example.com',
+        'id_karyawan' => 'EMP-DETAIL',
+        'departemen' => 'Operasional',
+    ]);
+    $employee->profile()->create([
+        'birth_date' => '1990-05-12',
+        'npwp' => '12.345.678.9-012.000',
+    ]);
+    $employee->employmentHistories()->create([
+        'employment_type' => 'organik',
+        'start_date' => '2020-03-16',
+        'note' => 'Mulai bekerja di cabang utama.',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
+        ->assertOk()
+        ->assertSee(route('admin.employees.show', ['user' => $employee, 'section' => 'employees']), false)
+        ->assertSee('Detail', false);
+
+    $this->get(route('admin.employees.show', $employee))
+        ->assertOk()
+        ->assertSee('Detail Karyawan')
+        ->assertSee('Karyawan Detail')
+        ->assertSee('1234567890123456')
+        ->assertSee('081234567890')
+        ->assertSee('Jl. Merdeka No. 1')
+        ->assertSee('12/05/1990')
+        ->assertSee('16/03/2020')
+        ->assertSee('Mulai bekerja di cabang utama.')
+        ->assertSee('NPWP')
+        ->assertSee('12.345.678.9-012.000')
+        ->assertSee('Informasi pekerjaan')
+        ->assertSee(route('admin.employees.edit', $employee), false);
+
+    $this->actingAs(User::factory()->create(['role' => 'admin']))
+        ->get(route('admin.employees.show', $employee))
+        ->assertForbidden();
+});
+
 it('shows employee profile photos in the HRD employee list', function () {
     Storage::fake('public');
     $hrd = User::factory()->create(['role' => 'hrd']);

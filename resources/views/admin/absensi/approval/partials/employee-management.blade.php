@@ -153,18 +153,25 @@
                             <tr>
                                 <td class="whitespace-nowrap px-5 py-4">
                                     <div class="flex items-center gap-3">
-                                        @if ($employee->profile_photo_path)
-                                            <img src="{{ route('admin.storage.file', ['path' => $employee->profile_photo_path]) }}"
-                                                 alt="Foto profil {{ $employee->name }}"
-                                                 class="h-11 w-11 rounded-full border border-gray-200 object-cover dark:border-gray-700">
-                                        @else
-                                            <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300"
-                                                 aria-label="Belum ada foto profil">
-                                                <i class="fas fa-user"></i>
-                                            </div>
-                                        @endif
+                                        <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
+                                           class="shrink-0 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                           aria-label="Lihat detail {{ $employee->name }}">
+                                            @if ($employee->profile_photo_path)
+                                                <img src="{{ route('admin.storage.file', ['path' => $employee->profile_photo_path]) }}"
+                                                     alt="Foto profil {{ $employee->name }}"
+                                                     class="h-11 w-11 rounded-full border border-gray-200 object-cover dark:border-gray-700">
+                                            @else
+                                                <div class="flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-300"
+                                                     aria-label="Belum ada foto profil">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            @endif
+                                        </a>
                                         <div>
-                                            <div class="font-semibold text-gray-900 dark:text-white">{{ $employee->name }}</div>
+                                            <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
+                                               class="font-semibold text-blue-700 hover:underline dark:text-blue-300">
+                                                {{ $employee->name }}
+                                            </a>
                                             <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ $employee->id_karyawan }}</div>
                                         </div>
                                     </div>
@@ -197,6 +204,8 @@
                                 </td>
                                 <td class="px-5 py-4 text-right">
                                     <div class="flex flex-wrap items-center justify-end gap-2">
+                                        <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
+                                           class="ui-button-primary !px-3 !py-2">Detail</a>
                                         <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
                                             <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', ['user' => $employee] + $employeeListQuery) }}">

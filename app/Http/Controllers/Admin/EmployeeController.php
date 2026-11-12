@@ -52,6 +52,31 @@ class EmployeeController extends Controller
         ]);
     }
 
+    public function show(User $user)
+    {
+        $this->ensureHrd();
+        abort_unless($user->role === 'user', 404);
+
+        $user->load([
+            'branch',
+            'department',
+            'documents',
+            'employmentHistories',
+            'families',
+            'position.department',
+            'profile.ptkpStatus',
+            'salaryRates',
+        ]);
+
+        return view('admin.employees.show', [
+            'user' => $user,
+            'joinedAt' => $user->employmentHistories
+                ->sortBy('start_date')
+                ->first()?->start_date,
+            'dailyRate' => $user->dailyRateAt(),
+        ]);
+    }
+
     public function edit(Request $request, User $user)
     {
         $this->ensureHrd();
