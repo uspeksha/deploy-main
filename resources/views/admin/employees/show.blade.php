@@ -33,28 +33,41 @@
             default => ucfirst($user->employment_type ?? 'Belum diisi'),
         };
         $address = $user->profile?->address ?: $user->address;
+        $department = $user->department?->name ?: $user->departemen;
     @endphp
 
     <div class="ui-page space-y-6">
         <section class="ui-panel">
-            <div class="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div class="grid grid-cols-[5.5rem_minmax(0,1fr)] items-center gap-4 sm:grid-cols-[6rem_minmax(0,1fr)] sm:gap-6">
                 @if ($user->profile_photo_path)
                     <img src="{{ route('admin.storage.file', ['path' => $user->profile_photo_path]) }}"
                          alt="Foto profil {{ $user->name }}"
-                         class="h-20 w-20 rounded-full border border-gray-200 object-cover dark:border-gray-700">
+                         class="h-28 w-[5.5rem] rounded-xl border border-gray-200 object-cover dark:border-gray-700 sm:h-[7.5rem] sm:w-24">
                 @else
-                    <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
+                    <div class="flex h-28 w-[5.5rem] items-center justify-center rounded-xl bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300 sm:h-[7.5rem] sm:w-24"
                          aria-label="Belum ada foto profil">
                         <i class="fas fa-user"></i>
                     </div>
                 @endif
-                <div class="min-w-0 flex-1">
-                    <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $user->name }}</h3>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        ID Karyawan: {{ $user->id_karyawan ?: 'Belum diisi' }}
-                    </p>
+                <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">{{ $user->name }}</h3>
+                        <span class="w-fit rounded-full px-3 py-1 text-xs font-semibold {{ $statusClass }}">{{ $status }}</span>
+                    </div>
+                    <dl class="mt-3 grid gap-x-4 gap-y-2 sm:grid-cols-2">
+                        @foreach ([
+                            'ID karyawan' => $user->id_karyawan,
+                            'Telepon' => $user->phone,
+                            'Email' => $user->email,
+                            'Departemen / jabatan' => collect([$department, $user->position?->name])->filter()->implode(' · '),
+                        ] as $label => $value)
+                            <div class="min-w-0">
+                                <dt class="text-[10px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ $label }}</dt>
+                                <dd class="mt-0.5 break-words text-xs font-medium text-gray-900 dark:text-gray-100">{{ filled($value) ? $value : 'Belum diisi' }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
                 </div>
-                <span class="w-fit rounded-full px-3 py-1 text-sm font-semibold {{ $statusClass }}">{{ $status }}</span>
             </div>
         </section>
 
@@ -95,7 +108,7 @@
                     'Tanggal masuk tercatat' => $joinedAt?->format('d/m/Y') ?? 'Belum dicatat',
                     'Jenis karyawan' => $employmentType,
                     'Status akun' => $status,
-                    'Departemen' => $user->department?->name ?: $user->departemen,
+                    'Departemen' => $department,
                     'Cabang' => $user->branch?->name,
                     'Jabatan' => $user->position?->name,
                     'Lokasi kerja' => $workLocation,

@@ -89,6 +89,7 @@ it('opens a private employee detail page with the saved personal and work inform
         'email' => 'detail@example.com',
         'id_karyawan' => 'EMP-DETAIL',
         'departemen' => 'Operasional',
+        'profile_photo_path' => 'profile-photos/karyawan-detail.jpg',
     ]);
     $employee->profile()->create([
         'birth_date' => '1990-05-12',
@@ -110,6 +111,10 @@ it('opens a private employee detail page with the saved personal and work inform
         ->assertOk()
         ->assertSee('Detail Karyawan')
         ->assertSee('Karyawan Detail')
+        ->assertSee('h-28 w-[5.5rem]', false)
+        ->assertSee('EMP-DETAIL')
+        ->assertSee('Telepon')
+        ->assertSee('Email')
         ->assertSee('1234567890123456')
         ->assertSee('081234567890')
         ->assertSee('Jl. Merdeka No. 1')
