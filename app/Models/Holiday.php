@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Holiday extends Model
@@ -19,8 +20,8 @@ class Holiday extends Model
 
     public static function isHoliday($date): bool
     {
-        $carbonDate = \Carbon\Carbon::parse($date);
-        
+        $carbonDate = Carbon::parse($date);
+
         // 1. Otomatis anggap Minggu sebagai libur
         if ($carbonDate->isSunday()) {
             return true;

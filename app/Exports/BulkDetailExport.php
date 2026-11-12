@@ -2,18 +2,20 @@
 
 namespace App\Exports;
 
-use App\Models\User;
 use App\Models\Absensi;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Carbon\Carbon;
 
 class BulkDetailExport implements FromView, ShouldAutoSize, WithTitle
 {
     protected $userIds;
+
     protected $startDate;
+
     protected $endDate;
 
     public function __construct($userIds, $startDate, $endDate)
@@ -44,7 +46,7 @@ class BulkDetailExport implements FromView, ShouldAutoSize, WithTitle
 
         if (count($uniqueCategories) === 1) {
             $singleCategory = $uniqueCategories[0];
-            $categoryLabel = match($singleCategory) {
+            $categoryLabel = match ($singleCategory) {
                 'organik' => 'KARYAWAN ORGANIK',
                 'freelance' => 'KARYAWAN FREELANCE',
                 'borongan' => 'KARYAWAN BORONGAN',
@@ -74,9 +76,9 @@ class BulkDetailExport implements FromView, ShouldAutoSize, WithTitle
             $userAbsensi = $absensiData->where('user_id', $user->id);
 
             // 🔥 GROUP BY TANGGAL & AMBIL DATA TERBARU (ID Tertinggi) PER HARI
-            $latestDailyRecords = $userAbsensi->groupBy(function($absen) {
-                return \Carbon\Carbon::parse($absen->check_in_at)->format('Y-m-d');
-            })->map(function($dayGroup) {
+            $latestDailyRecords = $userAbsensi->groupBy(function ($absen) {
+                return Carbon::parse($absen->check_in_at)->format('Y-m-d');
+            })->map(function ($dayGroup) {
                 return $dayGroup->sortByDesc('id')->first();
             });
 
@@ -87,16 +89,16 @@ class BulkDetailExport implements FromView, ShouldAutoSize, WithTitle
             $pokokFinal = round($pokokAsli + $bonusPlus);
 
             // 🔥 Gaji lembur HANYA hitung yang approved
-            $lemburFinal = $latestDailyRecords->where('status_approval', 'approved')->map(fn($a) => round($a->overtime_pay ?? 0))->sum();
-            
-            $dendaTelatIndividual = $latestDailyRecords->filter(fn($a) => ($a->late_penalty ?? 0) > 0)->map(fn($a) => round($a->late_penalty ?? 0))->sum();
+            $lemburFinal = $latestDailyRecords->where('status_approval', 'approved')->map(fn ($a) => round($a->overtime_pay ?? 0))->sum();
+
+            $dendaTelatIndividual = $latestDailyRecords->filter(fn ($a) => ($a->late_penalty ?? 0) > 0)->map(fn ($a) => round($a->late_penalty ?? 0))->sum();
             $adjMinus = round(abs((float) $latestDailyRecords->where('adjustment_salary', '<', 0)->sum('adjustment_salary')));
             $potonganFinal = $dendaTelatIndividual + $adjMinus;
 
             $grandTotalGajiPokok += $pokokFinal;
             $grandTotalGajiLembur += $lemburFinal;
             $grandTotalPotongan += $potonganFinal;
-            
+
             // 🔥 TOTAL AKHIR PER USER (BALANCE)
             $userTotal = ($pokokFinal + $lemburFinal) - $potonganFinal;
             $grandTotalGajiBersih += $userTotal;
@@ -105,7 +107,7 @@ class BulkDetailExport implements FromView, ShouldAutoSize, WithTitle
         // CEK APAKAH SEMUA USER ADALAH ORGANIK
         $isOnlyOrganik = count($uniqueCategories) === 1 && $uniqueCategories[0] === 'organik';
 
-        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y') . ' s/d ' . Carbon::parse($this->endDate)->translatedFormat('d M Y');
+        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y').' s/d '.Carbon::parse($this->endDate)->translatedFormat('d M Y');
 
         return view('exports.bulk_detail', [
             'users' => $users,

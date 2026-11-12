@@ -10,8 +10,8 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->enum('work_location', ['office', 'produksi'])
-                  ->default('office')
-                  ->after('departemen');
+                ->default('office')
+                ->after('departemen');
         });
     }
 

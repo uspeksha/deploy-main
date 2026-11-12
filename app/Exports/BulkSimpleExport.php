@@ -2,18 +2,20 @@
 
 namespace App\Exports;
 
-use App\Models\User;
 use App\Models\Absensi;
+use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\FromView;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use Carbon\Carbon;
 
 class BulkSimpleExport implements FromView, ShouldAutoSize, WithTitle
 {
     protected $userIds;
+
     protected $startDate;
+
     protected $endDate;
 
     public function __construct($userIds, $startDate, $endDate)
@@ -53,7 +55,7 @@ class BulkSimpleExport implements FromView, ShouldAutoSize, WithTitle
 
         if (count($uniqueCategories) === 1) {
             $singleCategory = $uniqueCategories[0];
-            $categoryLabel = match($singleCategory) {
+            $categoryLabel = match ($singleCategory) {
                 'organik' => 'Karyawan Organik',
                 'freelance' => 'Karyawan Freelance',
                 'borongan' => 'Karyawan Borongan',
@@ -64,7 +66,7 @@ class BulkSimpleExport implements FromView, ShouldAutoSize, WithTitle
             $categoryLabel = 'Semua Karyawan';
         }
 
-        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y') . ' s/d ' . Carbon::parse($this->endDate)->translatedFormat('d M Y');
+        $periodeStr = Carbon::parse($this->startDate)->translatedFormat('d M Y').' s/d '.Carbon::parse($this->endDate)->translatedFormat('d M Y');
 
         // 🔥 CHUNK TANGGAL JADI 11 HARI PER ROW
         $dateChunks = array_chunk($allDates, 11);

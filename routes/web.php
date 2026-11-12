@@ -1,33 +1,85 @@
 <?php
 
 use App\Http\Controllers\Admin\AbsensiAdminController;
+use App\Http\Controllers\Admin\ActivityLogController;
 use App\Http\Controllers\Admin\ApprovalController;
+use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\EmployeeHrDataController;
+use App\Http\Controllers\Admin\EmployeeHrRequestController as AdminEmployeeHrRequestController;
+use App\Http\Controllers\Admin\HolidayController;
+use App\Http\Controllers\Admin\HrMasterDataController;
+use App\Http\Controllers\Admin\PayrollController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\ActivityLogMiddleware;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
+
+Route::get('/profile-photos/{filename}', function (string $filename) {
+    abort_unless(preg_match('/\A(?!\.{1,2}\z)[A-Za-z0-9][A-Za-z0-9._-]*\z/', $filename) === 1, 404);
+
+    $path = 'profile-photos/'.$filename;
+    abort_unless(Storage::disk('public')->exists($path), 404);
+
+    return Storage::disk('public')->response($path);
+})->name('profile-photos.show');
 
 Route::get('/', function () {
     return view('welcome');
 });
 
+Route::middleware([
+    'auth',
+    'active.account',
+    'admin',
+    ActivityLogMiddleware::class,
+    'super_admin',
+])->prefix('admin/payroll')->name('admin.payroll.')->group(function () {
+    Route::get('/', [PayrollController::class, 'index'])->name('index');
+    Route::post('/periods', [PayrollController::class, 'store'])->name('store');
+    Route::post('/periods/{period}/submit', [PayrollController::class, 'submit'])->name('submit');
+    Route::post('/periods/{period}/approve', [PayrollController::class, 'approve'])->name('approve');
+    Route::post('/periods/{period}/paid', [PayrollController::class, 'markPaid'])->name('paid');
+    Route::post('/periods/{period}/cancel', [PayrollController::class, 'cancel'])->name('cancel');
+    Route::delete('/periods/{period}', [PayrollController::class, 'destroy'])->name('destroy');
+    Route::post('/periods/{period}/corrections', [PayrollController::class, 'recordCorrection'])->name('corrections.store');
+    Route::post('/periods/{period}/corrections/{correction}/reconcile', [PayrollController::class, 'reconcileCorrection'])->name('corrections.reconcile');
+    Route::get('/periods/{period}/export', [PayrollController::class, 'export'])->name('export');
+    Route::get('/periods/{period}/items/{item}/slip/preview', [PayrollController::class, 'previewSlip'])->name('slip.preview');
+    Route::get('/periods/{period}/items/{item}/slip', [PayrollController::class, 'slip'])->name('slip');
+});
 
 Route::get('/dashboard', function () {
     return redirect()->route('admin.absensi.index');
-})->middleware(['auth', 'verified'])->name('dashboard');
+})->middleware(['auth', 'active.account', 'verified'])->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.account'])->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
 
-Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::class])->prefix('admin')->group(function () {
+
+    Route::get('/hr-requests', [AdminEmployeeHrRequestController::class, 'index'])
+        ->name('admin.hr-requests.index');
+    Route::post('/hr-requests/reimbursements/{reimbursement}/{action}', [AdminEmployeeHrRequestController::class, 'reimbursementAction'])
+        ->where('action', 'approve|reject|paid')
+        ->name('admin.hr-requests.reimbursements.action');
+    Route::post('/hr-requests/loans/{loan}/{action}', [AdminEmployeeHrRequestController::class, 'loanAction'])
+        ->where('action', 'approve|reject')
+        ->name('admin.hr-requests.loans.action');
+    Route::post('/hr-requests/installments/{installment}/paid', [AdminEmployeeHrRequestController::class, 'installmentPaid'])
+        ->whereNumber('installment')
+        ->name('admin.hr-requests.installments.paid');
+    Route::get('/hr-requests/reimbursements/{reimbursement}/receipt', [AdminEmployeeHrRequestController::class, 'downloadReceipt'])
+        ->name('admin.hr-requests.reimbursements.receipt');
 
     Route::prefix('absensi')->group(function () {
 
         // ✅ Dashboard & List
         Route::get('/', [AbsensiAdminController::class, 'index'])->name('admin.absensi.index');
         Route::get('/freelance', [AbsensiAdminController::class, 'indexFreelance'])->name('admin.absensi.freelance');
-        
+
         // 🛠️ EDIT JAM MASUK (Tadi salah nama jadi edit-checkin)
         Route::post('/{id}/update-checkin', [AbsensiAdminController::class, 'updateCheckIn'])
             ->name('admin.absensi.updateCheckIn');
@@ -41,40 +93,58 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
         Route::get('/user/{id}/export', [AbsensiAdminController::class, 'exportUser'])->name('admin.absensi.user.export')->middleware('block.pkl');
         Route::get('/recap', [AbsensiAdminController::class, 'recap'])->name('admin.absensi.recap');
         Route::get('/recap/export', [AbsensiAdminController::class, 'exportRecap'])->name('admin.absensi.recap.export')->middleware('block.pkl');
-        
+
         Route::post('/bulk-export-detail', [AbsensiAdminController::class, 'bulkExportDetail'])->name('admin.absensi.bulk-export-detail')->middleware('block.pkl');
         Route::post('/bulk-export-simple', [AbsensiAdminController::class, 'bulkExportSimple'])->name('admin.absensi.bulk-export-simple');
         Route::get('/bulk-export-all-simple', [AbsensiAdminController::class, 'bulkExportAllSimple'])->name('admin.absensi.bulk-export-all-simple')->middleware('block.pkl');
 
         // 🔒 Khusus Super Admin
         Route::middleware('super_admin')->group(function () {
-            Route::get('/organik', [AbsensiAdminController::class, 'indexOrganik'])->name('admin.absensi.organik');
             Route::get('/user/{user}/export-slip', [AbsensiAdminController::class, 'exportSlipGaji'])->name('admin.absensi.user.export-slip')->middleware('block.pkl');
             Route::get('/user/{id}/export-slip-pdf', [AbsensiAdminController::class, 'exportSlipGajiPdf'])->name('admin.absensi.user.export-slip-pdf')->middleware('block.pkl');
             Route::post('/bulk-export-pdf', [AbsensiAdminController::class, 'bulkExportPdf'])->name('admin.absensi.bulk-export-pdf')->middleware('block.pkl');
-            Route::get('/activity-logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->name('admin.activity_logs.index');
+            Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('admin.activity_logs.index');
         });
     });
 
     // HARI LIBUR
     Route::prefix('holidays')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\HolidayController::class, 'index'])->name('admin.holidays.index');
-        Route::get('/create', [\App\Http\Controllers\Admin\HolidayController::class, 'create'])->name('admin.holidays.create');
-        Route::post('/', [\App\Http\Controllers\Admin\HolidayController::class, 'store'])->name('admin.holidays.store');
-        Route::delete('/{id}', [\App\Http\Controllers\Admin\HolidayController::class, 'destroy'])->name('admin.holidays.destroy');
-        Route::post('/sync', [\App\Http\Controllers\Admin\HolidayController::class, 'sync'])->name('admin.holidays.sync');
+        Route::get('/', [HolidayController::class, 'index'])->name('admin.holidays.index');
+        Route::get('/create', [HolidayController::class, 'create'])->name('admin.holidays.create');
+        Route::post('/', [HolidayController::class, 'store'])->name('admin.holidays.store');
+        Route::delete('/{id}', [HolidayController::class, 'destroy'])->name('admin.holidays.destroy');
+        Route::post('/sync', [HolidayController::class, 'sync'])->name('admin.holidays.sync');
     });
 
-    // IZIN KELUAR
-    Route::prefix('izin-keluar')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\IzinKeluarAdminController::class, 'index'])->name('admin.izin-keluar.index');
+    Route::prefix('master-data')->name('admin.master-data.')->group(function () {
+        $resources = 'companies|branches|departments|job-levels|payroll-components|positions|reimbursement-types|shifts|leave-types';
+
+        Route::get('/{resource}', [HrMasterDataController::class, 'index'])
+            ->where('resource', $resources)
+            ->name('index');
+        Route::get('/{resource}/create', [HrMasterDataController::class, 'create'])
+            ->where('resource', $resources)
+            ->name('create');
+        Route::post('/{resource}', [HrMasterDataController::class, 'store'])
+            ->where('resource', $resources)
+            ->name('store');
+        Route::get('/{resource}/{record}/edit', [HrMasterDataController::class, 'edit'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('edit');
+        Route::put('/{resource}/{record}', [HrMasterDataController::class, 'update'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('update');
+        Route::delete('/{resource}/{record}', [HrMasterDataController::class, 'destroy'])
+            ->where('resource', $resources)
+            ->whereNumber('record')
+            ->name('destroy');
     });
 
     // APPROVAL ABSENSI
     Route::prefix('approval')->group(function () {
-        Route::get('/supervisor', [ApprovalController::class, 'supervisor'])->name('admin.absensi.approval.supervisor');
-        Route::get('/manager', [ApprovalController::class, 'manager'])->name('admin.absensi.approval.manager');
-        Route::get('/hrga', [ApprovalController::class, 'hrga'])->name('admin.absensi.approval.hrga');
+        Route::get('/hrd', [ApprovalController::class, 'hrd'])->name('admin.absensi.approval.hrd');
 
         Route::post('/{absensi}/{action}', [ApprovalController::class, 'handleAction'])
             ->name('admin.absensi.approval.action')
@@ -82,29 +152,60 @@ Route::middleware(['auth', 'admin', \App\Http\Middleware\ActivityLogMiddleware::
 
         Route::post('/bulk-approve', [ApprovalController::class, 'handleBulkAction'])->name('admin.absensi.approval.bulk-action');
 
-        Route::post('/scheduled-lembur/{id}/{action}', [ApprovalController::class, 'handleScheduledLemburAction'])
-            ->name('admin.absensi.approval.scheduled-lembur.action')
-            ->where('action', 'approve|reject');
-        Route::post('/izin-keluar/{id}/{action}', [ApprovalController::class, 'handleIzinKeluarAction'])
-            ->name('admin.absensi.approval.izin-keluar.action')
-            ->where('action', 'approve|reject');
+        Route::post('/employees/{user}/salary-rates', [ApprovalController::class, 'updateEmployeeSalaryRate'])
+            ->name('admin.absensi.approval.employees.salary-rates.store');
     });
+
+    Route::get('/employees', [EmployeeController::class, 'index'])->name('admin.employees.index');
+    Route::post('/employees', [ApprovalController::class, 'createEmployeeAccount'])->name('admin.absensi.approval.employees.store');
+    Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
+        ->name('admin.absensi.approval.employees.resend');
+    Route::get('/employees/{user}/edit', [EmployeeController::class, 'edit'])->name('admin.employees.edit');
+    Route::put('/employees/{user}', [EmployeeController::class, 'update'])->name('admin.employees.update');
+    Route::put('/employees/{user}/hr-profile', [EmployeeHrDataController::class, 'updateProfile'])
+        ->name('admin.employees.hr-profile.update');
+    Route::post('/employees/{user}/families', [EmployeeHrDataController::class, 'storeFamily'])
+        ->name('admin.employees.families.store');
+    Route::put('/employees/{user}/families/{family}', [EmployeeHrDataController::class, 'updateFamily'])
+        ->whereNumber('family')
+        ->name('admin.employees.families.update');
+    Route::delete('/employees/{user}/families/{family}', [EmployeeHrDataController::class, 'destroyFamily'])
+        ->whereNumber('family')
+        ->name('admin.employees.families.destroy');
+    Route::post('/employees/{user}/employment-histories', [EmployeeHrDataController::class, 'storeHistory'])
+        ->name('admin.employees.employment-histories.store');
+    Route::put('/employees/{user}/employment-histories/{history}', [EmployeeHrDataController::class, 'updateHistory'])
+        ->whereNumber('history')
+        ->name('admin.employees.employment-histories.update');
+    Route::delete('/employees/{user}/employment-histories/{history}', [EmployeeHrDataController::class, 'destroyHistory'])
+        ->whereNumber('history')
+        ->name('admin.employees.employment-histories.destroy');
+    Route::post('/employees/{user}/documents', [EmployeeHrDataController::class, 'storeDocument'])
+        ->name('admin.employees.documents.store');
+    Route::get('/employees/{user}/documents/{document}', [EmployeeHrDataController::class, 'downloadDocument'])
+        ->whereNumber('document')
+        ->name('admin.employees.documents.download');
+    Route::delete('/employees/{user}/documents/{document}', [EmployeeHrDataController::class, 'destroyDocument'])
+        ->whereNumber('document')
+        ->name('admin.employees.documents.destroy');
+    Route::patch('/employees/{user}/activate', [EmployeeController::class, 'activate'])->name('admin.employees.activate');
+    Route::delete('/employees/{user}', [EmployeeController::class, 'deactivate'])->name('admin.employees.deactivate');
+    Route::delete('/employees/{user}/permanent', [EmployeeController::class, 'destroy'])->name('admin.employees.destroy');
+
+    // --- SECURE STORAGE FILE STREAM ROUTE ---
+    Route::get('/storage-file/{path}', function ($path) {
+        $path = urldecode($path);
+        if (! Storage::disk('public')->exists($path)) {
+            abort(404);
+        }
+
+        return Storage::disk('public')->response($path);
+    })->where('path', '.*')->name('admin.storage.file');
 
     // --- ABSENSI MANAGEMENT (Adjustment Gaji) ---
     Route::post('/absensi/{absensi}/adjustment', [AbsensiAdminController::class, 'updateAdjustment'])
         ->name('admin.absensi.update-adjustment');
-        
-    Route::post('/absensi/manual-entry', [AbsensiAdminController::class, 'storeManual'])
-        ->name('admin.absensi.store-manual');
 
-    Route::post('/absensi/manual-izin-sakit', [AbsensiAdminController::class, 'storeIzinSakitManual'])
-        ->name('admin.absensi.store-izin-sakit-manual');
-
-    Route::post('/absensi/manual-overtime', [AbsensiAdminController::class, 'storeLemburManual'])
-        ->name('admin.absensi.store-lembur-manual');
-
-    Route::get('/absensi/koreksi', [AbsensiAdminController::class, 'showManualEntryPage'])
-        ->name('admin.absensi.koreksi');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

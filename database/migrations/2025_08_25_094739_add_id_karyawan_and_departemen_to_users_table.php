@@ -1,4 +1,5 @@
 <?php
+
 // FILE: database/migrations/<timestamp>_add_id_karyawan_and_departemen_to_users_table.php
 
 use Illuminate\Database\Migrations\Migration;

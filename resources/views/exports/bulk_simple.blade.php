@@ -6,12 +6,12 @@
     {{-- ======================= --}}
     <thead>
         <tr>
-            <td colspan="17" style="font-weight:bold; font-size:16px; text-align:center; height:40px; vertical-align:middle; background:#FFFF00; border:1px solid #000;">
+            <td colspan="17" style="font-weight:bold; font-size:16px; text-align:center; height:40px; vertical-align:middle; background:#d4d4d4; border:1px solid #000;">
                 ABSENSI {{ strtoupper($categoryLabel ?? 'KARYAWAN') }}
             </td>
         </tr>
         <tr>
-            <td colspan="17" style="font-weight:bold; text-align:center; background:#FFFF00; border:1px solid #000;">
+            <td colspan="17" style="font-weight:bold; text-align:center; background:#d4d4d4; border:1px solid #000;">
                 {{ strtoupper(\Carbon\Carbon::parse($allDates[0])->translatedFormat('F Y')) }}
             </td>
         </tr>
@@ -154,7 +154,7 @@
                                         $bg = 'background:#D3D3D3;';
                                     } else {
                                         $cell = 'Tidak Masuk';
-                                        $bg = 'background:#FFB6C1;';
+                                        $bg = 'background:#d4d4d4;';
                                     }
                                 }
                             }

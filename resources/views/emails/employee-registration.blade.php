@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Akses Akun Followme</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f5; color: #171717; margin: 0; padding: 40px 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 24px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.05); border: 1px solid #e5e5e5;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #525252, #404040); padding: 32px; text-align: center; color: #ffffff;">
+            <img src="{{ asset('images/followme-indonesia.png') }}" alt="Followme Indonesia" width="72" height="72" style="display: block; margin: 0 auto 12px; border-radius: 18px; filter: grayscale(1);">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Followme</h1>
+            <p style="margin: 6px 0 0 0; font-size: 13px; opacity: 0.9; text-transform: uppercase; letter-spacing: 1px;">PT Follow Me</p>
+        </div>
+
+        <!-- Body Content -->
+        <div style="padding: 40px 32px;">
+            <p style="margin-top: 0; font-size: 16px; font-weight: bold; color: #262626;">Halo, {{ $employee->name }} 👋</p>
+            <p style="font-size: 14px; color: #525252; line-height: 1.6;">
+                Akun portal absensi resmi Anda telah berhasil dibuat oleh tim HRD. Anda sekarang dapat mulai mencatat kehadiran, melihat rekap, dan mengelola aktivitas kerja harian.
+            </p>
+
+            <!-- Credentials Box -->
+            <div style="background: #f5f5f5; border-radius: 16px; padding: 24px; margin: 28px 0; border: 1px solid #e5e5e5;">
+                <p style="margin: 0 0 16px 0; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #737373;">Informasi Akses Akun Anda</p>
+                
+                <div style="margin-bottom: 14px;">
+                    <span style="display: block; font-size: 11px; font-weight: bold; color: #737373; text-transform: uppercase;">Email Login</span>
+                    <span style="font-size: 15px; font-weight: bold; color: #171717;">{{ $employee->email }}</span>
+                </div>
+
+                <div>
+                    <span style="display: block; font-size: 11px; font-weight: bold; color: #737373; text-transform: uppercase;">Password Sementara</span>
+                    <span style="font-size: 18px; font-weight: 900; color: #404040; font-family: monospace; letter-spacing: 1px; background: #ffffff; padding: 6px 12px; border-radius: 8px; display: inline-block; border: 1px dashed #d4d4d4; margin-top: 4px;">{{ $temporaryPassword }}</span>
+                </div>
+            </div>
+
+            <!-- Action Button -->
+            <div style="text-align: center; margin: 32px 0;">
+                <a href="{{ route('login') }}" style="background: linear-gradient(135deg, #525252, #404040); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: bold; display: inline-block; box-shadow: 0 10px 20px rgba(0,0,0,0.2);">Masuk ke Portal Absensi</a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 32px 0;">
+
+            <p style="font-size: 12px; color: #a3a3a3; line-height: 1.5; margin: 0;">
+                <strong>Catatan Keamanan:</strong> Demi keamanan akun Anda, harap segera login menggunakan password sementara di atas lalu ubah password melalui menu Profil Anda. Jangan pernah membagikan informasi akses ini kepada siapa pun.
+            </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="background: #f5f5f5; padding: 20px 32px; text-align: center; border-top: 1px solid #e5e5e5;">
+            <p style="margin: 0; font-size: 11px; color: #a3a3a3; text-transform: uppercase; letter-spacing: 1px;">© {{ date('Y') }} PT Follow Me · Sistem Kehadiran Digital</p>
+        </div>
+    </div>
+</body>
+</html>

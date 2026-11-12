@@ -20,72 +20,83 @@
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
         }
-        .premium-bg { background: #f8fafc; }
-        .dark .premium-bg { background: #0f172a; }
+        .premium-bg { background: #f5f5f5; }
+        .dark .premium-bg { background: #171717; }
         .stat-card { transition: all 0.3s ease; }
         .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.12); }
         .dark .stat-card:hover { box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.4); }
         .stat-icon { transition: transform 0.3s ease; }
         .stat-card:hover .stat-icon { transform: scale(1.08); }
-        .premium-table { border-collapse: separate; border-spacing: 0; }
-        .premium-table thead th { background: #1f2937; color: #f3f4f6; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; padding: 1rem; border-bottom: 2px solid #374151; white-space: nowrap; }
-        .dark .premium-table thead th { background: #111827; color: #e5e7eb; border-bottom-color: #1f2937; }
-        .premium-table tbody tr { transition: all 0.15s ease; background: white; border-bottom: 1px solid #e5e7eb; }
-        .dark .premium-table tbody tr { background: #1e293b; border-bottom-color: #334155; }
-        .premium-table tbody tr:hover { background: #f1f5f9; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
-        .dark .premium-table tbody tr:hover { background: #334155; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
-        .premium-table tbody td { padding: 1rem; vertical-align: middle; white-space: nowrap; }
+        .premium-table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1200px; }
+        .premium-table thead th { background: #262626; color: #f5f5f5; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; font-size: 0.75rem; padding: 0.875rem 1rem; border-bottom: 2px solid #404040; white-space: nowrap; text-align: left; }
+        .dark .premium-table thead th { background: #171717; color: #e5e5e5; border-bottom-color: #262626; }
+        .premium-table tbody tr { transition: all 0.15s ease; background: white; border-bottom: 1px solid #e5e5e5; }
+        .dark .premium-table tbody tr { background: #262626; border-bottom-color: #404040; }
+        .premium-table tbody tr:hover { background: #f5f5f5; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
+        .dark .premium-table tbody tr:hover { background: #404040; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+        .premium-table tbody td { padding: 0.875rem 1rem; vertical-align: middle; font-size: 0.875rem; color: #404040; white-space: nowrap; }
+        .dark .premium-table tbody td { color: #d4d4d4; }
         .badge-premium { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.875rem; border-radius: 0.5rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.025em; transition: all 0.2s ease; }
         .link-premium { transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem; border-radius: 0.5rem; font-weight: 500; font-size: 0.875rem; }
         .link-premium:hover { background: rgba(107, 114, 128, 0.12); }
         .premium-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
-        .premium-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
-        .dark .premium-scroll::-webkit-scrollbar-track { background: #1e293b; }
-        .premium-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 10px; }
-        .dark .premium-scroll::-webkit-scrollbar-thumb { background: #475569; }
-        .premium-scroll::-webkit-scrollbar-thumb:hover { background: #64748b; }
-        .premium-card { background: white; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); transition: all 0.2s ease; }
-        .dark .premium-card { background: #1e293b; border-color: #334155; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
-        .text-late { color: #dc2626; font-weight: 600; font-size: 0.875rem; }
-        .text-ontime { color: #16a34a; font-weight: 600; font-size: 0.875rem; }
-        .filter-select { padding: 0.625rem 1rem; border: 1px solid #e5e7eb; border-radius: 0.75rem; background: white; font-weight: 500; font-size: 0.875rem; transition: all 0.2s ease; min-width: 150px; }
-        .dark .filter-select { background: #1e293b; border-color: #334155; color: #e5e7eb; }
-        .filter-select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
-        .filter-btn { padding: 0.625rem 1.5rem; background: #1f2937; color: white; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s ease; border: none; cursor: pointer; }
-        .filter-btn:hover { background: #111827; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-        .dark .filter-btn { background: #374151; }
-        .dark .filter-btn:hover { background: #4b5563; }
+        .premium-scroll::-webkit-scrollbar-track { background: #f5f5f5; }
+        .dark .premium-scroll::-webkit-scrollbar-track { background: #262626; }
+        .premium-scroll::-webkit-scrollbar-thumb { background: #a3a3a3; border-radius: 10px; }
+        .dark .premium-scroll::-webkit-scrollbar-thumb { background: #525252; }
+        .premium-scroll::-webkit-scrollbar-thumb:hover { background: #737373; }
+        .premium-card { background: white; border: 1px solid #e5e5e5; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); transition: all 0.2s ease; }
+        .dark .premium-card { background: #262626; border-color: #404040; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+        .text-late { color: #525252; font-weight: 600; font-size: 0.875rem; }
+        .text-ontime { color: #737373; font-weight: 600; font-size: 0.875rem; }
+        .filter-select { padding: 0.625rem 1rem; border: 1px solid #e5e5e5; border-radius: 0.75rem; background: white; font-weight: 500; font-size: 0.875rem; transition: all 0.2s ease; min-width: 150px; }
+        .dark .filter-select { background: #262626; border-color: #404040; color: #e5e5e5; }
+        .filter-select:focus { outline: none; border-color: #525252; box-shadow: 0 0 0 3px rgba(82, 82, 82, 0.1); }
+        .filter-btn { padding: 0.625rem 1.5rem; background: #262626; color: white; border-radius: 0.75rem; font-weight: 600; font-size: 0.875rem; transition: all 0.2s ease; border: none; cursor: pointer; }
+        .filter-btn:hover { background: #171717; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+        .dark .filter-btn { background: #404040; }
+        .dark .filter-btn:hover { background: #525252; }
     </style>
 
-    <div class="py-8 premium-bg min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="min-h-screen">
+        <div class="ui-page space-y-6">
 
            {{-- Filter Section --}}
-            <div class="premium-card p-6 rounded-2xl">
-                <form method="GET" action="{{ route('admin.absensi.user', $user->id) }}" class="flex flex-wrap items-end gap-4">
+            <div class="premium-card p-6 rounded-2xl shadow-sm">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 bg-emerald-600 dark:bg-emerald-500 rounded-xl flex items-center justify-center text-white shadow-md">
+                        <i class="fas fa-filter text-base"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-900 dark:text-white">Filter Data Absensi</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Pilih periode atau tanggal khusus untuk melihat riwayat</p>
+                    </div>
+                </div>
+
+                <form method="GET" action="{{ route('admin.absensi.user', $user->id) }}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
 
                     {{-- Pilihan Tipe Filter --}}
-                    <div class="flex flex-col gap-2">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Tipe Filter</label>
-                        <select name="filter_type" id="filter_type" class="filter-select">
+                    <div class="flex flex-col gap-1.5">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Tipe Filter</label>
+                        <select name="filter_type" id="filter_type" class="ui-control">
                             <option value="all" {{ request('filter_type', 'all') == 'all' ? 'selected' : '' }}>Semua Data</option>
                             <option value="monthly" {{ request('filter_type') == 'monthly' ? 'selected' : '' }}>Per Bulan</option>
-                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Range Tanggal (Custom)</option> {{-- ⬅️ INI BARU --}}
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Range Tanggal (Custom)</option>
                         </select>
                     </div>
 
                     {{-- Filter Bulan (Muncul kalo pilih Per Bulan) --}}
-                    <div class="flex flex-col gap-2 {{ request('filter_type') == 'monthly' ? '' : 'hidden' }}" id="month_section">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Bulan & Tahun</label>
-                        <div class="flex gap-2">
-                            <select name="month" class="filter-select">
+                    <div class="flex flex-col gap-1.5 {{ request('filter_type') == 'monthly' ? '' : 'hidden' }}" id="month_section">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Bulan & Tahun</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <select name="month" class="ui-control">
                                 @for ($m = 1; $m <= 12; $m++)
                                     <option value="{{ $m }}" {{ request('month', now()->month) == $m ? 'selected' : '' }}>
                                         {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
                                     </option>
                                 @endfor
                             </select>
-                            <select name="year" class="filter-select">
+                            <select name="year" class="ui-control">
                                 @for($y = now()->year; $y >= 2020; $y--)
                                     <option value="{{ $y }}" {{ request('year', now()->year) == $y ? 'selected' : '' }}>{{ $y }}</option>
                                 @endfor
@@ -94,158 +105,148 @@
                     </div>
 
                     {{-- Filter Custom Tanggal (Muncul kalo pilih Range Tanggal) --}}
-                    <div class="flex flex-col gap-2 {{ request('filter_type') == 'custom' ? '' : 'hidden' }}" id="custom_date_section">
-                        <label class="text-sm font-semibold text-gray-700 dark:text-gray-300">Pilih Tanggal</label>
+                    <div class="flex flex-col gap-1.5 sm:col-span-2 {{ request('filter_type') == 'custom' ? '' : 'hidden' }}" id="custom_date_section">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400">Pilih Tanggal</label>
                         <div class="flex items-center gap-2">
-                            <input type="date" name="start_date" value="{{ request('start_date') }}" class="filter-select text-gray-700">
-                            <span class="text-gray-500">s/d</span>
-                            <input type="date" name="end_date" value="{{ request('end_date') }}" class="filter-select text-gray-700">
+                            <input type="date" name="start_date" value="{{ request('start_date') }}" class="ui-control">
+                            <span class="text-gray-500 font-medium px-1">s/d</span>
+                            <input type="date" name="end_date" value="{{ request('end_date') }}" class="ui-control">
                         </div>
                     </div>
 
-                    <button type="submit" class="filter-btn">
-                        <i class="fas fa-filter mr-2"></i> Terapkan
-                    </button>
-
-                    {{-- Tombol Export Slip Gaji (Ikut Filter) --}}
-                    <a href="{{ route('admin.absensi.user.export-slip', [
-                            'user' => $user->id,
-                            'filter_type' => request('filter_type', 'all'),
-                            'month' => request('month', now()->month),
-                            'year' => request('year', now()->year),
-                            'start_date' => request('start_date'), // ⬅️ Kirim start_date
-                            'end_date' => request('end_date')      // ⬅️ Kirim end_date
-                        ]) }}"
-                       class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]">
-                        <i class="fas fa-file-invoice-dollar"></i> Export Slip Gaji
-                    </a>
+                    <div class="flex items-center">
+                        <button type="submit" class="ui-button-primary w-full">
+                            <i class="fas fa-filter"></i>
+                            <span>Terapkan</span>
+                        </button>
+                    </div>
                 </form>
             </div>
 
             {{-- Summary --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 fade-in">
                 {{-- Total Hadir --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Hadir</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['hadir'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Hadir</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['hadir'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-check-circle text-xl text-green-600 dark:text-green-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-lg text-green-600 dark:text-green-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Telat --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Telat</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['telat'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Telat</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['telat'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-clock text-xl text-orange-600 dark:text-orange-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-lg text-orange-600 dark:text-orange-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Izin --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Izin</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['izin'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Izin</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['izin'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-sticky-note text-xl text-yellow-600 dark:text-yellow-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-sticky-note text-lg text-yellow-600 dark:text-yellow-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Sakit --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Sakit</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['sakit'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Sakit</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['sakit'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-medkit text-xl text-red-600 dark:text-red-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-medkit text-lg text-red-600 dark:text-red-400"></i>
                         </div>
                     </div>
                 </div>
                 {{-- Total Lembur --}}
-                <div class="stat-card premium-card p-6 rounded-2xl">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl shadow-sm sm:col-span-2 lg:col-span-1">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Lembur</p>
-                            <p class="text-gray-900 dark:text-white text-3xl font-bold">{{ $absensiStats['lembur'] ?? 0 }}</p>
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Lembur</p>
+                            <p class="text-gray-900 dark:text-white text-2xl font-bold">{{ $absensiStats['lembur'] ?? 0 }}</p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-clock text-xl text-purple-600 dark:text-purple-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-lg text-purple-600 dark:text-purple-400"></i>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- 🆕 KOTAK BARU: RINGKASAN GAJI (SESUAI REQUEST LO) -->
+            <!-- 🆕 KOTAK BARU: RINGKASAN GAJI -->
             @if($user->employment_type !== 'organik')
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 fade-in">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 fade-in">
 
                 <!-- Card Potongan Telat -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-red-50 dark:bg-red-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-red-50/60 dark:bg-red-900/10 shadow-sm border border-red-100 dark:border-red-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Potongan Telat</p>
-                            <p class="text-red-700 dark:text-red-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Potongan Telat</p>
+                            <p class="text-red-700 dark:text-red-300 text-xl font-bold">
                                 -Rp {{ number_format($absensiStats['total_potongan'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-arrow-circle-down text-xl text-red-600 dark:text-red-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-circle-down text-lg text-red-600 dark:text-red-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Lembur -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-purple-50 dark:bg-purple-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-purple-50/60 dark:bg-purple-900/10 shadow-sm border border-purple-100 dark:border-purple-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Lembur</p>
-                            <p class="text-purple-700 dark:text-purple-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Lembur</p>
+                            <p class="text-purple-700 dark:text-purple-300 text-xl font-bold">
                                 +Rp {{ number_format($absensiStats['total_gaji_lembur'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-arrow-circle-up text-xl text-purple-600 dark:text-purple-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-arrow-circle-up text-lg text-purple-600 dark:text-purple-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Pokok -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-green-50 dark:bg-green-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-green-50/60 dark:bg-green-900/10 shadow-sm border border-green-100 dark:border-green-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Pokok</p>
-                            <p class="text-green-700 dark:text-green-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Pokok</p>
+                            <p class="text-green-700 dark:text-green-300 text-xl font-bold">
                                 Rp {{ number_format($absensiStats['total_gaji_pokok'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-plus-circle text-xl text-green-600 dark:text-green-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-plus-circle text-lg text-green-600 dark:text-green-400"></i>
                         </div>
                     </div>
                 </div>
 
                 <!-- Card Gaji Bersih -->
-                <div class="stat-card premium-card p-6 rounded-2xl bg-blue-50 dark:bg-blue-900/20">
-                    <div class="flex justify-between">
+                <div class="stat-card premium-card p-5 rounded-2xl bg-blue-50/60 dark:bg-blue-900/10 shadow-sm border border-blue-100 dark:border-blue-900/30">
+                    <div class="flex justify-between items-start">
                         <div>
-                            <p class="text-gray-600 dark:text-gray-400 text-xs uppercase font-semibold mb-2">Total Gaji Bersih</p>
-                            <p class="text-blue-700 dark:text-blue-300 text-3xl font-bold">
+                            <p class="text-gray-500 dark:text-gray-400 text-xs uppercase font-semibold mb-1">Total Gaji Bersih</p>
+                            <p class="text-blue-700 dark:text-blue-300 text-xl font-bold">
                                 Rp {{ number_format($absensiStats['total_gaji_bersih'] ?? 0, 0, ',', '.') }}
                             </p>
                         </div>
-                        <div class="stat-icon w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-equals text-xl text-blue-600 dark:text-blue-400"></i>
+                        <div class="stat-icon w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-equals text-lg text-blue-600 dark:text-blue-400"></i>
                         </div>
                     </div>
                 </div>
@@ -254,54 +255,9 @@
             @endif
             <!-- 🆕 END RINGKASAN GAJI -->
 
-          {{-- Tombol Export --}}
-<div class="flex justify-end mb-4 gap-4">
-
-    {{-- 📄 Tombol Export Slip Gaji (EXCEL - Bisa Diedit) --}}
-    <a href="{{ route('admin.absensi.user.export-slip', [
-            'user' => $user->id,
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date')
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]">
-        <i class="fas fa-file-excel"></i> Export Slip Gaji (Excel)
-    </a>
-
-    {{-- 🆕 Tombol Export Slip Gaji (PDF - GA BISA DIEDIT) --}}
-   <a href="{{ route('admin.absensi.user.export-slip-pdf', [
-            'id' => $user->id,  {{-- ⚠️ GANTI DARI 'user' JADI 'id' --}}
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date')
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200 h-[46px]"
-       title="Format PDF - Tidak bisa diedit">
-        <i class="fas fa-file-pdf"></i> Export Slip Gaji (PDF) 🔒
-    </a>
-
-    {{-- Tombol Export Detail (LAMA) --}}
-    <a href="{{ route('admin.absensi.user.export', [
-            'id' => $user->id,
-            'filter_type' => request('filter_type', 'all'),
-            'month' => request('month', now()->month),
-            'year' => request('year', now()->year),
-            'start_date' => request('start_date'),
-            'end_date' => request('end_date'),
-        ]) }}"
-       class="inline-flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium shadow-sm transition-all duration-200">
-        <i class="fas fa-file-excel"></i>
-        Export Detail (Tabel)
-    </a>
-</div>
-
             {{-- Tabel --}}
             <div class="premium-card p-6 rounded-2xl fade-in">
-                <div class="flex items-center gap-3 mb-6">
+                <div class="ui-section-heading mb-6">
                     <div class="w-10 h-10 bg-gray-900 dark:bg-gray-700 rounded-lg flex items-center justify-center">
                         <i class="fas fa-table text-white"></i>
                     </div>
@@ -311,24 +267,18 @@
                     </div>
                 </div>
 
-                <div class="overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700">
-                    <table class="premium-table min-w-full">
+                <div class="ui-table-shell overflow-x-auto premium-scroll rounded-xl border border-gray-200 dark:border-gray-700 p-2">
+                    <table class="premium-table">
                         <thead>
                             <tr>
                                 <th>Tanggal</th>
                                 <th>Check-in</th>
                                 <th>Telat</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Pokok</th>
                                 <th>Potongan</th>
                                 <th>Gaji Bersih</th>
-                                @endif
-                                <!-- 🆕 TAMBAH 2 HEADER INI -->
                                 <th>Menit Lembur</th>
-                                @if($user->employment_type !== 'organik')
                                 <th>Gaji Lembur</th>
-                                @endif
-                                <!-- ------------------- -->
                                 <th>Check-out</th>
                                 <th>Status</th>
                                 <th>Tipe</th>
@@ -380,7 +330,6 @@
                                         @endif
                                     </td>
 
-                                    @if($user->employment_type !== 'organik')
                                     {{-- Gaji Pokok --}}
                                     <td>
                                         @if($item->base_salary)
@@ -418,9 +367,7 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
 
-                                    <!-- 🆕 TAMBAH 2 KOLOM INI -->
                                     <td>
                                         @if($item->overtime_minutes > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -430,7 +377,6 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @if($user->employment_type !== 'organik')
                                     <td>
                                         @if($item->overtime_pay > 0)
                                             <span class="px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 rounded-lg text-xs font-semibold">
@@ -440,7 +386,6 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                     </td>
-                                    @endif
                                     <!-- ------------------- -->
 
                                     {{-- Check-out --}}
@@ -453,9 +398,9 @@
                                             <span class="text-gray-500 dark:text-gray-400 text-sm">-</span>
                                         @endif
                                         @if($item->status === 'hadir' && $item->status_approval === 'approved')
-                                        <button class="edit-checkout-btn px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold transition-all mt-1"
+                                        <button class="edit-checkout-btn ui-button-secondary"
                                             data-absensi-id="{{ $item->id }}"
-                                            data-checkout-time="{{ $item->check_out_at ? $item->check_out_at->format('Y-m-d H:i:s') : now()->format('Y-m-d') . ' 17:00:00' }}">
+                                            data-checkout-time="{{ $item->check_out_at?->format('Y-m-d H:i:s') ?? (($item->check_in_at?->format('Y-m-d') ?? now()->format('Y-m-d')) . ' 17:00:00') }}">
                                             Edit Pulang
                                         </button>
                                         @endif
@@ -591,7 +536,7 @@
                                     </td>
                                     <td>
                             @if($item->status === 'hadir' && $item->status_approval === 'approved')
-                            <button class="edit-checkin-btn px-3 py-1.5 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg text-xs font-semibold transition-all"
+                            <button class="edit-checkin-btn ui-button-secondary"
                                     data-absensi-id="{{ $item->id }}"
                                     data-checkin-time="{{ $item->check_in_at->format('Y-m-d H:i:s') }}">
                                 Edit
@@ -604,7 +549,7 @@
                             @empty
                                 <tr>
                                     <!-- 🆕 UPDATE COLSPAN (15 + 2 = 17) -->
-                                    <td colspan="17" class="text-center py-16">
+                                    <td colspan="17" class="ui-empty-state">
                                         <div class="flex flex-col items-center gap-3">
                                             <div class="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
                                                 <i class="fas fa-inbox text-gray-400 dark:text-gray-500 text-2xl"></i>
@@ -639,7 +584,7 @@
                         <p class="text-xs text-blue-100 mt-0.5">Ubah jam pulang karyawan</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-checkout-btn w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-xl flex items-center justify-center transition-all duration-200 hover:rotate-90">
+                <button type="button" class="close-modal-checkout-btn ui-button-secondary">
                     <i class="fas fa-times text-lg text-white"></i>
                 </button>
             </div>
@@ -656,14 +601,14 @@
                     <i class="fas fa-clock mr-1 text-blue-500"></i> Jam Pulang Baru
                 </label>
                 <input type="datetime-local" id="inputNewCheckOut" name="new_check_out"
-                    class="w-full px-4 py-3 rounded-xl border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    class="ui-control"
                     required>
             </div>
             <div class="flex gap-3 pt-2">
-                <button type="button" class="close-modal-checkout-btn flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-semibold transition-all">
+                <button type="button" class="close-modal-checkout-btn flex-1 ui-button-secondary">
                     Batal
                 </button>
-                <button type="submit" class="flex-1 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl font-semibold transition-all shadow-lg">
+                <button type="submit" class="flex-1 ui-button-primary">
                     <i class="fas fa-save mr-2"></i> Simpan
                 </button>
             </div>
@@ -692,7 +637,7 @@
                         <p class="text-xs text-blue-100 mt-0.5">Ubah jam masuk karyawan</p>
                     </div>
                 </div>
-                <button type="button" class="close-modal-btn w-10 h-10 bg-white/20 hover:bg-white/30 backdrop-blur-lg rounded-xl flex items-center justify-center transition-all duration-200 hover:rotate-90">
+                <button type="button" class="close-modal-btn ui-button-secondary">
                     <i class="fas fa-times text-lg text-white"></i>
                 </button>
             </div>
@@ -728,11 +673,7 @@
             <input type="datetime-local"
                    name="new_check_in"
                    id="inputNewCheckIn"
-                   class="w-full px-4 py-3.5 pl-12 border-2 border-gray-300 dark:border-gray-600 rounded-xl
-                          bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-medium
-                          focus:border-blue-500 focus:ring-4 focus:ring-blue-500/20
-                          transition-all duration-200 outline-none
-                          hover:border-blue-400 dark:hover:border-blue-500"
+                   class="ui-control pl-12"
                    required>
 
             <div class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-blue-600 dark:group-focus-within:text-blue-400 transition-colors">
@@ -751,19 +692,13 @@
     {{-- Buttons --}}
     <div class="flex gap-3 pt-4">
         <button type="button"
-                class="close-modal-btn flex-1 px-6 py-3.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600
-                       text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm
-                       transition-all duration-200 transform hover:scale-105 active:scale-95
-                       flex items-center justify-center gap-2 group">
+                class="close-modal-btn flex-1 ui-button-secondary">
             <i class="fas fa-times group-hover:rotate-90 transition-transform duration-200"></i>
             <span>Batal</span>
         </button>
 
         <button type="submit"
-                class="flex-1 px-6 py-3.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700
-                       text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-500/50
-                       transition-all duration-200 transform hover:scale-105 active:scale-95
-                       flex items-center justify-center gap-2 group relative overflow-hidden">
+                class="flex-1 ui-button-primary">
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-200%] group-hover:translate-x-[200%] transition-transform duration-700"></div>
 
             <i class="fas fa-save relative z-10"></i>

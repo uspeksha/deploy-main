@@ -9,7 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         // Cek dulu apakah table sudah ada (dari migration users)
-        if (!Schema::hasTable('password_resets')) {
+        if (! Schema::hasTable('password_resets')) {
             Schema::create('password_resets', function (Blueprint $table) {
                 $table->string('email')->index();
                 $table->string('otp', 6); // OTP 6 digit

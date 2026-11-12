@@ -1,11 +1,35 @@
 const defaultTheme = require('tailwindcss/defaultTheme');
-
+const professionalBlue = {
+    50: '#f1f7f9',
+    100: '#deebef',
+    200: '#c2d9e0',
+    300: '#9cc4d0',
+    400: '#6ba2b4',
+    500: '#3d7e94',
+    600: '#265970',
+    700: '#1d4457',
+    800: '#1b3949',
+    900: '#1b303d',
+    950: '#101e28',
+};
+const steelTeal = {
+    50: '#f0f6f7',
+    100: '#dce9ec',
+    200: '#bdd4da',
+    300: '#91b7c1',
+    400: '#6094a2',
+    500: '#4b7484',
+    600: '#3c5f6e',
+    700: '#344e5b',
+    800: '#30424d',
+    900: '#2b3942',
+    950: '#19252d',
+};
 module.exports = {
-    darkMode: 'class', // INI YANG PENTING! Tanpa ini dark mode ga akan jalan
+    darkMode: 'class',
 
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
-        './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
     ],
 
@@ -15,49 +39,9 @@ module.exports = {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
             colors: {
-                latte: {
-                    DEFAULT: '#F5E6CC',
-                    50: '#FFFDF9',
-                    100: '#FAF7F0',
-                    200: '#F5EEDF',
-                    300: '#F0E5D0',
-                    400: '#EBCDC7',
-                    500: '#E6C4BD',
-                    600: '#DAB8AE',
-                    700: '#CEAC9F',
-                    800: '#A4897E',
-                    900: '#7B665E',
-                    950: '#4D403A',
-                },
-                antiqueCream: {
-                    DEFAULT: '#EDE6BE',
-                    50: '#FDFCF2',
-                    100: '#FBF9ED',
-                    200: '#F6F0D9',
-                    300: '#F0E7C5',
-                    400: '#EADEC2',
-                    500: '#E3D5B0',
-                    600: '#C7B998',
-                    700: '#AB9D81',
-                    800: '#6E6652',
-                    900: '#38332A',
-                    950: '#1F1C16',
-                },
-                dustyLatte: {
-                    DEFAULT: '#D4C8B5',
-                    50: '#F9F7F4',
-                    100: '#F4F0EB',
-                    200: '#EAE5DB',
-                    300: '#E0DBCC',
-                    400: '#D4C8B5',
-                    500: '#C3B5A1',
-                    600: '#A1917F',
-                    700: '#807264',
-                    800: '#5F534C',
-                    900: '#3D3631',
-                    950: '#1F1C1A',
-                },
-            }
+                emerald: professionalBlue,
+                teal: steelTeal,
+            },
         },
     },
 
