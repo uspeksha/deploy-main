@@ -8,7 +8,7 @@ RUN npm run build
 FROM php:8.3-apache
 
 RUN apt-get update && apt-get install -y \
-      unzip libcurl4-openssl-dev libicu-dev libpq-dev libzip-dev libpng-dev libonig-dev libxml2-dev \
+      mariadb-client unzip libcurl4-openssl-dev libicu-dev libpq-dev libzip-dev libpng-dev libonig-dev libxml2-dev \
     && docker-php-ext-install bcmath curl dom gd intl mbstring pdo_mysql pdo_pgsql simplexml xml zip \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*

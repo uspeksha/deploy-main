@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\AttendanceGeofenceController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\EmployeeHrRequestController;
 use App\Http\Controllers\Api\EmployeePayrollController;
+use App\Http\Controllers\Api\FcmDeviceController;
 use App\Http\Controllers\Api\ForgotPasswordController;
 use App\Http\Controllers\Api\KpiIntegrationController;
 use App\Http\Controllers\Api\NotificationController;
@@ -59,6 +60,10 @@ Route::middleware('throttle:api')->prefix('v1')->group(function () {
         // ========== AUTH & PROFILE ==========
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/user', [AuthController::class, 'user']);
+        Route::put('/user/fcm-token', [FcmDeviceController::class, 'store'])
+            ->middleware('throttle:10,1');
+        Route::delete('/user/fcm-token', [FcmDeviceController::class, 'destroy'])
+            ->middleware('throttle:10,1');
         Route::get('/attendance/geofence', [AttendanceGeofenceController::class, 'show']);
         Route::get('/payroll/slips', [EmployeePayrollController::class, 'index']);
         Route::get('/payroll/slips/{item}/download', [EmployeePayrollController::class, 'download'])
