@@ -150,48 +150,98 @@ jobs:
             -f /home/deploy/app/compose.yaml
             -f /home/deploy/app/compose.override.yaml)
           app_container="$("${compose[@]}" ps -q app)"
-          if [ -z "$app_container" ]; then
-            echo "Sistem Absensi app container was not found; refusing deployment."
+          queue_container="$("${compose[@]}" ps -q queue)"
+          if [ -z "$app_container" ] || [ -z "$queue_container" ]; then
+            echo "Sistem Absensi app or queue container was not found; refusing deployment."
             exit 1
           fi
           if ! curl --fail --silent --show-error --max-time 5 http://127.0.0.1:8081/up >/dev/null; then
             echo "Current Sistem Absensi health check failed; refusing deployment."
             exit 1
           fi
+          if [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$queue_container")" != "true" ]; then
+            echo "Current Sistem Absensi queue worker is not running; refusing deployment."
+            exit 1
+          fi
 
-          previous_image="$(sudo -n docker inspect --format='{{.Image}}' "$app_container")"
-          sudo -n docker tag "$previous_image" "deploy-main:rollback-${release}"
+          previous_app_image="$(sudo -n docker inspect --format='{{.Image}}' "$app_container")"
+          previous_queue_image="$(sudo -n docker inspect --format='{{.Image}}' "$queue_container")"
+          sudo -n docker tag "$previous_app_image" "deploy-main:rollback-app-${release}"
+          sudo -n docker tag "$previous_queue_image" "deploy-main:rollback-queue-${release}"
           sudo -n docker load --input "$archive"
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
 
+          if ! backup_output="$("${compose[@]}" run --rm --no-deps app
+            php artisan backup:run --only-db --disable-notifications --no-interaction --no-ansi 2>&1)"; then
+            printf '%s\n' "$backup_output"
+            echo "Production database backup failed; refusing migration and deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+
+          if ! "${compose[@]}" run --rm --no-deps app php artisan tinker --execute '
+            if (! filled(config("backup.backup.password"))) {
+              throw new \RuntimeException("Production backup encryption is not configured.");
+            }
+            $disk = \Illuminate\Support\Facades\Storage::disk("s3");
+            $recent = collect($disk->allFiles("Followme"))
+              ->filter(fn ($file) => $disk->size($file) > 0 && $disk->lastModified($file) >= now()->subMinutes(10)->timestamp);
+            if ($recent->isEmpty()) {
+              throw new \RuntimeException("No recent production backup was verified on the S3 disk.");
+            }
+          ' --no-ansi; then
+            echo "Production database backup was not verified on S3; refusing migration and deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+
+          if ! "${compose[@]}" run --rm --no-deps app php artisan migrate --force --no-interaction; then
+            echo "Production database migration failed; application services were not changed."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+
           rollback() {
-            if ! sudo -n docker tag "$previous_image" deploy-main:local; then
-              echo "Failed to restore the previous app image tag."
+            rollback_failed=0
+            if ! sudo -n docker tag "$previous_app_image" deploy-main:local ||
+              ! "${compose[@]}" up -d --no-deps --no-build app; then
+              echo "Failed to restore the previous app service."
+              rollback_failed=1
+            fi
+            if ! sudo -n docker tag "$previous_queue_image" deploy-main:local ||
+              ! "${compose[@]}" up -d --no-deps --no-build queue; then
+              echo "Failed to restore the previous queue service."
+              rollback_failed=1
+            fi
+            if [ "$rollback_failed" -ne 0 ]; then
               return 1
             fi
-            if ! "${compose[@]}" up -d --no-deps --no-build app; then
-              echo "Failed to restart the app service with its previous image."
-              return 1
-            fi
+
             for attempt in $(seq 1 30); do
-              if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
-                echo "Previous app image restored and healthy."
+              restored_queue="$("${compose[@]}" ps -q queue)"
+              if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null &&
+                [ -n "$restored_queue" ] &&
+                [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$restored_queue")" = "true" ]; then
+                echo "Previous app and queue images restored; app is healthy and queue is running."
                 return 0
               fi
               sleep 2
             done
-            echo "Previous app image was restored, but its health check failed."
+            echo "Previous app or queue image was restored, but health verification failed."
             return 1
           }
 
-          if ! "${compose[@]}" up -d --no-deps --no-build app; then
+          if ! "${compose[@]}" up -d --no-deps --no-build app queue; then
             rollback
             exit 1
           fi
 
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
-              echo "Sistem Absensi app health check passed."
+            current_queue="$("${compose[@]}" ps -q queue)"
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null &&
+              [ -n "$current_queue" ] &&
+              [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$current_queue")" = "true" ]; then
+              echo "Sistem Absensi app health check passed and queue worker is running."
               exit 0
             fi
             sleep 2

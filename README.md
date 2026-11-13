@@ -53,6 +53,7 @@ The checked-in `.env.example` is for local development. Do not copy its values u
 - A production database connection and credentials. This application supports MySQL and PostgreSQL; install the matching PHP PDO driver. Do not point production at the development SQLite database.
 - Working mail credentials and a sender address on a domain authorized by the mail provider. Employee account activation and password-reset flows depend on mail delivery.
 - `SESSION_SECURE_COOKIE=true` when the public site uses HTTPS. Keep the session and cache stores backed by services that are available and migrated in production.
+- For Firebase push delivery, keep the service-account JSON outside the repository and image, mount it read-only into both `app` and `queue`, and set `FIREBASE_PROJECT_ID` plus `FIREBASE_CREDENTIALS` on both services. Never put the JSON key in a committed environment file.
 
 Use PHP 8.2 or newer and install the PHP extensions required by `composer.json` and the selected database driver. The PHP runtime serving requests (PHP-FPM/Apache) must have the same required extensions as the CLI used for Artisan commands.
 
@@ -77,7 +78,7 @@ Use PHP 8.2 or newer and install the PHP extensions required by `composer.json` 
 
    Run these commands only against the intended production database. Never use `migrate:fresh` or run seeders as a deployment shortcut. The payroll schema is added by `database/migrations/2026_10_23_000000_create_payroll_tables.php`; review pending migrations and their impact before applying them.
 4. Ensure `storage/` and `bootstrap/cache/` are writable by the PHP-FPM/web-server account without making them world-writable. Run `php artisan storage:link` if the app serves files from the public disk.
-5. After setting environment values and applying migrations, build Laravel's production caches and verify that the release responds successfully at `/up`:
+5. Before a production migration, run a database-only backup and verify a recent encrypted archive exists on the private S3 disk. The production image must include the matching database dump client. Apply the migration with the release image, then build Laravel's production caches and verify that the release responds successfully at `/up`. When a release changes queued-job code, restart both the `app` and `queue` services with the same release image; do not restart unrelated services:
 
    ```bash
    php artisan optimize
