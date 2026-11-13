@@ -85,6 +85,7 @@ Use PHP 8.2 or newer and install the PHP extensions required by `composer.json` 
    ```
 
    If queue workers or scheduled tasks are enabled in the deployment, restart the workers after release and configure the scheduler separately.
+6. For push notifications, configure `FIREBASE_PROJECT_ID` and `FIREBASE_CREDENTIALS` to reference the same Firebase project and a readable service-account JSON file outside the repository. The production deployment validates these settings without printing credential values and stops before migration if they are missing or invalid.
 
 ### Docker deployment
 
