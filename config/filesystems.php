@@ -38,6 +38,12 @@ return [
             'report' => false,
         ],
 
+        'predeploy_backup' => [
+            'driver' => 'local',
+            'root' => env('PREDEPLOY_BACKUP_ROOT', storage_path('app/predeploy-backups')),
+            'throw' => true,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

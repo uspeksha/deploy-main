@@ -148,11 +148,11 @@ jobs:
           release='${{ github.sha }}'
           archive="/tmp/deploy-main-${release}.tar.gz"
           trap 'rm -f -- "$archive"' EXIT
-          compose=(sudo -n docker compose -p followme-app
+          compose_base=(sudo -n docker compose -p followme-app
             -f /home/deploy/app/compose.yaml
             -f /home/deploy/app/compose.override.yaml)
-          app_container="$("${compose[@]}" ps -q app)"
-          queue_container="$("${compose[@]}" ps -q queue)"
+          app_container="$("${compose_base[@]}" ps -q app)"
+          queue_container="$("${compose_base[@]}" ps -q queue)"
           if [ -z "$app_container" ] || [ -z "$queue_container" ]; then
             echo "Sistem Absensi app or queue container was not found; refusing deployment."
             exit 1
@@ -173,107 +173,70 @@ jobs:
           sudo -n docker load --input "$archive"
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
 
+          runtime_override="$(mktemp /tmp/sistem-absensi-release-XXXXXX.yaml)"
+          trap 'rm -f -- "$archive" "$runtime_override"' EXIT
+          chmod 600 "$runtime_override"
+          cat > "$runtime_override" <<'COMPOSE'
+          services:
+            app:
+              volumes:
+                - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+            queue:
+              volumes:
+                - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+          COMPOSE
+          compose=("${compose_base[@]}" -f "$runtime_override")
+
+          echo "Checking Firebase service-account configuration without displaying credentials."
+          if ! "${compose[@]}" run --rm --no-deps app php scripts/verify-firebase-credentials.php; then
+            echo "Firebase configuration is unavailable or invalid; refusing push deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+
           backup_dir=/home/deploy/app/predeploy-backups
           backup_key="$backup_dir/${release}.key"
-          sudo -n install -d -o root -g root -m 700 "$backup_dir"
+          backup_run="${release}-${{ github.run_id }}-${{ github.run_attempt }}"
+          if ! [[ "$backup_run" =~ ^[[:xdigit:]]{40}-[0-9]+-[0-9]+$ ]]; then
+            echo "Invalid production backup run identifier; refusing deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+          if ! sudo -n install -d -o root -g root -m 700 "$backup_dir"; then
+            echo "Unable to prepare persistent production backup storage."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
           if ! sudo -n test -s "$backup_key"; then
-            sudo -n openssl rand -hex 32 | sudo -n tee "$backup_key" >/dev/null
-            sudo -n chmod 600 "$backup_key"
+            if ! sudo -n openssl rand -hex 32 | sudo -n tee "$backup_key" >/dev/null ||
+              ! sudo -n chmod 600 "$backup_key"; then
+              echo "Unable to create the production backup encryption key."
+              sudo -n docker tag "$previous_app_image" deploy-main:local
+              exit 1
+            fi
           fi
 
           echo "Creating and verifying an encrypted database backup on persistent Sistem Absensi host storage."
           if ! backup_output="$("${compose[@]}" run --rm --no-deps \
             --volume "$backup_dir:/predeploy-backups" \
             --volume "$backup_key:/run/predeploy-backup-key:ro" \
-            app php artisan tinker --execute '
-              $password = trim((string) file_get_contents("/run/predeploy-backup-key"));
-              if ($password === "") {
-                throw new \RuntimeException("Production backup encryption key is empty.");
-              }
-              config([
-                "backup.backup.password" => $password,
-                "backup.backup.destination.disks" => ["predeploy_backup"],
-                "filesystems.disks.predeploy_backup" => [
-                  "driver" => "local",
-                  "root" => "/predeploy-backups",
-                  "throw" => true,
-                ],
-              ]);
-
-              $startedAt = time();
-              $exitCode = \Illuminate\Support\Facades\Artisan::call("backup:run", [
-                "--only-db" => true,
-                "--disable-notifications" => true,
-                "--no-interaction" => true,
-                "--no-ansi" => true,
-              ]);
-              if ($exitCode !== 0) {
-                throw new \RuntimeException("Database-only backup command failed.");
-              }
-
-              $disk = \Illuminate\Support\Facades\Storage::disk("predeploy_backup");
-              $archives = collect($disk->allFiles(config("backup.backup.name")))
-                ->filter(fn ($file) => str_ends_with($file, ".zip") && $disk->lastModified($file) >= $startedAt)
-                ->values();
-              if ($archives->isEmpty()) {
-                throw new \RuntimeException("No new persistent backup archive was created.");
-              }
-
-              $archive = $archives->sortByDesc(fn ($file) => $disk->lastModified($file))->first();
-              $archiveSize = $disk->size($archive);
-              if ($archiveSize === 0) {
-                throw new \RuntimeException("The database backup archive is empty.");
-              }
-
-              $zip = new \ZipArchive();
-              if ($zip->open($disk->path($archive)) !== true) {
-                throw new \RuntimeException("The database backup archive cannot be opened.");
-              }
-              if (! \Spatie\Backup\Listeners\EncryptBackupArchive::shouldEncrypt()) {
-                throw new \RuntimeException("Production backup encryption is not enabled.");
-              }
-              $zip->setPassword($password);
-              $entries = 0;
-              $dataBytes = 0;
-              $hasSqlDump = false;
-              for ($index = 0; $index < $zip->numFiles; $index++) {
-                $entryName = $zip->getNameIndex($index);
-                $hasSqlDump = $hasSqlDump || str_ends_with(strtolower($entryName), ".sql") ||
-                  str_ends_with(strtolower($entryName), ".sql.gz");
-                $probe = new \ZipArchive();
-                if ($probe->open($disk->path($archive)) !== true) {
-                  throw new \RuntimeException("The database backup archive cannot be re-opened.");
-                }
-                $unprotectedStream = $probe->getStream($entryName);
-                if ($unprotectedStream !== false) {
-                  fclose($unprotectedStream);
-                  $probe->close();
-                  throw new \RuntimeException("The database backup entry is not encrypted.");
-                }
-                $probe->close();
-                $zip->setPassword($password);
-                $stream = $zip->getStream($entryName);
-                if ($stream === false) {
-                  throw new \RuntimeException("The encrypted database backup cannot be opened.");
-                }
-                while (! feof($stream)) {
-                  $chunk = fread($stream, 1048576);
-                  if ($chunk === false) {
-                    throw new \RuntimeException("The database backup failed its integrity check.");
-                  }
-                  $dataBytes += strlen($chunk);
-                }
-                fclose($stream);
-                $entries++;
-              }
-              $zip->close();
-              if ($entries === 0 || $dataBytes === 0 || ! $hasSqlDump) {
-                throw new \RuntimeException("The archive does not contain a verified database dump.");
-              }
-
-              echo "backup_verified encrypted=yes entries={$entries} data_bytes={$dataBytes} archive_bytes={$archiveSize}\n";
-            ' --no-ansi 2>&1)"; then
+            --env BACKUP_DESTINATION_DISKS=predeploy_backup \
+            --env BACKUP_ARCHIVE_PASSWORD_FILE=/run/predeploy-backup-key \
+            --env "PREDEPLOY_BACKUP_ROOT=/predeploy-backups/$backup_run" \
+            app php artisan backup:run --only-db --disable-notifications --no-interaction --no-ansi 2>&1)"; then
             printf '%s\n' "$backup_output"
+            echo "Persistent encrypted production backup failed verification; refusing migration and deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+          echo "Database backup command completed; verifying the encrypted SQL archive."
+
+          if ! "${compose[@]}" run --rm --no-deps \
+            --volume "$backup_dir:/predeploy-backups" \
+            --volume "$backup_key:/run/predeploy-backup-key:ro" \
+            --env "PREDEPLOY_BACKUP_ROOT=/predeploy-backups/$backup_run" \
+            --env BACKUP_ARCHIVE_PASSWORD_FILE=/run/predeploy-backup-key \
+            app php scripts/verify-encrypted-backup.php; then
             echo "Persistent encrypted production backup failed verification; refusing migration and deployment."
             sudo -n docker tag "$previous_app_image" deploy-main:local
             exit 1

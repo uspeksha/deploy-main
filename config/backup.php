@@ -12,6 +12,24 @@ use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumAgeInDays;
 use Spatie\Backup\Tasks\Monitor\HealthChecks\MaximumStorageInMegabytes;
 use Spatie\DbDumper\Compressors\GzipCompressor;
 
+$backupPasswordFile = env('BACKUP_ARCHIVE_PASSWORD_FILE');
+$backupPassword = env('BACKUP_ARCHIVE_PASSWORD');
+
+if ($backupPasswordFile !== null) {
+    $backupPassword = file_get_contents($backupPasswordFile);
+
+    if ($backupPassword === false || trim($backupPassword) === '') {
+        throw new RuntimeException('Unable to read a non-empty backup archive password file.');
+    }
+
+    $backupPassword = trim($backupPassword);
+}
+
+$backupDestinationDisks = array_values(array_filter(array_map(
+    'trim',
+    explode(',', env('BACKUP_DESTINATION_DISKS', 'local,s3')),
+)));
+
 return [
 
     'backup' => [
@@ -92,10 +110,7 @@ return [
             /*
              * The disks on which the backups will be stored. Default: local
              */
-            'disks' => [
-                'local',
-                's3',
-            ],
+            'disks' => $backupDestinationDisks,
         ],
 
         /*
@@ -107,7 +122,7 @@ return [
          * The password that will be used to encrypt the backup.
          * Default to null (no encryption)
          */
-        'password' => env('BACKUP_ARCHIVE_PASSWORD'),
+        'password' => $backupPassword,
 
         /*
          * The encryption algorithm that will be used to encrypt the backup.
