@@ -14,30 +14,30 @@
     <style nonce="{{ config('app.csp_nonce') }}">
         /* Token warna: sama dengan layout admin & navbar */
         :root {
-            --sb-top: #262626;
-            --sb-bottom: #171717;
-            --accent: #737373;
-            --surface: #f5f5f5;
-            --glow-a: rgba(82, 82, 82, .12);
-            --glow-b: rgba(115, 115, 115, .08);
-            --glow-c: rgba(64, 64, 64, .08);
-            --dot: rgba(82, 82, 82, .12);
-            --spot: rgba(64, 64, 64, .06);
+            --sb-top: #37b5d0;
+            --sb-bottom: #279bb9;
+            --accent: #1687a3;
+            --surface: #f3fbfe;
+            --glow-a: rgba(66, 190, 218, .16);
+            --glow-b: rgba(54, 166, 207, .1);
+            --glow-c: rgba(49, 194, 212, .1);
+            --dot: rgba(27, 139, 168, .12);
+            --spot: rgba(57, 178, 207, .09);
         }
         .dark {
-            --sb-top: #171717;
-            --sb-bottom: #0a0a0a;
-            --surface: #0a0a0a;
-            --glow-a: rgba(82, 82, 82, .12);
-            --glow-b: rgba(115, 115, 115, .06);
-            --glow-c: rgba(64, 64, 64, .08);
-            --dot: rgba(255, 255, 255, .06);
-            --spot: rgba(115, 115, 115, .06);
+            --sb-top: #1c6076;
+            --sb-bottom: #16495b;
+            --surface: #122630;
+            --glow-a: rgba(91, 205, 229, .14);
+            --glow-b: rgba(71, 170, 207, .1);
+            --glow-c: rgba(50, 187, 204, .09);
+            --dot: rgba(255, 255, 255, .08);
+            --spot: rgba(91, 205, 229, .09);
         }
 
         html { scroll-behavior: smooth; }
         body { background-color: var(--surface); transition: background-color .4s ease; }
-        ::selection { background: rgba(115, 115, 115, .25); }
+        ::selection { background: rgba(39, 155, 185, .25); }
 
         /* Latar: aurora + pola titik */
         .bg-stage { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }

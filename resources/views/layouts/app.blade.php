@@ -18,7 +18,7 @@
     </style>
 </head>
 
-<body class="font-sans antialiased text-slate-900 dark:text-slate-100 min-h-screen">
+<body class="font-sans antialiased text-slate-900 dark:text-slate-100 min-h-screen {{ request()->routeIs('dashboard') ? 'dashboard-theme' : '' }}">
     <div class="flex min-h-screen">
         <button x-cloak x-show="sidebarOpen" @click="sidebarOpen = false"
                 class="fixed inset-0 z-40 bg-slate-950/45 lg:hidden"
@@ -39,16 +39,16 @@
 
                 <div class="mt-auto px-3 pt-4">
                     <div class="flex items-center gap-3 rounded-xl border border-white/15 bg-white/10 p-3 shadow-lg shadow-slate-950/10 backdrop-blur-md">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-sky-100/15 font-bold text-sky-50">
+                        <div class="dashboard-sidebar-avatar flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-sky-100/15 font-bold text-sky-50">
                             {{ substr(Auth::user()->name, 0, 1) }}
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="truncate text-sm font-semibold text-white">{{ Auth::user()->name }}</p>
-                            <p class="mt-1 inline-flex max-w-full truncate rounded-full border border-sky-100/20 bg-sky-100/10 px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-sky-100">
+                            <p class="dashboard-sidebar-role mt-1 inline-flex max-w-full truncate rounded-full border border-sky-100/20 bg-sky-100/10 px-2 py-0.5 text-[10px] font-semibold capitalize tracking-wide text-sky-100">
                                 {{ Auth::user()->role }}
                             </p>
                         </div>
-                        <button @click="darkMode = !darkMode" class="flex h-9 w-9 items-center justify-center rounded-lg text-sky-100/75 transition-colors hover:bg-white/10 hover:text-white" aria-label="Ganti tema">
+                        <button @click="darkMode = !darkMode" class="dashboard-theme-toggle flex h-9 w-9 items-center justify-center rounded-lg text-sky-100/75 transition-colors hover:bg-white/10 hover:text-white" aria-label="Ganti tema">
                             <i class="fas" :class="darkMode ? 'fa-sun text-amber-300' : 'fa-moon'"></i>
                         </button>
                     </div>
@@ -59,7 +59,7 @@
         <main class="min-w-0 flex-1 lg:ml-[19rem] px-4 py-5 md:px-7 lg:px-9">
             <header class="admin-page-header mb-6 flex min-h-12 flex-wrap items-center justify-between gap-4 border-b border-[#dce4e9] pb-5 dark:border-slate-700">
                 <div class="flex min-w-0 flex-1 items-center gap-3">
-                    <button @click="sidebarOpen = !sidebarOpen" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#dce4e9] bg-white text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 lg:hidden" aria-label="Buka menu">
+                    <button @click="sidebarOpen = !sidebarOpen" class="dashboard-sidebar-toggle flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-[#dce4e9] bg-white text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 lg:hidden" aria-label="Buka menu">
                         <i class="fas fa-bars"></i>
                     </button>
                     @if (isset($header))
@@ -71,14 +71,14 @@
 
                 <div class="ml-auto flex items-center gap-3">
                     <div class="hidden sm:flex items-center gap-2">
-                        <span class="rounded-lg border border-[#dce4e9] bg-white px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                        <span class="dashboard-header-date rounded-lg border border-[#dce4e9] bg-white px-3 py-2 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">
                             {{ now()->translatedFormat('d F Y') }}
                         </span>
                     </div>
                     
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="flex h-10 items-center gap-2 rounded-lg border border-[#dce4e9] bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-rose-900 dark:hover:bg-rose-950/30 dark:hover:text-rose-300">
+                        <button type="submit" class="dashboard-header-logout flex h-10 items-center gap-2 rounded-lg border border-[#dce4e9] bg-white px-3 text-sm font-medium text-slate-600 transition-colors hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-rose-900 dark:hover:bg-rose-950/30 dark:hover:text-rose-300">
                             <i class="fas fa-arrow-right-from-bracket"></i>
                             <span class="hidden md:inline">Keluar</span>
                         </button>
