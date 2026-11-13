@@ -100,30 +100,37 @@
         <style nonce="{{ config('app.csp_nonce') }}">
             .welcome-page {
                 --w-ink: #262626;
-                --w-muted: #525252;
-                --w-faint: #737373;
-                --w-line: rgba(64, 64, 64, .1);
-                --w-accent: #a8642f;
-                --w-chip-bg: #fff8f1;
-                --w-chip-line: #f5d2b5;
-                --w-chip-ink: #854d28;
+                --w-muted: #58737d;
+                --w-faint: #718b95;
+                --w-line: rgba(43, 125, 148, .14);
+                --w-accent: #1687a3;
+                --w-chip-bg: #e8f8fc;
+                --w-chip-line: #b7e5ef;
+                --w-chip-ink: #126d86;
                 min-height: 100vh;
                 min-height: 100svh;
                 overflow: hidden;
                 position: relative;
                 isolation: isolate;
                 color: var(--w-ink);
-                background: linear-gradient(145deg, #fafafa, #f5f5f5 62%, #f3f4f6);
+                background:
+                    radial-gradient(ellipse at 12% 18%, rgba(74, 198, 226, .18), transparent 34%),
+                    radial-gradient(ellipse at 88% 82%, rgba(50, 177, 210, .12), transparent 38%),
+                    linear-gradient(145deg, #f8fdff, #eff9fd 62%, #e8f8fc);
             }
             .dark .welcome-page {
                 --w-ink: #f5f5f5;
-                --w-muted: #d4d4d4;
-                --w-faint: #a3a3a3;
-                --w-line: rgba(255, 255, 255, .09);
-                --w-chip-bg: rgba(196, 122, 60, .12);
-                --w-chip-line: rgba(218, 153, 103, .24);
-                --w-chip-ink: #f5d2b5;
-                background: linear-gradient(145deg, #0a0a0a, #171717 62%, #262626);
+                --w-muted: #bfd4dc;
+                --w-faint: #96b4bf;
+                --w-line: rgba(255, 255, 255, .16);
+                --w-accent: #7bd9ec;
+                --w-chip-bg: rgba(67, 184, 211, .16);
+                --w-chip-line: rgba(123, 217, 236, .34);
+                --w-chip-ink: #b7f0fb;
+                background:
+                    radial-gradient(ellipse at 12% 18%, rgba(67, 184, 211, .2), transparent 36%),
+                    radial-gradient(ellipse at 88% 82%, rgba(57, 178, 207, .16), transparent 40%),
+                    linear-gradient(145deg, #142d38, #183744 62%, #12313b);
             }
 
             .welcome-shell {
@@ -153,14 +160,14 @@
             .welcome-brand-mark {
                 display: grid; width: 2.2rem; height: 2.2rem; place-items: center;
                 border-radius: .72rem; color: #fff; font-size: 1.15rem; font-weight: 800;
-                background: linear-gradient(135deg, #a8642f, #c47a3c);
-                box-shadow: 0 6px 16px rgba(168, 100, 47, .2);
+                background: linear-gradient(135deg, #37b5d0, #238dab);
+                box-shadow: 0 6px 16px rgba(35, 141, 171, .28);
                 transition: transform .4s cubic-bezier(.3, 1.6, .5, 1);
             }
             .welcome-brand:hover .welcome-brand-mark { transform: rotate(-8deg) scale(1.08); }
             .welcome-brand-name { font-size: 1.1rem; font-weight: 800; letter-spacing: -.055em; }
             .welcome-brand-name span { color: var(--w-accent); }
-            .dark .welcome-brand-name span { color: #eab88f; }
+            .dark .welcome-brand-name span { color: #8ce2f1; }
 
             .welcome-header-note { color: var(--w-faint); font-size: .75rem; font-weight: 600; }
 
@@ -171,10 +178,10 @@
                 transition: background-color .2s ease, color .2s ease, transform .2s ease;
             }
             .dark .welcome-theme { background: rgba(255, 255, 255, .05); }
-            .welcome-theme:hover { background: rgba(196, 122, 60, .1); color: var(--w-accent); }
-            .dark .welcome-theme:hover { color: #eab88f; }
+            .welcome-theme:hover { background: rgba(55, 181, 208, .1); color: var(--w-accent); }
+            .dark .welcome-theme:hover { color: #8ce2f1; }
             .welcome-theme:active { transform: scale(.92); }
-            .welcome-theme:focus-visible { outline: 2px solid #da9967; outline-offset: 2px; }
+            .welcome-theme:focus-visible { outline: 2px solid #37b5d0; outline-offset: 2px; }
             .welcome-theme .fa-sun { color: #fbbf24; }
 
             /* ---------- Hero ---------- */
@@ -186,12 +193,16 @@
             .welcome-art {
                 position: relative; display: grid; min-height: 32rem; place-items: center; overflow: hidden;
                 border: 1px solid rgba(255, 255, 255, .85); border-radius: 2rem;
-                background: linear-gradient(145deg, #fff8f1, #fcebdc 58%, #f5f5f5);
-                box-shadow: 0 28px 70px -28px rgba(168, 100, 47, .2);
+                background: linear-gradient(145deg, #e6f8fc, #d9f2f8 55%, #e8f8fc);
+                box-shadow: 0 28px 70px -28px rgba(35, 141, 171, .2);
                 isolation: isolate;
                 animation: welcome-enter-left 700ms cubic-bezier(.2, .7, .25, 1) both;
             }
-            .dark .welcome-art { border-color: rgba(255, 255, 255, .12); box-shadow: 0 28px 70px -28px rgba(0, 0, 0, .7); }
+            .dark .welcome-art {
+                border-color: rgba(255, 255, 255, .16);
+                background: linear-gradient(145deg, #1d5365, #205d70 55%, #164957);
+                box-shadow: 0 28px 70px -28px rgba(0, 0, 0, .55);
+            }
 
             .welcome-art-spot {
                 position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -199,7 +210,7 @@
             }
             .welcome-art-glow {
                 position: absolute; z-index: -1; top: 8%; right: -12%; width: 15rem; aspect-ratio: 1;
-                border-radius: 50%; background: rgba(218, 153, 103, .2); filter: blur(24px);
+                border-radius: 50%; background: rgba(48, 180, 208, .24); filter: blur(24px);
                 translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -14px);
                 transition: translate .35s cubic-bezier(.2, .8, .2, 1);
             }
@@ -222,9 +233,9 @@
             }
             .welcome-chip strong { display: block; color: #262626; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
             .welcome-chip small { display: block; color: #737373; font-size: .65rem; }
-            .welcome-pulse { position: relative; width: 8px; height: 8px; border-radius: 9999px; background: #c47a3c; }
+            .welcome-pulse { position: relative; width: 8px; height: 8px; border-radius: 9999px; background: #37b5d0; }
             .welcome-pulse::after {
-                content: ""; position: absolute; inset: 0; border-radius: inherit; background: #c47a3c;
+                content: ""; position: absolute; inset: 0; border-radius: inherit; background: #37b5d0;
                 animation: welcome-ping 1.8s cubic-bezier(0, 0, .2, 1) infinite;
             }
 
@@ -236,8 +247,8 @@
             }
             .welcome-caption-icon {
                 display: grid; width: 2.15rem; height: 2.15rem; flex: none; place-items: center;
-                border-radius: .7rem; background: linear-gradient(135deg, #a8642f, #c47a3c); color: #fff;
-                box-shadow: 0 6px 14px -4px rgba(168, 100, 47, .32);
+                border-radius: .7rem; background: linear-gradient(135deg, #37b5d0, #238dab); color: #fff;
+                box-shadow: 0 6px 14px -4px rgba(35, 141, 171, .34);
             }
             .welcome-caption-icon svg { width: 1.1rem; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
             .welcome-art-caption strong, .welcome-art-caption small { display: block; }
@@ -255,18 +266,18 @@
                 color: var(--w-chip-ink); font-size: .75rem; font-weight: 650;
             }
             .welcome-eyebrow span {
-                width: .42rem; height: .42rem; border-radius: 50%; background: #c47a3c;
-                box-shadow: 0 0 0 3px rgba(196, 122, 60, .14);
+                width: .42rem; height: .42rem; border-radius: 50%; background: #37b5d0;
+                box-shadow: 0 0 0 3px rgba(55, 181, 208, .18);
             }
             .welcome-copy h1 {
                 margin: 0; color: var(--w-ink); font-size: clamp(3rem, 5.4vw, 5.1rem);
                 font-weight: 760; letter-spacing: -.075em; line-height: 1.04;
             }
             .welcome-copy h1 span {
-                background: linear-gradient(100deg, #a8642f, #c47a3c 55%, #da9967 100%);
+                background: linear-gradient(100deg, #1687a3, #2ba8c4 55%, #58c8dd 100%);
                 -webkit-background-clip: text; background-clip: text; color: transparent;
             }
-            .dark .welcome-copy h1 span { background-image: linear-gradient(100deg, #eab88f, #f5d2b5 55%, #da9967 100%); }
+            .dark .welcome-copy h1 span { background-image: linear-gradient(100deg, #75d7eb, #a4eaf5 55%, #56c5d8 100%); }
             .welcome-description { max-width: 29rem; margin: 1.25rem 0 1.75rem; color: var(--w-muted); font-size: .98rem; line-height: 1.75; }
 
             /* ---------- Tombol masuk ---------- */
@@ -274,8 +285,8 @@
                 position: relative; display: inline-flex; min-height: 3.25rem; align-items: center; justify-content: center;
                 gap: .85rem; padding: 0 1.5rem; overflow: hidden; border-radius: .9rem; color: #fff;
                 font-size: .9rem; font-weight: 750; text-decoration: none;
-                background: linear-gradient(135deg, #a8642f, #c47a3c);
-                box-shadow: 0 12px 26px -8px rgba(168, 100, 47, .34), inset 0 1px 0 rgba(255, 255, 255, .25);
+                background: linear-gradient(120deg, #1687a3, #239bb8 55%, #35aec8);
+                box-shadow: 0 12px 26px -8px rgba(22, 135, 163, .38), inset 0 1px 0 rgba(255, 255, 255, .28);
                 transition: translate .25s cubic-bezier(.2, .8, .2, 1), transform .18s ease, box-shadow .18s ease;
             }
             .welcome-login::before {
@@ -283,10 +294,10 @@
                 background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
                 transform: skewX(-20deg); transition: left .6s ease;
             }
-            .welcome-login:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -8px rgba(168, 100, 47, .42), inset 0 1px 0 rgba(255, 255, 255, .25); }
+            .welcome-login:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -8px rgba(22, 135, 163, .48), inset 0 1px 0 rgba(255, 255, 255, .28); }
             .welcome-login:hover::before { left: 130%; }
             .welcome-login:active { transform: translateY(0) scale(.98); }
-            .welcome-login:focus-visible { outline: 3px solid #eab88f; outline-offset: 3px; }
+            .welcome-login:focus-visible { outline: 3px solid #37b5d0; outline-offset: 3px; }
             .welcome-login-label, .welcome-login svg { position: relative; }
             .welcome-login svg {
                 width: 1.05rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;
@@ -295,7 +306,7 @@
             .welcome-login:hover svg { transform: translateX(4px); }
 
             .welcome-assurance { display: flex; align-items: center; gap: .45rem; margin: 1rem 0 0; color: var(--w-faint); font-size: .75rem; }
-            .welcome-assurance svg { width: 1rem; flex: none; stroke: #a8642f; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+            .welcome-assurance svg { width: 1rem; flex: none; stroke: #279bb9; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
 
             .welcome-footer {
                 display: flex; min-height: 3.5rem; align-items: center; justify-content: space-between;

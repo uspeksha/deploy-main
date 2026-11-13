@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <div>
-            <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-emerald-700 dark:text-emerald-400">
+            <p class="mb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">
                 Ruang kerja
             </p>
             <h1 class="text-2xl font-bold tracking-tight text-slate-900 dark:text-white md:text-[28px]">
@@ -11,7 +11,7 @@
     </x-slot>
 
     <div class="space-y-7">
-        <section class="relative overflow-hidden rounded-xl border border-[#294453] bg-[#1c3443] p-5 text-white md:p-7"
+        <section class="dashboard-greeting-panel relative overflow-hidden rounded-xl p-5 text-white md:p-7"
                  x-data="{
                     hour: new Date().getHours(),
                     get greeting() {
@@ -24,11 +24,11 @@
             <div class="absolute inset-y-0 right-0 hidden w-2/5 border-l border-white/5 bg-white/[0.025] md:block"></div>
             <div class="relative flex flex-col items-start justify-between gap-6 md:flex-row md:items-center">
                 <div class="min-w-0">
-                    <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-[#9cc4d0]" x-text="greeting"></p>
+                    <p class="mb-2 text-xs font-semibold uppercase tracking-[0.14em] text-cyan-100" x-text="greeting"></p>
                     <h2 class="text-2xl font-semibold tracking-tight">
                         Halo, {{ Auth::user()->name }}
                     </h2>
-                    <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                    <p class="mt-2 max-w-2xl text-sm leading-6 text-white/85">
                         Kelola absensi, pengajuan, payroll, dan laporan dari satu tempat.
                     </p>
                 </div>
