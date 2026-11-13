@@ -148,11 +148,11 @@ jobs:
           release='${{ github.sha }}'
           archive="/tmp/deploy-main-${release}.tar.gz"
           trap 'rm -f -- "$archive"' EXIT
-          compose=(sudo -n docker compose -p followme-app
+          compose_base=(sudo -n docker compose -p followme-app
             -f /home/deploy/app/compose.yaml
             -f /home/deploy/app/compose.override.yaml)
-          app_container="$("${compose[@]}" ps -q app)"
-          queue_container="$("${compose[@]}" ps -q queue)"
+          app_container="$("${compose_base[@]}" ps -q app)"
+          queue_container="$("${compose_base[@]}" ps -q queue)"
           if [ -z "$app_container" ] || [ -z "$queue_container" ]; then
             echo "Sistem Absensi app or queue container was not found; refusing deployment."
             exit 1
@@ -172,6 +172,20 @@ jobs:
           sudo -n docker tag "$previous_queue_image" "deploy-main:rollback-queue-${release}"
           sudo -n docker load --input "$archive"
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
+
+          runtime_override="$(mktemp /tmp/sistem-absensi-release-XXXXXX.yaml)"
+          trap 'rm -f -- "$archive" "$runtime_override"' EXIT
+          chmod 600 "$runtime_override"
+          cat > "$runtime_override" <<'COMPOSE'
+          services:
+            app:
+              volumes:
+                - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+            queue:
+              volumes:
+                - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+          COMPOSE
+          compose=("${compose_base[@]}" -f "$runtime_override")
 
           echo "Checking Firebase service-account configuration without displaying credentials."
           if ! "${compose[@]}" run --rm --no-deps app php scripts/verify-firebase-credentials.php; then
