@@ -172,6 +172,7 @@ jobs:
           sudo -n docker tag "$previous_queue_image" "deploy-main:rollback-queue-${release}"
           sudo -n docker load --input "$archive"
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
+          release_image_id="$(sudo -n docker image inspect --format='{{.Id}}' deploy-main:local)"
 
           runtime_override="$(mktemp /tmp/sistem-absensi-release-XXXXXX.yaml)"
           trap 'rm -f -- "$archive" "$runtime_override"' EXIT
@@ -188,7 +189,7 @@ jobs:
           compose=("${compose_base[@]}" -f "$runtime_override")
 
           echo "Checking Firebase service-account configuration without displaying credentials."
-          if ! "${compose[@]}" run --rm --no-deps app php scripts/verify-firebase-credentials.php; then
+          if ! "${compose[@]}" run --rm --no-deps -T app php scripts/verify-firebase-credentials.php </dev/null; then
             echo "Firebase configuration is unavailable or invalid; refusing push deployment."
             sudo -n docker tag "$previous_app_image" deploy-main:local
             exit 1
@@ -217,13 +218,13 @@ jobs:
           fi
 
           echo "Creating and verifying an encrypted database backup on persistent Sistem Absensi host storage."
-          if ! backup_output="$("${compose[@]}" run --rm --no-deps \
+          if ! backup_output="$("${compose[@]}" run --rm --no-deps -T \
             --volume "$backup_dir:/predeploy-backups" \
             --volume "$backup_key:/run/predeploy-backup-key:ro" \
             --env BACKUP_DESTINATION_DISKS=predeploy_backup \
             --env BACKUP_ARCHIVE_PASSWORD_FILE=/run/predeploy-backup-key \
             --env "PREDEPLOY_BACKUP_ROOT=/predeploy-backups/$backup_run" \
-            app php artisan backup:run --only-db --disable-notifications --no-interaction --no-ansi 2>&1)"; then
+            app php artisan backup:run --only-db --disable-notifications --no-interaction --no-ansi 2>&1 </dev/null)"; then
             printf '%s\n' "$backup_output"
             echo "Persistent encrypted production backup failed verification; refusing migration and deployment."
             sudo -n docker tag "$previous_app_image" deploy-main:local
@@ -231,22 +232,31 @@ jobs:
           fi
           echo "Database backup command completed; verifying the encrypted SQL archive."
 
-          if ! "${compose[@]}" run --rm --no-deps \
+          if ! "${compose[@]}" run --rm --no-deps -T \
             --volume "$backup_dir:/predeploy-backups" \
             --volume "$backup_key:/run/predeploy-backup-key:ro" \
             --env "PREDEPLOY_BACKUP_ROOT=/predeploy-backups/$backup_run" \
             --env BACKUP_ARCHIVE_PASSWORD_FILE=/run/predeploy-backup-key \
-            app php scripts/verify-encrypted-backup.php; then
+            app php scripts/verify-encrypted-backup.php </dev/null; then
             echo "Persistent encrypted production backup failed verification; refusing migration and deployment."
             sudo -n docker tag "$previous_app_image" deploy-main:local
             exit 1
           fi
 
-          if ! "${compose[@]}" run --rm --no-deps app php artisan migrate --force --no-interaction; then
+          if ! "${compose[@]}" run --rm --no-deps -T app php artisan migrate --force --no-interaction </dev/null; then
             echo "Production database migration failed; application services were not changed."
             sudo -n docker tag "$previous_app_image" deploy-main:local
             exit 1
           fi
+          migration_status="$("${compose[@]}" run --rm --no-deps -T app php artisan migrate:status --no-ansi </dev/null)"
+          if ! printf '%s\n' "$migration_status" |
+            grep -F '2026_11_13_090000_create_fcm_devices_table' |
+            grep -Fq 'Ran'; then
+            echo "FCM device migration is not recorded as applied; refusing service deployment."
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+          echo "FCM device migration is applied."
 
           rollback() {
             rollback_failed=0
@@ -265,9 +275,13 @@ jobs:
             fi
 
             for attempt in $(seq 1 30); do
+              restored_app="$("${compose[@]}" ps -q app)"
               restored_queue="$("${compose[@]}" ps -q queue)"
               if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null &&
+                [ -n "$restored_app" ] &&
                 [ -n "$restored_queue" ] &&
+                [ "$(sudo -n docker inspect --format='{{.Image}}' "$restored_app")" = "$previous_app_image" ] &&
+                [ "$(sudo -n docker inspect --format='{{.Image}}' "$restored_queue")" = "$previous_queue_image" ] &&
                 [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$restored_queue")" = "true" ]; then
                 echo "Previous app and queue images restored; app is healthy and queue is running."
                 return 0
@@ -284,10 +298,18 @@ jobs:
           fi
 
           for attempt in $(seq 1 30); do
+            current_app="$("${compose[@]}" ps -q app)"
             current_queue="$("${compose[@]}" ps -q queue)"
             if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null &&
+              [ -n "$current_app" ] &&
               [ -n "$current_queue" ] &&
+              [ "$(sudo -n docker inspect --format='{{.Image}}' "$current_app")" = "$release_image_id" ] &&
+              [ "$(sudo -n docker inspect --format='{{.Image}}' "$current_queue")" = "$release_image_id" ] &&
               [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$current_queue")" = "true" ]; then
+              if ! "${compose[@]}" exec -T app php scripts/verify-firebase-credentials.php </dev/null; then
+                sleep 2
+                continue
+              fi
               echo "Sistem Absensi app health check passed and queue worker is running."
               exit 0
             fi
