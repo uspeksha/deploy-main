@@ -182,9 +182,9 @@ jobs:
           fi
 
           echo "Creating and verifying an encrypted database backup on persistent Sistem Absensi host storage."
-          if ! backup_output="$("${compose[@]}" run --rm --no-deps
-            --volume "$backup_dir:/predeploy-backups"
-            --volume "$backup_key:/run/predeploy-backup-key:ro"
+          if ! backup_output="$("${compose[@]}" run --rm --no-deps \
+            --volume "$backup_dir:/predeploy-backups" \
+            --volume "$backup_key:/run/predeploy-backup-key:ro" \
             app php artisan tinker --execute '
               $password = trim((string) file_get_contents("/run/predeploy-backup-key"));
               if ($password === "") {
