@@ -112,7 +112,7 @@ return [
         /*
          * The encryption algorithm that will be used to encrypt the backup.
          */
-        'encryption' => 'aes-256-cbc',
+        'encryption' => 'default',
     ],
 
     /*
