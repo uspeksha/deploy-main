@@ -7,6 +7,13 @@ use LogicException;
 
 class AttendanceGeofence
 {
+    public function isEnforcedFor(User $user): bool
+    {
+        $email = mb_strtolower(trim((string) $user->email));
+
+        return ! in_array($email, config('attendance.geofence.bypass_emails', []), true);
+    }
+
     public function distanceFromWorkplace(User $user, float $latitude, float $longitude): float
     {
         $workplace = $this->configurationFor($user);

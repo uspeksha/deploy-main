@@ -63,7 +63,7 @@ class AbsensiController extends Controller
                 ], 403);
             }
 
-            if ($request->status === 'hadir') {
+            if ($request->status === 'hadir' && $geofence->isEnforcedFor($user)) {
                 $geofenceConfig = $geofence->configurationFor($user);
                 $distance = $geofence->distanceFromWorkplace(
                     $user,
@@ -266,23 +266,25 @@ class AbsensiController extends Controller
                 ], 403);
             }
 
-            $geofenceConfig = $geofence->configurationFor($user);
-            $distance = $geofence->distanceFromWorkplace(
-                $user,
-                (float) $request->input('lat'),
-                (float) $request->input('lng'),
-            );
+            if ($geofence->isEnforcedFor($user)) {
+                $geofenceConfig = $geofence->configurationFor($user);
+                $distance = $geofence->distanceFromWorkplace(
+                    $user,
+                    (float) $request->input('lat'),
+                    (float) $request->input('lng'),
+                );
 
-            if (! $geofence->measurementIsWithinRadius(
-                $distance,
-                (float) ($request->input('accuracy_meters') ?? 0),
-                $geofenceConfig['radius_meters'],
-            )) {
-                return response()->json([
-                    'message' => 'Absen pulang ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
-                    'distance_meters' => (int) round($distance),
-                    'allowed_radius_meters' => (int) $geofenceConfig['radius_meters'],
-                ], 403);
+                if (! $geofence->measurementIsWithinRadius(
+                    $distance,
+                    (float) ($request->input('accuracy_meters') ?? 0),
+                    $geofenceConfig['radius_meters'],
+                )) {
+                    return response()->json([
+                        'message' => 'Absen pulang ditolak. Anda berada di luar area lokasi kerja yang diizinkan.',
+                        'distance_meters' => (int) round($distance),
+                        'allowed_radius_meters' => (int) $geofenceConfig['radius_meters'],
+                    ], 403);
+                }
             }
 
             $today = Carbon::today();

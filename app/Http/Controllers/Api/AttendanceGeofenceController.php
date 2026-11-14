@@ -11,9 +11,12 @@ class AttendanceGeofenceController extends Controller
 {
     public function show(Request $request, AttendanceGeofence $geofence): JsonResponse
     {
+        $configuration = $geofence->configurationFor($request->user());
+        $configuration['is_enforced'] = $geofence->isEnforcedFor($request->user());
+
         return response()->json([
             'success' => true,
-            'data' => $geofence->configurationFor($request->user()),
+            'data' => $configuration,
         ]);
     }
 }

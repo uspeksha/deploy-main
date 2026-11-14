@@ -89,6 +89,8 @@ jobs:
       PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
       PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
       PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+      ATTENDANCE_GEOFENCE_BYPASS_EMAILS: ${{ secrets.ATTENDANCE_GEOFENCE_BYPASS_EMAILS }}
+      MOBILE_RELEASE_TAG: ${{ vars.MOBILE_RELEASE_TAG }}
 
     steps:
       - name: Validate deployment configuration
@@ -99,11 +101,21 @@ jobs:
           if [ -z "$PRODUCTION_SSH_PORT" ]; then echo "Missing PRODUCTION_SSH_PORT"; missing=1; fi
           if [ -z "$PRODUCTION_SSH_KEY" ]; then echo "Missing PRODUCTION_SSH_KEY"; missing=1; fi
           if [ -z "$PRODUCTION_KNOWN_HOSTS" ]; then echo "Missing PRODUCTION_KNOWN_HOSTS"; missing=1; fi
+          if [ -z "$MOBILE_RELEASE_TAG" ]; then echo "Missing mobile release tag"; missing=1; fi
           if [ "$missing" -ne 0 ]; then
             exit 1
           fi
           if ! [[ "$PRODUCTION_SSH_PORT" =~ ^[0-9]+$ ]]; then
             echo "PRODUCTION_SSH_PORT must be numeric."
+            exit 1
+          fi
+          if [ -n "$ATTENDANCE_GEOFENCE_BYPASS_EMAILS" ] &&
+            ! [[ "$ATTENDANCE_GEOFENCE_BYPASS_EMAILS" =~ ^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$ ]]; then
+            echo "The tester allowlist must contain one valid email address."
+            exit 1
+          fi
+          if ! [[ "$MOBILE_RELEASE_TAG" =~ ^followme-v[0-9]+\.[0-9]+\.[0-9]+-[0-9]+$ ]]; then
+            echo "MOBILE_RELEASE_TAG has an invalid format."
             exit 1
           fi
 
@@ -121,6 +133,41 @@ jobs:
           printf '%s\n' "$PRODUCTION_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/production" "$HOME/.ssh/known_hosts"
 
+      - name: Download and verify signed mobile release
+        run: |
+          set -euo pipefail
+          mkdir -m 700 mobile-release
+          curl --fail --location --retry 3 \
+            "https://github.com/Labibluthfi11/followme/releases/download/${MOBILE_RELEASE_TAG}/followme-latest.apk" \
+            --output mobile-release/followme-latest.apk
+          curl --fail --location --retry 3 \
+            "https://github.com/Labibluthfi11/followme/releases/download/${MOBILE_RELEASE_TAG}/update.json" \
+            --output mobile-release/update.json
+          python3 - <<'PY'
+          import json
+          import os
+          import re
+          from pathlib import Path
+
+          tag = os.environ["MOBILE_RELEASE_TAG"]
+          manifest = json.loads(Path("mobile-release/update.json").read_text())
+          expected_tag = f"followme-v{manifest['version']}-{manifest['build_number']}"
+          if tag != expected_tag:
+              raise SystemExit("Mobile release tag and update manifest do not match.")
+          if manifest["download_url"] != (
+              "https://sistemabsensi.followme.id/releases/followme-latest.apk"
+              f"?release={manifest['version']}-{manifest['build_number']}"
+          ):
+              raise SystemExit("Mobile release manifest has an unexpected download URL.")
+          if not re.fullmatch(r"[0-9a-f]{64}", __import__("hashlib").sha256(
+              Path("mobile-release/followme-latest.apk").read_bytes()
+          ).hexdigest()):
+              raise SystemExit("Unable to verify the downloaded mobile APK.")
+          PY
+          printf 'ATTENDANCE_GEOFENCE_BYPASS_EMAILS=%s\n' \
+            "$ATTENDANCE_GEOFENCE_BYPASS_EMAILS" > mobile-release/geofence-test.env
+          chmod 600 mobile-release/geofence-test.env
+
       - name: Copy image to Sistem Absensi server
         run: |
           scp \
@@ -130,7 +177,10 @@ jobs:
             -o StrictHostKeyChecking=yes \
             -o IdentitiesOnly=yes \
             "release-image/deploy-main-${{ github.sha }}.tar.gz" \
-            "$PRODUCTION_USER@$PRODUCTION_HOST:/tmp/deploy-main-${{ github.sha }}.tar.gz"
+            mobile-release/followme-latest.apk \
+            mobile-release/update.json \
+            mobile-release/geofence-test.env \
+            "$PRODUCTION_USER@$PRODUCTION_HOST:/tmp/"
 
       - name: Deploy app service and verify health
         run: |
@@ -147,7 +197,32 @@ jobs:
 
           release='${{ github.sha }}'
           archive="/tmp/deploy-main-${release}.tar.gz"
-          trap 'rm -f -- "$archive"' EXIT
+          mobile_apk="/tmp/followme-latest.apk"
+          mobile_manifest="/tmp/update.json"
+          bypass_env_source="/tmp/geofence-test.env"
+          release_dir=/home/deploy/app/releases
+          bypass_env_file=/home/deploy/app/secrets/attendance-geofence-test.env
+          bypass_env_new="${bypass_env_file}.new"
+          bypass_env_backup="/tmp/attendance-geofence-${release}.previous"
+          old_manifest="/tmp/update-${release}.previous.json"
+          old_apk="/tmp/followme-${release}.previous.apk"
+          served_apk="/tmp/followme-${release}.served.apk"
+          served_manifest="/tmp/update-${release}.served.json"
+          runtime_override=""
+          cleanup() {
+            local cleanup_paths=(
+              "$archive" "$mobile_apk" "$mobile_manifest" "$bypass_env_source"
+              "$bypass_env_backup" "$old_manifest" "$old_apk" "$served_apk"
+              "$served_manifest" "$bypass_env_new"
+            )
+            if [ -n "$runtime_override" ]; then
+              cleanup_paths+=("$runtime_override")
+            fi
+            sudo -n rm -f -- "${cleanup_paths[@]}" \
+              "$release_dir/followme-latest.apk.new" "$release_dir/update.json.new"
+          }
+          trap cleanup EXIT
+          chmod 600 "$bypass_env_source"
           compose_base=(sudo -n docker compose -p followme-app
             -f /home/deploy/app/compose.yaml
             -f /home/deploy/app/compose.override.yaml)
@@ -174,14 +249,46 @@ jobs:
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
           release_image_id="$(sudo -n docker image inspect --format='{{.Id}}' deploy-main:local)"
 
+          if ! sudo -n install -d -o root -g root -m 755 "$release_dir" ||
+            ! sudo -n install -d -o root -g root -m 700 /home/deploy/app/secrets; then
+            echo "Unable to prepare persistent Sistem Absensi release storage."
+            exit 1
+          fi
+          if sudo -n test -f "$bypass_env_file"; then
+            sudo -n cp -- "$bypass_env_file" "$bypass_env_backup"
+            sudo -n chmod 600 "$bypass_env_backup"
+          else
+            sudo -n install -o root -g root -m 600 /dev/null "$bypass_env_backup"
+            sudo -n install -o root -g root -m 600 /dev/null "$bypass_env_file"
+          fi
+          if ! sudo -n test -s "$release_dir/update.json"; then
+            if ! sudo -n docker cp \
+              "$app_container:/var/www/html/public/update.json" \
+              "$release_dir/update.json"; then
+              echo "Unable to preserve the current updater manifest; refusing deployment."
+              exit 1
+            fi
+          fi
+          if ! sudo -n test -s "$release_dir/followme-latest.apk"; then
+            if ! sudo -n docker cp \
+              "$app_container:/var/www/html/public/releases/followme-latest.apk" \
+              "$release_dir/followme-latest.apk"; then
+              echo "Unable to preserve the current release APK; refusing deployment."
+              exit 1
+            fi
+          fi
+
           runtime_override="$(mktemp /tmp/sistem-absensi-release-XXXXXX.yaml)"
-          trap 'rm -f -- "$archive" "$runtime_override"' EXIT
           chmod 600 "$runtime_override"
           cat > "$runtime_override" <<'COMPOSE'
           services:
             app:
               volumes:
                 - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
+                - /home/deploy/app/releases:/var/www/html/public/releases:ro
+                - /home/deploy/app/releases/update.json:/var/www/html/public/update.json:ro
+              env_file:
+                - /home/deploy/app/secrets/attendance-geofence-test.env
             queue:
               volumes:
                 - /home/deploy/app/secrets/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro
@@ -258,8 +365,25 @@ jobs:
           fi
           echo "FCM device migration is applied."
 
+          if ! sudo -n install -o root -g root -m 600 \
+            "$bypass_env_source" "$bypass_env_new" ||
+            ! sudo -n mv -- "$bypass_env_new" "$bypass_env_file"; then
+            echo "Unable to configure the authorized tester geofence exception."
+            if ! sudo -n install -o root -g root -m 600 \
+              "$bypass_env_backup" "$bypass_env_file"; then
+              echo "Failed to restore the previous tester geofence configuration."
+            fi
+            sudo -n docker tag "$previous_app_image" deploy-main:local
+            exit 1
+          fi
+
           rollback() {
             rollback_failed=0
+            if ! sudo -n install -o root -g root -m 600 \
+              "$bypass_env_backup" "$bypass_env_file"; then
+              echo "Failed to restore the previous tester geofence configuration."
+              rollback_failed=1
+            fi
             if ! sudo -n docker tag "$previous_app_image" deploy-main:local ||
               ! "${compose[@]}" up -d --no-deps --no-build app; then
               echo "Failed to restore the previous app service."
@@ -271,6 +395,10 @@ jobs:
               rollback_failed=1
             fi
             if [ "$rollback_failed" -ne 0 ]; then
+              return 1
+            fi
+            if ! "${compose[@]}" exec -T app php artisan optimize </dev/null; then
+              echo "Failed to restore the previous app configuration cache."
               return 1
             fi
 
@@ -297,6 +425,13 @@ jobs:
             exit 1
           fi
 
+          if ! "${compose[@]}" exec -T app php artisan optimize </dev/null; then
+            echo "Production application cache rebuild failed; restoring previous services."
+            rollback
+            exit 1
+          fi
+
+          healthy=0
           for attempt in $(seq 1 30); do
             current_app="$("${compose[@]}" ps -q app)"
             current_queue="$("${compose[@]}" ps -q queue)"
@@ -311,13 +446,86 @@ jobs:
                 continue
               fi
               echo "Sistem Absensi app health check passed and queue worker is running."
-              exit 0
+              healthy=1
+              break
             fi
             sleep 2
           done
 
-          if ! rollback; then
+          if [ "$healthy" -ne 1 ]; then
+            echo "Deployment health check failed; restoring previous services."
+            rollback
             exit 1
           fi
-          exit 1
+
+          current_app="$("${compose[@]}" ps -q app)"
+          if ! sudo -n cp -- "$release_dir/update.json" "$old_manifest" ||
+            ! sudo -n cp -- "$release_dir/followme-latest.apk" "$old_apk"; then
+            echo "Unable to snapshot the current updater files; restoring previous services."
+            rollback
+            exit 1
+          fi
+          restore_release_files() {
+            local restore_failed=0
+            if ! sudo -n install -o root -g root -m 644 \
+              "$old_apk" "$release_dir/followme-latest.apk"; then
+              echo "Failed to restore the previous updater APK."
+              restore_failed=1
+            fi
+            if ! sudo -n install -o root -g root -m 644 \
+              "$old_manifest" "$release_dir/update.json"; then
+              echo "Failed to restore the previous updater manifest."
+              restore_failed=1
+            fi
+            return "$restore_failed"
+          }
+          if ! sudo -n install -o root -g root -m 644 \
+            "$mobile_apk" "$release_dir/followme-latest.apk.new" ||
+            ! sudo -n mv -- "$release_dir/followme-latest.apk.new" "$release_dir/followme-latest.apk"; then
+            echo "Unable to install the new APK; restoring previous updater files and services."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+
+          apk_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["download_url"])' "$mobile_manifest")"
+          apk_query="${apk_url#*\?}"
+          if ! curl --fail --silent --show-error --max-time 60 \
+            "http://127.0.0.1:8081/releases/followme-latest.apk?${apk_query}" \
+            --output "$served_apk" ||
+            ! cmp -s "$mobile_apk" "$served_apk"; then
+            echo "New APK did not verify through the Sistem Absensi app; restoring previous updater files and services."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+
+          if ! sudo -n install -o root -g root -m 644 \
+            "$mobile_manifest" "$release_dir/update.json.new" ||
+            ! sudo -n mv -- "$release_dir/update.json.new" "$release_dir/update.json"; then
+            echo "Unable to publish the update manifest; restoring previous updater files and services."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+          if ! curl --fail --silent --show-error --max-time 10 \
+            http://127.0.0.1:8081/update.json \
+            --output "$served_manifest" ||
+            ! cmp -s "$mobile_manifest" "$served_manifest"; then
+            echo "Published update manifest did not verify; restoring previous updater files and services."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+
+          echo "Sistem Absensi health checks passed; signed APK and updater manifest are published."
+          exit 0
           REMOTE

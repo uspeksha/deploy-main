@@ -18,6 +18,7 @@ beforeEach(function () {
             'latitude' => -6.3357454,
             'longitude' => 106.9457406,
         ],
+        'attendance.geofence.bypass_emails' => [],
     ]);
     Storage::fake('public');
 });
@@ -41,6 +42,27 @@ it('rejects check-in outside the assigned workplace geofence', function () {
 
     expect(Absensi::where('user_id', $employee->id)->count())->toBe(0);
     expect(Storage::disk('public')->allFiles('absensi_foto'))->toBe([]);
+});
+
+it('allows only the configured tester to check in outside the workplace', function () {
+    config(['attendance.geofence.bypass_emails' => ['tester@example.test']]);
+    $employee = User::factory()->create([
+        'email' => 'tester@example.test',
+        'employment_type' => 'freelance',
+        'work_location' => 'office',
+    ]);
+
+    $this->actingAs($employee, 'sanctum')
+        ->postJson('/api/v1/absensi/masuk', [
+            'foto' => UploadedFile::fake()->image('selfie.jpg'),
+            'lat' => -6.3457454,
+            'lng' => 106.9457406,
+            'accuracy_meters' => 5,
+            'status' => 'hadir',
+        ])
+        ->assertCreated();
+
+    expect(Absensi::where('user_id', $employee->id)->exists())->toBeTrue();
 });
 
 it('allows check-in inside the workplace geofence', function () {
@@ -103,6 +125,33 @@ it('rejects check-out outside the workplace geofence', function () {
         ->assertJsonPath('allowed_radius_meters', 100);
 
     expect(Absensi::where('user_id', $employee->id)->firstOrFail()->check_out_at)->toBeNull();
+});
+
+it('allows the configured tester to check out outside the workplace', function () {
+    config(['attendance.geofence.bypass_emails' => ['tester@example.test']]);
+    $employee = User::factory()->create([
+        'email' => 'tester@example.test',
+        'employment_type' => 'freelance',
+        'work_location' => 'office',
+    ]);
+    Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'check_in_at' => now()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+
+    $this->actingAs($employee, 'sanctum')
+        ->postJson('/api/v1/absensi/pulang', [
+            'foto' => UploadedFile::fake()->image('selfie-pulang.jpg'),
+            'lat' => -6.3457454,
+            'lng' => 106.9457406,
+            'accuracy_meters' => 5,
+        ])
+        ->assertOk();
+
+    expect(Absensi::where('user_id', $employee->id)->firstOrFail()->check_out_at)
+        ->not->toBeNull();
 });
 
 it('keeps check-out compatible with app versions that do not send GPS accuracy', function () {
@@ -252,7 +301,24 @@ it('returns branch-specific geofence settings to the assigned employee', functio
         ->assertJsonPath('data.latitude', -6.2)
         ->assertJsonPath('data.longitude', 106.8)
         ->assertJsonPath('data.radius_meters', 250)
-        ->assertJsonPath('data.maximum_accuracy_meters', 100);
+        ->assertJsonPath('data.maximum_accuracy_meters', 100)
+        ->assertJsonPath('data.is_enforced', true);
+});
+
+it('identifies the authorized tester while enforcing the geofence for other employees', function () {
+    config(['attendance.geofence.bypass_emails' => ['tester@example.test']]);
+    $tester = User::factory()->create(['email' => 'Tester@example.test']);
+    $employee = User::factory()->create(['email' => 'another.employee@example.com']);
+
+    $this->actingAs($tester, 'sanctum')
+        ->getJson('/api/v1/attendance/geofence')
+        ->assertOk()
+        ->assertJsonPath('data.is_enforced', false);
+
+    $this->actingAs($employee, 'sanctum')
+        ->getJson('/api/v1/attendance/geofence')
+        ->assertOk()
+        ->assertJsonPath('data.is_enforced', true);
 });
 
 it('does not provide attendance settings for a branch without a complete geofence', function () {
