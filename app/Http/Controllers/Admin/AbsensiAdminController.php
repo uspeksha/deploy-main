@@ -71,13 +71,18 @@ class AbsensiAdminController extends Controller
 
     public function indexFreelance(Request $request)
     {
-        return $this->indexFreelanceDashboard($request);
+        return $this->indexFreelanceDashboard($request, true);
+    }
+
+    public function reports(Request $request)
+    {
+        return $this->indexFreelanceDashboard($request, true);
     }
 
     /**
-     * Build the freelance attendance dashboard.
+     * Build the attendance dashboard or its detailed analytics view.
      */
-    private function indexFreelanceDashboard(Request $request)
+    private function indexFreelanceDashboard(Request $request, bool $showReports = false)
     {
         $filters = $request->validate([
             'month' => ['sometimes', 'integer', 'between:1,12'],
@@ -101,131 +106,144 @@ class AbsensiAdminController extends Controller
                 });
         };
 
-        $today = Carbon::today();
-        $users = User::where($userFilter)->get();
-        $dailyStatusesFreelance = [];
+        $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
+        $periodEnd = $periodStart->copy()->endOfMonth();
 
-        foreach ($users as $user) {
-            $absensiTodayApproved = Absensi::where('user_id', $user->id)
-                ->whereDate('check_in_at', $today)
-                ->where('status_approval', 'approved')
-                ->whereNull('parent_id')
-                ->orderByDesc('check_in_at')
-                ->first();
+        if ($showReports) {
+            $today = Carbon::today();
+            $users = User::where($userFilter)->get();
+            $dailyStatusesFreelance = [];
 
-            $statusHariIni = 'Belum Absen';
-            $checkInTime = $checkOutTime = $fotoCheckIn = $fotoCheckOut = null;
-            $lateMinutes = 0;
-
-            if ($absensiTodayApproved) {
-                if ($absensiTodayApproved->status === 'hadir') {
-                    $statusHariIni = 'Hadir';
-                    $checkInTime = $absensiTodayApproved->check_in_at;
-                    $checkOutTime = $absensiTodayApproved->check_out_at;
-                    $fotoCheckIn = $absensiTodayApproved->foto_masuk;
-                    $fotoCheckOut = $absensiTodayApproved->foto_pulang;
-                    $lateMinutes = $absensiTodayApproved->late_minutes ?? 0;
-                } else {
-                    $statusHariIni = ucfirst($absensiTodayApproved->status);
-                    if ($absensiTodayApproved->tipe) {
-                        $statusHariIni .= ' ('.ucfirst($absensiTodayApproved->tipe).')';
-                    }
-                    $fotoCheckIn = $absensiTodayApproved->foto_masuk;
-                }
-            } else {
-                $pendingAbsensiToday = Absensi::where('user_id', $user->id)
+            foreach ($users as $user) {
+                $absensiTodayApproved = Absensi::where('user_id', $user->id)
                     ->whereDate('check_in_at', $today)
-                    ->where('status_approval', 'pending')
+                    ->where('status_approval', 'approved')
                     ->whereNull('parent_id')
                     ->orderByDesc('check_in_at')
                     ->first();
 
-                if ($pendingAbsensiToday) {
-                    $statusHariIni = ucfirst($pendingAbsensiToday->status);
-                    if ($pendingAbsensiToday->tipe) {
-                        $statusHariIni .= ' ('.ucfirst($pendingAbsensiToday->tipe).')';
+                $statusHariIni = 'Belum Absen';
+                $checkInTime = $checkOutTime = $fotoCheckIn = $fotoCheckOut = null;
+                $lateMinutes = 0;
+
+                if ($absensiTodayApproved) {
+                    if ($absensiTodayApproved->status === 'hadir') {
+                        $statusHariIni = 'Hadir';
+                        $checkInTime = $absensiTodayApproved->check_in_at;
+                        $checkOutTime = $absensiTodayApproved->check_out_at;
+                        $fotoCheckIn = $absensiTodayApproved->foto_masuk;
+                        $fotoCheckOut = $absensiTodayApproved->foto_pulang;
+                        $lateMinutes = $absensiTodayApproved->late_minutes ?? 0;
+                    } else {
+                        $statusHariIni = ucfirst($absensiTodayApproved->status);
+                        if ($absensiTodayApproved->tipe) {
+                            $statusHariIni .= ' ('.ucfirst($absensiTodayApproved->tipe).')';
+                        }
+                        $fotoCheckIn = $absensiTodayApproved->foto_masuk;
                     }
-                    $checkInTime = $pendingAbsensiToday->check_in_at;
-                    $fotoCheckIn = $pendingAbsensiToday->foto_masuk;
-                    $lateMinutes = $pendingAbsensiToday->late_minutes ?? 0;
+                } else {
+                    $pendingAbsensiToday = Absensi::where('user_id', $user->id)
+                        ->whereDate('check_in_at', $today)
+                        ->where('status_approval', 'pending')
+                        ->whereNull('parent_id')
+                        ->orderByDesc('check_in_at')
+                        ->first();
+
+                    if ($pendingAbsensiToday) {
+                        $statusHariIni = ucfirst($pendingAbsensiToday->status);
+                        if ($pendingAbsensiToday->tipe) {
+                            $statusHariIni .= ' ('.ucfirst($pendingAbsensiToday->tipe).')';
+                        }
+                        $checkInTime = $pendingAbsensiToday->check_in_at;
+                        $fotoCheckIn = $pendingAbsensiToday->foto_masuk;
+                        $lateMinutes = $pendingAbsensiToday->late_minutes ?? 0;
+                    }
                 }
+
+                $dailyData = [
+                    'user' => $user,
+                    'status' => $statusHariIni,
+                    'check_in_time' => $checkInTime,
+                    'check_out_time' => $checkOutTime,
+                    'foto_check_in' => $fotoCheckIn,
+                    'foto_check_out' => $fotoCheckOut,
+                    'late_minutes' => $lateMinutes,
+                ];
+
+                $dailyStatusesFreelance[] = $dailyData;
             }
 
-            $dailyData = [
-                'user' => $user,
-                'status' => $statusHariIni,
-                'check_in_time' => $checkInTime,
-                'check_out_time' => $checkOutTime,
-                'foto_check_in' => $fotoCheckIn,
-                'foto_check_out' => $fotoCheckOut,
-                'late_minutes' => $lateMinutes,
+            $searchFreelance = $filters['search_freelance'] ?? null;
+
+            if ($searchFreelance) {
+                $dailyStatusesFreelance = array_filter($dailyStatusesFreelance, function ($daily) use ($searchFreelance) {
+                    return stripos($daily['user']->name, $searchFreelance) !== false;
+                });
+            }
+            $dailyStatusesFreelance = array_values($dailyStatusesFreelance);
+
+            $activeEmployeeQuery = User::query()
+                ->where('registration_status', 'approved')
+                ->where('is_active', true)
+                ->where('role', 'user');
+            $totalActiveEmployees = (clone $activeEmployeeQuery)->count();
+            $maleEmployees = (clone $activeEmployeeQuery)->where('gender', 'male')->count();
+            $femaleEmployees = (clone $activeEmployeeQuery)->where('gender', 'female')->count();
+            $employeeGenderStats = [
+                'male' => $maleEmployees,
+                'female' => $femaleEmployees,
+                'unspecified' => $totalActiveEmployees - $maleEmployees - $femaleEmployees,
             ];
 
-            $dailyStatusesFreelance[] = $dailyData;
-        }
+            $employeeAttendanceStats = DB::table('absensis')
+                ->join('users', 'users.id', '=', 'absensis.user_id')
+                ->where('users.registration_status', 'approved')
+                ->where('users.is_active', true)
+                ->where('users.role', 'user')
+                ->whereNull('absensis.parent_id')
+                ->where('absensis.status_approval', 'approved')
+                ->whereBetween('absensis.check_in_at', [$periodStart, $periodEnd])
+                ->select('absensis.user_id', 'users.name')
+                ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as attendance_count', ['hadir'])
+                ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as sick_count', ['sakit'])
+                ->selectRaw('SUM(CASE WHEN absensis.status = ? AND absensis.late_minutes > 0 THEN 1 ELSE 0 END) as late_count', ['hadir'])
+                ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as leave_count', ['izin'])
+                ->groupBy('absensis.user_id', 'users.name')
+                ->get();
 
-        $searchFreelance = $filters['search_freelance'] ?? null;
+            $employeeRankings = [];
+            foreach ([
+                'attendance' => 'attendance_count',
+                'sick' => 'sick_count',
+                'late' => 'late_count',
+                'leave' => 'leave_count',
+            ] as $category => $countColumn) {
+                $employeeRankings[$category] = $employeeAttendanceStats
+                    ->filter(fn ($row) => (int) $row->{$countColumn} > 0)
+                    ->sort(function ($left, $right) use ($countColumn): int {
+                        $countOrder = (int) $right->{$countColumn} <=> (int) $left->{$countColumn};
 
-        if ($searchFreelance) {
-            $dailyStatusesFreelance = array_filter($dailyStatusesFreelance, function ($daily) use ($searchFreelance) {
-                return stripos($daily['user']->name, $searchFreelance) !== false;
-            });
-        }
-        $dailyStatusesFreelance = array_values($dailyStatusesFreelance);
+                        if ($countOrder !== 0) {
+                            return $countOrder;
+                        }
 
-        $periodStart = Carbon::create($year, $month, 1)->startOfMonth();
-        $periodEnd = $periodStart->copy()->endOfMonth();
-        $activeEmployeeQuery = User::query()
-            ->where('registration_status', 'approved')
-            ->where('is_active', true)
-            ->where('role', 'user');
-        $totalActiveEmployees = (clone $activeEmployeeQuery)->count();
-        $maleEmployees = (clone $activeEmployeeQuery)->where('gender', 'male')->count();
-        $femaleEmployees = (clone $activeEmployeeQuery)->where('gender', 'female')->count();
-        $employeeGenderStats = [
-            'male' => $maleEmployees,
-            'female' => $femaleEmployees,
-            'unspecified' => $totalActiveEmployees - $maleEmployees - $femaleEmployees,
-        ];
+                        $nameOrder = strcasecmp($left->name, $right->name);
 
-        $employeeAttendanceStats = DB::table('absensis')
-            ->join('users', 'users.id', '=', 'absensis.user_id')
-            ->where('users.registration_status', 'approved')
-            ->where('users.is_active', true)
-            ->where('users.role', 'user')
-            ->whereNull('absensis.parent_id')
-            ->where('absensis.status_approval', 'approved')
-            ->whereBetween('absensis.check_in_at', [$periodStart, $periodEnd])
-            ->select('absensis.user_id', 'users.name')
-            ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as attendance_count', ['hadir'])
-            ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as sick_count', ['sakit'])
-            ->selectRaw('SUM(CASE WHEN absensis.status = ? AND absensis.late_minutes > 0 THEN 1 ELSE 0 END) as late_count', ['hadir'])
-            ->selectRaw('SUM(CASE WHEN absensis.status = ? THEN 1 ELSE 0 END) as leave_count', ['izin'])
-            ->groupBy('absensis.user_id', 'users.name')
-            ->get();
+                        return $nameOrder !== 0 ? $nameOrder : $left->user_id <=> $right->user_id;
+                    })
+                    ->take(3)
+                    ->values();
+            }
 
-        $employeeRankings = [];
-        foreach ([
-            'attendance' => 'attendance_count',
-            'sick' => 'sick_count',
-            'late' => 'late_count',
-            'leave' => 'leave_count',
-        ] as $category => $countColumn) {
-            $employeeRankings[$category] = $employeeAttendanceStats
-                ->filter(fn ($row) => (int) $row->{$countColumn} > 0)
-                ->sort(function ($left, $right) use ($countColumn): int {
-                    $countOrder = (int) $right->{$countColumn} <=> (int) $left->{$countColumn};
+            usort($dailyStatusesFreelance, fn ($a, $b) => strcasecmp($a['user']->name, $b['user']->name));
 
-                    if ($countOrder !== 0) {
-                        return $countOrder;
-                    }
-
-                    $nameOrder = strcasecmp($left->name, $right->name);
-
-                    return $nameOrder !== 0 ? $nameOrder : $left->user_id <=> $right->user_id;
-                })
-                ->take(3)
-                ->values();
+            return view('admin.absensi.reports', compact(
+                'month',
+                'year',
+                'dailyStatusesFreelance',
+                'employeeGenderStats',
+                'employeeRankings',
+            ));
         }
 
         $attendanceBaseQuery = Absensi::query()
@@ -285,13 +303,10 @@ class AbsensiAdminController extends Controller
             ->count()
             + Loan::query()->where('status', Loan::STATUS_PENDING)->count();
 
-        usort($dailyStatusesFreelance, fn ($a, $b) => strcasecmp($a['user']->name, $b['user']->name));
-
         return view('admin.absensi.index', compact(
             'month',
             'year',
             'grafikBulanan',
-            'dailyStatusesFreelance',
             'totalHadir',
             'totalIzin',
             'totalSakit',
@@ -299,8 +314,6 @@ class AbsensiAdminController extends Controller
             'totalTelat',
             'totalLainnya',
             'grafikStatus',
-            'employeeGenderStats',
-            'employeeRankings',
             'pendingAttendanceCount',
             'pendingEmployeeCount',
             'pendingPayrollCount',

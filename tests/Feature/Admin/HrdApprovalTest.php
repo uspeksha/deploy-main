@@ -320,13 +320,9 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
     $this->get(route('admin.absensi.index'))
         ->assertOk()
         ->assertViewHas('totalHadir', 1)
-        ->assertSee('Karyawan Freelance Belum Absen')
-        ->assertDontSee('Karyawan Freelance Nonaktif')
         ->assertDontSee('Karyawan Organik Tersembunyi')
         ->assertDontSee('Karyawan Magang Tersembunyi')
         ->assertDontSee('Karyawan Borongan Tersembunyi')
-        ->assertSee('Karyawan Freelance')
-        ->assertSee('Belum Absen')
         ->assertSee('Grafik tren kehadiran freelance per bulan')
         ->assertSee('Grafik distribusi status absensi freelance')
         ->assertSee('Status absensi freelance')
@@ -340,6 +336,13 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         ->assertDontSee('Office')
         ->assertDontSee('data-aos="fade-up"');
 
+    $this->get(route('admin.absensi.reports'))
+        ->assertOk()
+        ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Freelance Nonaktif')
+        ->assertSee('Karyawan Freelance')
+        ->assertSee('Belum Absen');
+
     $this->get(route('admin.absensi.freelance'))
         ->assertOk()
         ->assertSee('Karyawan Freelance Belum Absen')
@@ -347,7 +350,7 @@ it('shows only freelance employees on the dashboard and marks missing check-ins 
         ->assertDontSee('Karyawan Organik Tersembunyi');
 });
 
-it('shows freelance profile photos on the attendance dashboard', function () {
+it('shows freelance profile photos on the analytics page', function () {
     Storage::fake('public');
     $hrd = User::factory()->create(['role' => 'hrd']);
     $photoPath = 'profile-photos/freelance-employee.jpg';
@@ -361,7 +364,7 @@ it('shows freelance profile photos on the attendance dashboard', function () {
     ]);
 
     $this->actingAs($hrd)
-        ->get(route('admin.absensi.index'))
+        ->get(route('admin.absensi.reports'))
         ->assertOk()
         ->assertSee(route('admin.storage.file', ['path' => $photoPath]), false)
         ->assertSee('Foto profil Karyawan Freelance dengan Foto');

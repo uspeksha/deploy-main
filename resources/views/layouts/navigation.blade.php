@@ -53,6 +53,11 @@
 @endauth
 
 <div class="nav-section-label">Laporan</div>
+<a href="{{ route('admin.absensi.reports') }}"
+   @class(['nav-item', 'active' => request()->routeIs('admin.absensi.reports')])>
+    <span class="nav-icon"><i class="fas fa-chart-column"></i></span>
+    <span>Analitik Absensi</span>
+</a>
 <a href="{{ route('admin.absensi.recap') }}"
    @class(['nav-item', 'active' => request()->routeIs('admin.absensi.recap')])>
     <span class="nav-icon"><i class="fas fa-calendar-check"></i></span>

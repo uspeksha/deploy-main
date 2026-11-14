@@ -1,7 +1,7 @@
 {{-- resources/views/admin/absensi/index.blade.php --}}
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
                     Ringkasan Absensi
@@ -10,6 +10,10 @@
                     Pantau kehadiran karyawan dan tren bulanan.
                 </p>
             </div>
+            <a href="{{ route('admin.absensi.reports') }}" class="btn-premium">
+                <i class="fas fa-chart-column" aria-hidden="true"></i>
+                <span>Analitik lengkap</span>
+            </a>
         </div>
     </x-slot>
 
@@ -240,209 +244,6 @@
                 </div>
             </div>
         </section>
-
-        <section class="space-y-4">
-            <div>
-                <h2 class="text-xl font-black text-slate-900 dark:text-white">Statistik Karyawan</h2>
-                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Gender seluruh karyawan aktif; ranking dari absensi disetujui pada {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}.
-                </p>
-            </div>
-
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                @foreach ([
-                    ['label' => 'Laki-laki', 'value' => $employeeGenderStats['male'], 'icon' => 'fa-mars', 'icon_classes' => 'bg-blue-500/10 text-blue-600'],
-                    ['label' => 'Perempuan', 'value' => $employeeGenderStats['female'], 'icon' => 'fa-venus', 'icon_classes' => 'bg-pink-500/10 text-pink-600'],
-                    ['label' => 'Belum diisi', 'value' => $employeeGenderStats['unspecified'], 'icon' => 'fa-user', 'icon_classes' => 'bg-slate-500/10 text-slate-600'],
-                ] as $genderCard)
-                    <div class="lucent-panel flex items-center gap-4 rounded-xl p-4">
-                        <div class="flex h-10 w-10 items-center justify-center rounded-lg {{ $genderCard['icon_classes'] }}">
-                            <i class="fas {{ $genderCard['icon'] }} text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $genderCard['label'] }}</p>
-                            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ $genderCard['value'] }}</p>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-
-            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                @foreach ([
-                    ['key' => 'attendance', 'title' => 'Paling Rajin Hadir', 'column' => 'attendance_count', 'icon' => 'fa-trophy', 'icon_classes' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'text_class' => 'text-emerald-700 dark:text-emerald-300'],
-                    ['key' => 'sick', 'title' => 'Paling Sering Sakit', 'column' => 'sick_count', 'icon' => 'fa-medkit', 'icon_classes' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300', 'text_class' => 'text-rose-700 dark:text-rose-300'],
-                    ['key' => 'late', 'title' => 'Paling Sering Terlambat', 'column' => 'late_count', 'icon' => 'fa-user-clock', 'icon_classes' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300', 'text_class' => 'text-amber-700 dark:text-amber-300'],
-                    ['key' => 'leave', 'title' => 'Paling Banyak Izin', 'column' => 'leave_count', 'icon' => 'fa-calendar-minus', 'icon_classes' => 'bg-teal-500/10 text-teal-700 dark:text-teal-300', 'text_class' => 'text-teal-700 dark:text-teal-300'],
-                ] as $ranking)
-                    <section class="lucent-panel overflow-hidden rounded-xl">
-                        <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
-                            <div class="flex h-9 w-9 items-center justify-center rounded-lg {{ $ranking['icon_classes'] }}">
-                                <i class="fas {{ $ranking['icon'] }}"></i>
-                            </div>
-                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $ranking['title'] }}</h3>
-                        </div>
-                        <ol class="divide-y divide-slate-100 px-4 dark:divide-slate-800">
-                            @foreach ([1, 2, 3] as $rank)
-                                @php
-                                    $employee = $employeeRankings[$ranking['key']]->get($rank - 1);
-                                @endphp
-                                <li data-ranking-slot="{{ $ranking['key'] }}-{{ $rank }}" class="flex min-h-14 items-center gap-3 py-2.5">
-                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $rank === 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300' }}">
-                                        {{ $rank }}
-                                    </span>
-                                    <div class="min-w-0 flex-1">
-                                        <p class="truncate text-sm font-medium {{ $employee ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500' }}">
-                                            {{ $employee?->name ?? 'Belum ada data' }}
-                                        </p>
-                                    </div>
-                                    <span class="shrink-0 text-xs font-semibold {{ $employee ? $ranking['text_class'] : 'text-slate-400 dark:text-slate-500' }}">
-                                        {{ $employee ? $employee->{$ranking['column']} . ' ' . ($ranking['key'] === 'attendance' ? 'hari' : 'kali') : '—' }}
-                                    </span>
-                                </li>
-                            @endforeach
-                        </ol>
-                    </section>
-                @endforeach
-            </div>
-        </section>
-
-        {{-- Tables Section --}}
-        <div class="lucent-table-wrapper">
-                            <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                <div class="flex items-center gap-4">
-                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                                        <i class="fas fa-users"></i>
-                                    </div>
-                                    <h3 class="text-xl font-bold">Karyawan Freelance</h3>
-                                </div>
-
-                                <form action="{{ url()->current() }}" method="GET" class="relative group">
-                                    <input type="hidden" name="month" value="{{ $month }}">
-                                    <input type="hidden" name="year" value="{{ $year }}">
-                                    <input type="search" name="search_freelance" placeholder="Cari nama..." class="lucent-input pl-10 w-full md:w-64 group-hover:border-emerald-500/50" value="{{ request('search_freelance') }}">
-                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
-                                </form>
-                            </div>
-
-                            <div class="overflow-x-auto">
-                                <table class="lucent-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Karyawan</th>
-                                            <th>Status Presensi</th>
-                                            <th>Check-in</th>
-                                            <th>Check-out</th>
-                                            <th>Status Waktu</th>
-                                            <th class="text-right">Aksi</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse ($dailyStatusesFreelance as $daily)
-                                            <tr class="group">
-                                                <td>
-                                                    <div class="flex items-center gap-3">
-                                                        @if ($daily['user']->profile_photo_path)
-                                                            <div x-data="{ imageFailed: false }" class="relative h-9 w-9 shrink-0">
-                                                                <img
-                                                                    src="{{ route('admin.storage.file', ['path' => $daily['user']->profile_photo_path]) }}"
-                                                                    alt="Foto profil {{ $daily['user']->name }}"
-                                                                    class="absolute inset-0 h-full w-full rounded-full object-cover"
-                                                                    x-show="!imageFailed"
-                                                                    x-on:error="imageFailed = true"
-                                                                >
-                                                                <div
-                                                                    x-show="imageFailed"
-                                                                    x-cloak
-                                                                    class="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800"
-                                                                >
-                                                                    {{ substr($daily['user']->name, 0, 1) }}
-                                                                </div>
-                                                            </div>
-                                                        @else
-                                                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800">
-                                                                {{ substr($daily['user']->name, 0, 1) }}
-                                                            </div>
-                                                        @endif
-                                                        <div>
-                                                            <p class="font-bold text-slate-900 dark:text-white">{{ $daily['user']->name }}</p>
-                                                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{{ $daily['user']->id_karyawan ?? 'N/A' }}</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td>
-                                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-1.5
-                                                        @if(str_contains($daily['status'], 'Belum')) bg-slate-100 text-slate-500
-                                                        @elseif(str_contains($daily['status'], 'Hadir')) bg-emerald-500/10 text-emerald-600
-                                                        @elseif(str_contains($daily['status'], 'Izin')) bg-amber-500/10 text-amber-600
-                                                        @elseif(str_contains($daily['status'], 'Sakit')) bg-rose-500/10 text-rose-600
-                                                        @else bg-indigo-500/10 text-indigo-600
-                                                        @endif">
-                                                        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-                                                        {{ $daily['status'] }}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    @if($daily['check_in_time'])
-                                                        <div class="flex flex-col">
-                                                            <span class="text-sm font-bold">{{ \Carbon\Carbon::parse($daily['check_in_time'])->format('H:i') }}</span>
-                                                            <span class="text-[10px] text-slate-400 uppercase font-bold">WIB</span>
-                                                        </div>
-                                                    @else
-                                                        <span class="text-slate-300">—</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if($daily['check_out_time'])
-                                                        <div class="flex flex-col">
-                                                            <span class="text-sm font-bold">{{ \Carbon\Carbon::parse($daily['check_out_time'])->format('H:i') }}</span>
-                                                            <span class="text-[10px] text-slate-400 uppercase font-bold">WIB</span>
-                                                        </div>
-                                                    @else
-                                                        <span class="text-slate-300">—</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @php $late = $daily['late_minutes'] ?? 0; @endphp
-                                                    @if($daily['check_in_time'])
-                                                        @if($late > 0)
-                                                            <span class="text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-1.5">
-                                                                <i class="fas fa-clock text-[10px]"></i>
-                                                                Terlambat {{ $late }}m
-                                                            </span>
-                                                        @else
-                                                            <span class="text-emerald-500 text-xs font-bold flex items-center gap-1.5">
-                                                                <i class="fas fa-check-circle text-[10px]"></i>
-                                                                On Time
-                                                            </span>
-                                                        @endif
-                                                    @elseif(str_starts_with($daily['status'], 'Belum'))
-                                                        <span class="text-slate-400 text-xs font-semibold">Belum Absen</span>
-                                                    @else
-                                                        <span class="text-slate-400 text-xs">—</span>
-                                                    @endif
-                                                </td>
-                                                <td class="text-right">
-                                                    <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-emerald-500 hover:text-white text-slate-400 transition-all">
-                                                        <i class="fas fa-external-link-alt text-xs"></i>
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="6" class="px-6 py-12 text-center">
-                                                    <div class="flex flex-col items-center">
-                                                        <div class="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-300 mb-4">
-                                                            <i class="fas fa-inbox text-2xl"></i>
-                                                        </div>
-                                                        <p class="text-slate-500 font-medium">Tidak ada data ditemukan</p>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
 
     </div>
 

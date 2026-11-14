@@ -69,9 +69,9 @@ it('shows monthly gender totals and separate top three approved employee ranking
     createDashboardStatsAttendance($employees[1], 'izin', '2026-11-03', 0, 'approved', $parent->id);
 
     $this->actingAs($hrd)
-        ->get(route('admin.absensi.index', ['month' => 11, 'year' => 2026]))
+        ->get(route('admin.absensi.reports', ['month' => 11, 'year' => 2026]))
         ->assertOk()
-        ->assertSeeInOrder(['Grafik Absensi', 'Statistik Karyawan', 'Karyawan Freelance'])
+        ->assertSeeInOrder(['Statistik Karyawan', 'Paling Rajin Hadir', 'Karyawan Freelance'])
         ->assertViewHas('employeeGenderStats', [
             'male' => 2,
             'female' => 2,
@@ -106,7 +106,7 @@ it('always shows three numbered slots for each ranking when there is no attendan
     ]);
 
     $this->actingAs($hrd)
-        ->get(route('admin.absensi.index', ['month' => 11, 'year' => 2026]))
+        ->get(route('admin.absensi.reports', ['month' => 11, 'year' => 2026]))
         ->assertOk()
         ->assertSee('data-ranking-slot="attendance-1"', false)
         ->assertSee('data-ranking-slot="attendance-2"', false)
@@ -130,4 +130,50 @@ it('always shows three numbered slots for each ranking when there is no attendan
 
             return true;
         });
+});
+
+it('keeps the dashboard focused on summaries and charts with a link to detailed analytics', function () {
+    $hrd = User::factory()->create([
+        'role' => 'hrd',
+        'registration_status' => 'approved',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertSee('Grafik Absensi')
+        ->assertSee('Analitik lengkap')
+        ->assertDontSee('Statistik Karyawan')
+        ->assertDontSee('Paling Rajin Hadir')
+        ->assertDontSee('Karyawan Freelance');
+});
+
+it('filters the freelance attendance table by name on the analytics page', function () {
+    $hrd = User::factory()->create([
+        'role' => 'hrd',
+        'registration_status' => 'approved',
+    ]);
+
+    $matchingEmployee = User::factory()->create([
+        'name' => 'Needle Match Freelance',
+        'role' => 'user',
+        'employment_type' => 'freelance',
+        'id_karyawan' => 'FL-NEEDLE',
+        'registration_status' => 'approved',
+        'is_active' => true,
+    ]);
+    User::factory()->create([
+        'name' => 'Different Freelance',
+        'role' => 'user',
+        'employment_type' => 'freelance',
+        'id_karyawan' => 'FL-DIFFERENT',
+        'registration_status' => 'approved',
+        'is_active' => true,
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.reports', ['search_freelance' => 'Needle']))
+        ->assertOk()
+        ->assertSee($matchingEmployee->name)
+        ->assertDontSee('Different Freelance');
 });

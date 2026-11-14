@@ -80,11 +80,16 @@ it('excludes inactive freelance accounts and their attendance from the active da
     createAttendanceDetailRecord($inactiveFreelance, now()->toDateString());
 
     $this->actingAs($hrd)
-        ->get(route('admin.absensi.index'))
+        ->get(route('admin.absensi.reports'))
         ->assertOk()
         ->assertSee($activeFreelance->name)
         ->assertDontSee($inactiveFreelance->name)
-        ->assertViewHas('totalHadir', 0);
+        ->assertSee('Analitik');
+
+    $this->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertViewHas('totalHadir', 0)
+        ->assertDontSee($activeFreelance->name);
 });
 
 it('applies a valid custom date range to attendance details and their summary', function () {
