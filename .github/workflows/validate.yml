@@ -245,6 +245,34 @@ jobs:
           previous_queue_image="$(sudo -n docker inspect --format='{{.Image}}' "$queue_container")"
           sudo -n docker tag "$previous_app_image" "deploy-main:rollback-app-${release}"
           sudo -n docker tag "$previous_queue_image" "deploy-main:rollback-queue-${release}"
+
+          mapfile -t all_container_ids < <(sudo -n docker ps -aq)
+          used_image_ids=()
+          if [ "${#all_container_ids[@]}" -gt 0 ]; then
+            mapfile -t used_image_ids < <(
+              sudo -n docker inspect --format='{{.Image}}' "${all_container_ids[@]}" |
+                sort -u
+            )
+          fi
+          mapfile -t historical_image_refs < <(
+            sudo -n docker image ls --format '{{.Repository}}:{{.Tag}}' |
+              grep -E '^deploy-main:(rollback-(app|queue)-[[:xdigit:]]{40}|[[:xdigit:]]{40})$' |
+              grep -Fvx \
+                -e "deploy-main:${release}" \
+                -e "deploy-main:rollback-app-${release}" \
+                -e "deploy-main:rollback-queue-${release}" || true
+          )
+          for image_ref in "${historical_image_refs[@]}"; do
+            image_id="$(sudo -n docker image inspect --format='{{.Id}}' "$image_ref")"
+            if printf '%s\n' "${used_image_ids[@]}" | grep -Fxq "$image_id"; then
+              continue
+            fi
+            echo "Removing unused historical Sistem Absensi image reference: ${image_ref}"
+            sudo -n docker image rm "$image_ref"
+          done
+          docker_root="$(sudo -n docker info --format='{{.DockerRootDir}}')"
+          df -h / "$docker_root"
+
           sudo -n docker load --input "$archive"
           sudo -n docker tag "deploy-main:${release}" deploy-main:local
           release_image_id="$(sudo -n docker image inspect --format='{{.Id}}' deploy-main:local)"
