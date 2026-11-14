@@ -542,6 +542,40 @@ jobs:
             rollback
             exit 1
           fi
+
+          if ! "${compose[@]}" up -d --no-deps --no-build --force-recreate app; then
+            echo "Unable to refresh the app's mounted updater manifest; restoring the previous release."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+
+          manifest_app_healthy=0
+          for attempt in $(seq 1 30); do
+            current_app="$("${compose[@]}" ps -q app)"
+            current_queue="$("${compose[@]}" ps -q queue)"
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null &&
+              [ -n "$current_app" ] &&
+              [ -n "$current_queue" ] &&
+              [ "$(sudo -n docker inspect --format='{{.Image}}' "$current_app")" = "$release_image_id" ] &&
+              [ "$(sudo -n docker inspect --format='{{.Image}}' "$current_queue")" = "$release_image_id" ] &&
+              [ "$(sudo -n docker inspect --format='{{.State.Running}}' "$current_queue")" = "true" ]; then
+              manifest_app_healthy=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$manifest_app_healthy" -ne 1 ]; then
+            echo "App health check failed after refreshing the updater manifest; restoring the previous release."
+            if ! restore_release_files; then
+              echo "Updater file rollback was incomplete."
+            fi
+            rollback
+            exit 1
+          fi
+
           if ! curl --fail --silent --show-error --max-time 10 \
             http://127.0.0.1:8081/update.json \
             --output "$served_manifest" ||
