@@ -71,6 +71,7 @@ it('shows monthly gender totals and separate top three approved employee ranking
     $this->actingAs($hrd)
         ->get(route('admin.absensi.index', ['month' => 11, 'year' => 2026]))
         ->assertOk()
+        ->assertSeeInOrder(['Grafik Absensi', 'Statistik Karyawan', 'Karyawan Freelance'])
         ->assertViewHas('employeeGenderStats', [
             'male' => 2,
             'female' => 2,

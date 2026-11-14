@@ -108,6 +108,139 @@
             @endforeach
         </div>
 
+        @php
+            $chartMonths = collect(range(1, 12))
+                ->map(fn ($chartMonth) => \Carbon\Carbon::createFromDate($year, $chartMonth, 1)->translatedFormat('M'));
+            $chartAttendance = array_values($grafikBulanan);
+            $chartMax = max(3, (int) (ceil(max($chartAttendance) / 3) * 3));
+            $chartPoints = collect($chartAttendance)->map(fn ($value, $index) => [
+                'x' => 50 + ($index * (650 / 11)),
+                'y' => 216 - (($value / $chartMax) * 190),
+                'value' => $value,
+            ]);
+            $linePath = $chartPoints
+                ->map(fn ($point, $index) => ($index === 0 ? 'M ' : 'L ').round($point['x'], 1).' '.round($point['y'], 1))
+                ->implode(' ');
+            $areaPath = $linePath.' L 700 216 L 50 216 Z';
+            $statusColors = ['#265970', '#4b7484', '#d29a43', '#8795a0'];
+            $statusTotal = array_sum($grafikStatus['values']);
+            $statusCircumference = 2 * pi() * 72;
+            $statusOffset = 0;
+            $statusSlices = collect($grafikStatus['values'])->map(function ($value, $index) use ($statusCircumference, &$statusOffset, $statusTotal, $statusColors, $grafikStatus) {
+                $length = $statusTotal > 0 ? ($value / $statusTotal) * $statusCircumference : 0;
+                $slice = [
+                    'label' => $grafikStatus['labels'][$index],
+                    'value' => $value,
+                    'color' => $statusColors[$index],
+                    'length' => $length,
+                    'offset' => $statusOffset,
+                ];
+                $statusOffset += $length;
+
+                return $slice;
+            });
+        @endphp
+
+        <section class="space-y-4" aria-labelledby="attendance-charts-title">
+            <div>
+                <h2 id="attendance-charts-title" class="text-xl font-black text-slate-900 dark:text-white">Grafik Absensi</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                    Tren dan distribusi kehadiran ditampilkan setelah ringkasan periode.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2">
+                <div class="lucent-panel flex min-w-0 flex-col rounded-xl p-4 sm:p-5">
+                    <div class="mb-5 flex items-center gap-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">Tren Kehadiran</h3>
+                            <p class="text-xs text-slate-500">Kehadiran freelance per bulan, {{ $year }}</p>
+                        </div>
+                    </div>
+                    <div class="relative h-64 min-w-0 rounded-lg bg-emerald-50/60 p-3 dark:bg-emerald-950/20 sm:h-72 sm:p-4">
+                        <svg class="h-full w-full overflow-visible" viewBox="0 0 720 260" role="img"
+                             aria-label="Grafik tren kehadiran freelance per bulan">
+                            @foreach ([0, 1, 2, 3] as $gridStep)
+                                @php $gridY = 216 - (($gridStep / 3) * 190); @endphp
+                                <line x1="50" y1="{{ $gridY }}" x2="700" y2="{{ $gridY }}"
+                                      stroke="currentColor" stroke-opacity="0.12" />
+                                <text x="40" y="{{ $gridY + 4 }}" text-anchor="end"
+                                      class="fill-slate-400" font-size="11">{{ (int) round($chartMax * $gridStep / 3) }}</text>
+                            @endforeach
+                            <defs>
+                                <linearGradient id="attendance-area" x1="0" x2="0" y1="0" y2="1">
+                                    <stop offset="0%" stop-color="#265970" stop-opacity="0.24" />
+                                    <stop offset="100%" stop-color="#265970" stop-opacity="0.01" />
+                                </linearGradient>
+                            </defs>
+                            <path d="{{ $areaPath }}" fill="url(#attendance-area)" />
+                            <path d="{{ $linePath }}" fill="none" stroke="#265970" stroke-width="3"
+                                  stroke-linecap="round" stroke-linejoin="round" />
+                            @foreach ($chartPoints as $index => $point)
+                                <circle cx="{{ round($point['x'], 1) }}" cy="{{ round($point['y'], 1) }}" r="5"
+                                        fill="#265970" stroke="white" stroke-width="2">
+                                    <title>{{ $chartMonths[$index] }}: {{ $point['value'] }} kehadiran</title>
+                                </circle>
+                                <text x="{{ round($point['x'], 1) }}" y="242" text-anchor="middle"
+                                      class="fill-slate-500" font-size="11">{{ $chartMonths[$index] }}</text>
+                            @endforeach
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="lucent-panel flex min-w-0 flex-col rounded-xl p-4 sm:p-5">
+                    <div class="mb-5 flex items-center gap-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10 text-indigo-600">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">Distribusi Status</h3>
+                            <p class="text-xs text-slate-500">
+                                Status absensi freelance, {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
+                            </p>
+                        </div>
+                    </div>
+                    <div class="relative flex min-h-64 min-w-0 items-center justify-center rounded-lg bg-teal-50/70 p-4 dark:bg-teal-950/20 sm:min-h-72">
+                        <div class="flex w-full flex-col items-center justify-center gap-5 2xl:flex-row 2xl:gap-8">
+                            <div class="relative h-44 w-44 shrink-0">
+                                <svg class="h-full w-full -rotate-90" viewBox="0 0 180 180" role="img"
+                                     aria-label="Grafik distribusi status absensi freelance">
+                                    <circle cx="90" cy="90" r="72" fill="none" stroke="#e5e5e5" stroke-width="28" />
+                                    @foreach ($statusSlices as $slice)
+                                        @if ($slice['length'] > 0)
+                                            <circle cx="90" cy="90" r="72" fill="none" stroke="{{ $slice['color'] }}"
+                                                    stroke-width="28" stroke-dasharray="{{ $slice['length'] }} {{ $statusCircumference - $slice['length'] }}"
+                                                    stroke-dashoffset="-{{ $slice['offset'] }}">
+                                                <title>{{ $slice['label'] }}: {{ $slice['value'] }}</title>
+                                            </circle>
+                                        @endif
+                                    @endforeach
+                                </svg>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                    <span class="text-3xl font-black text-slate-900 dark:text-white">{{ $statusTotal }}</span>
+                                    <span class="text-xs text-slate-500">Absensi</span>
+                                </div>
+                            </div>
+                            <ul class="grid w-full max-w-xs grid-cols-2 gap-3 text-sm 2xl:grid-cols-1">
+                                @foreach ($statusSlices as $slice)
+                                    <li class="flex items-center justify-between gap-3">
+                                        <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                            <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $slice['color'] }}"></span>
+                                            {{ $slice['label'] }}
+                                        </span>
+                                        <strong class="text-slate-900 dark:text-white">{{ $slice['value'] }}</strong>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <section class="space-y-4">
             <div>
                 <h2 class="text-xl font-black text-slate-900 dark:text-white">Statistik Karyawan</h2>
@@ -311,130 +444,6 @@
                             </div>
                         </div>
 
-        @php
-            $chartMonths = collect(range(1, 12))
-                ->map(fn ($chartMonth) => \Carbon\Carbon::createFromDate($year, $chartMonth, 1)->translatedFormat('M'));
-            $chartAttendance = array_values($grafikBulanan);
-            $chartMax = max(3, (int) (ceil(max($chartAttendance) / 3) * 3));
-            $chartPoints = collect($chartAttendance)->map(fn ($value, $index) => [
-                'x' => 50 + ($index * (650 / 11)),
-                'y' => 216 - (($value / $chartMax) * 190),
-                'value' => $value,
-            ]);
-            $linePath = $chartPoints
-                ->map(fn ($point, $index) => ($index === 0 ? 'M ' : 'L ').round($point['x'], 1).' '.round($point['y'], 1))
-                ->implode(' ');
-            $areaPath = $linePath.' L 700 216 L 50 216 Z';
-            $statusColors = ['#265970', '#4b7484', '#d29a43', '#8795a0'];
-            $statusTotal = array_sum($grafikStatus['values']);
-            $statusCircumference = 2 * pi() * 72;
-            $statusOffset = 0;
-            $statusSlices = collect($grafikStatus['values'])->map(function ($value, $index) use ($statusCircumference, &$statusOffset, $statusTotal, $statusColors, $grafikStatus) {
-                $length = $statusTotal > 0 ? ($value / $statusTotal) * $statusCircumference : 0;
-                $slice = [
-                    'label' => $grafikStatus['labels'][$index],
-                    'value' => $value,
-                    'color' => $statusColors[$index],
-                    'length' => $length,
-                    'offset' => $statusOffset,
-                ];
-                $statusOffset += $length;
-
-                return $slice;
-            });
-        @endphp
-
-        {{-- Charts Section --}}
-        <div class="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-2">
-            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
-                <div class="mb-5 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold">Tren Kehadiran</h3>
-                        <p class="text-xs text-slate-500">Kehadiran freelance per bulan, {{ $year }}</p>
-                    </div>
-                </div>
-                <div class="relative h-64 min-w-0 rounded-lg bg-emerald-50/60 p-3 dark:bg-emerald-950/20 sm:h-72 sm:p-4">
-                    <svg class="h-full w-full overflow-visible" viewBox="0 0 720 260" role="img"
-                         aria-label="Grafik tren kehadiran freelance per bulan">
-                        @foreach ([0, 1, 2, 3] as $gridStep)
-                            @php $gridY = 216 - (($gridStep / 3) * 190); @endphp
-                            <line x1="50" y1="{{ $gridY }}" x2="700" y2="{{ $gridY }}"
-                                  stroke="currentColor" stroke-opacity="0.12" />
-                            <text x="40" y="{{ $gridY + 4 }}" text-anchor="end"
-                                  class="fill-slate-400" font-size="11">{{ (int) round($chartMax * $gridStep / 3) }}</text>
-                        @endforeach
-                        <defs>
-                            <linearGradient id="attendance-area" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stop-color="#265970" stop-opacity="0.24" />
-                                <stop offset="100%" stop-color="#265970" stop-opacity="0.01" />
-                            </linearGradient>
-                        </defs>
-                        <path d="{{ $areaPath }}" fill="url(#attendance-area)" />
-                        <path d="{{ $linePath }}" fill="none" stroke="#265970" stroke-width="3"
-                              stroke-linecap="round" stroke-linejoin="round" />
-                        @foreach ($chartPoints as $index => $point)
-                            <circle cx="{{ round($point['x'], 1) }}" cy="{{ round($point['y'], 1) }}" r="5"
-                                    fill="#265970" stroke="white" stroke-width="2">
-                                <title>{{ $chartMonths[$index] }}: {{ $point['value'] }} kehadiran</title>
-                            </circle>
-                            <text x="{{ round($point['x'], 1) }}" y="242" text-anchor="middle"
-                                  class="fill-slate-500" font-size="11">{{ $chartMonths[$index] }}</text>
-                        @endforeach
-                    </svg>
-                </div>
-            </div>
-
-            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
-                <div class="mb-5 flex items-center gap-4">
-                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
-                        <i class="fas fa-chart-pie"></i>
-                    </div>
-                    <div>
-                        <h3 class="font-bold">Distribusi Status</h3>
-                        <p class="text-xs text-slate-500">
-                            Status absensi freelance, {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
-                        </p>
-                    </div>
-                </div>
-                <div class="relative flex h-64 min-w-0 items-center justify-center rounded-lg bg-teal-50/70 p-4 dark:bg-teal-950/20 sm:h-72">
-                    <div class="flex w-full flex-col items-center justify-center gap-6 sm:flex-row sm:gap-10">
-                        <div class="relative h-44 w-44 shrink-0">
-                            <svg class="h-full w-full -rotate-90" viewBox="0 0 180 180" role="img"
-                                 aria-label="Grafik distribusi status absensi freelance">
-                                <circle cx="90" cy="90" r="72" fill="none" stroke="#e5e5e5" stroke-width="28" />
-                                @foreach ($statusSlices as $slice)
-                                    @if ($slice['length'] > 0)
-                                        <circle cx="90" cy="90" r="72" fill="none" stroke="{{ $slice['color'] }}"
-                                                stroke-width="28" stroke-dasharray="{{ $slice['length'] }} {{ $statusCircumference - $slice['length'] }}"
-                                                stroke-dashoffset="-{{ $slice['offset'] }}">
-                                            <title>{{ $slice['label'] }}: {{ $slice['value'] }}</title>
-                                        </circle>
-                                    @endif
-                                @endforeach
-                            </svg>
-                            <div class="absolute inset-0 flex flex-col items-center justify-center">
-                                <span class="text-3xl font-black text-slate-900 dark:text-white">{{ $statusTotal }}</span>
-                                <span class="text-xs text-slate-500">Absensi</span>
-                            </div>
-                        </div>
-                        <ul class="grid w-full max-w-xs grid-cols-2 gap-3 text-sm sm:grid-cols-1">
-                            @foreach ($statusSlices as $slice)
-                                <li class="flex items-center justify-between gap-3">
-                                    <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
-                                        <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $slice['color'] }}"></span>
-                                        {{ $slice['label'] }}
-                                    </span>
-                                    <strong class="text-slate-900 dark:text-white">{{ $slice['value'] }}</strong>
-                                </li>
-                            @endforeach
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
 </x-app-layout>
