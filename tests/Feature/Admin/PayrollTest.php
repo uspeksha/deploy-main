@@ -2,6 +2,7 @@
 
 use App\Exports\PayrollSummaryExport;
 use App\Models\ActivityLog;
+use App\Models\Notification;
 use App\Models\PayrollCorrection;
 use App\Models\PayrollItem;
 use App\Models\PayrollLatenessDetail;
@@ -423,6 +424,8 @@ it('allows HRD to permanently delete payrolls in any status and their related re
 
 it('allows direct Excel export and preserves manual payroll transitions', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['role' => 'karyawan']);
+    $anotherEmployee = User::factory()->create(['role' => 'karyawan']);
     $period = PayrollPeriod::query()->create([
         'year' => 2026,
         'month' => 10,
@@ -432,6 +435,25 @@ it('allows direct Excel export and preserves manual payroll transitions', functi
         'status' => PayrollPeriod::STATUS_DRAFT,
         'generated_by' => $hrd->id,
     ]);
+    $items = collect([$employee, $anotherEmployee])->map(
+        fn (User $user): PayrollItem => PayrollItem::query()->create([
+            'payroll_period_id' => $period->id,
+            'user_id' => $user->id,
+            'employee_id' => $user->id_karyawan,
+            'employee_name' => $user->name,
+            'employment_type' => 'freelance',
+            'work_days' => 1,
+            'daily_rate' => 120000,
+            'gross_pay' => 120000,
+            'late_occurrences' => 0,
+            'total_late_minutes' => 0,
+            'late_deduction' => 0,
+            'other_deductions' => 0,
+            'net_pay' => 120000,
+            'attendance_snapshot' => [],
+            'slip_number' => "SLIP-{$user->id}",
+        ]),
+    );
 
     $this->actingAs($hrd)
         ->get(route('admin.payroll.index', ['period_id' => $period->id]))
@@ -451,8 +473,30 @@ it('allows direct Excel export and preserves manual payroll transitions', functi
 
     $this->post(route('admin.payroll.paid', $period), ['payment_reference' => 'BUKTI-2026-001'])
         ->assertRedirect();
+    expect(Notification::query()->where('type', 'payroll_slip')->count())->toBe(2)
+        ->and(Notification::query()->where('type', 'payroll_slip')->pluck('user_id')->all())
+        ->toEqualCanonicalizing([$employee->id, $anotherEmployee->id])
+        ->and(Notification::query()->where('type', 'payroll_slip')->pluck('target_id')->all())
+        ->toEqualCanonicalizing($items->pluck('id')->all());
+
+    $this->actingAs($employee)
+        ->getJson('/api/v1/notifications')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.type', 'payroll_slip')
+        ->assertJsonPath('data.0.target_id', $items[0]->id)
+        ->assertJsonMissing(['target_id' => $items[1]->id]);
+
+    $this->actingAs($anotherEmployee)
+        ->getJson('/api/v1/notifications')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.target_id', $items[1]->id);
+
+    $this->actingAs($hrd);
     $this->post(route('admin.payroll.paid', $period), ['payment_reference' => 'BUKTI-2026-001'])
         ->assertStatus(409);
+    expect(Notification::query()->where('type', 'payroll_slip')->count())->toBe(2);
 
     $this->post(route('admin.payroll.corrections.store', $period), [
         'adjustment_amount' => -25000,
