@@ -239,19 +239,7 @@ class PayrollController extends Controller
             $lockedPeriod->paid_at = now();
             $lockedPeriod->payment_reference = trim($validated['payment_reference']);
 
-            $lockedPeriod->items()
-                ->select(['id', 'user_id'])
-                ->get()
-                ->each(function (PayrollItem $item) use ($lockedPeriod): void {
-                    Notification::query()->create([
-                        'user_id' => $item->user_id,
-                        'title' => 'Slip gaji tersedia',
-                        'message' => "Slip gaji periode {$lockedPeriod->label} sudah tersedia di aplikasi.",
-                        'type' => 'payroll_slip',
-                        'target_id' => $item->id,
-                        'is_read' => false,
-                    ]);
-                });
+            $this->createMissingPaidSlipNotifications($lockedPeriod);
 
             return [
                 'paid_by' => $lockedPeriod->paid_by,
@@ -259,6 +247,33 @@ class PayrollController extends Controller
                 'payment_reference' => $lockedPeriod->payment_reference,
             ];
         }, 'payroll.manually_marked_paid');
+    }
+
+    public function notifyPaidEmployees(PayrollPeriod $period): RedirectResponse
+    {
+        $this->ensureHrd();
+
+        $notificationCount = DB::transaction(function () use ($period): int {
+            $lockedPeriod = PayrollPeriod::query()->lockForUpdate()->findOrFail($period->id);
+            abort_unless($lockedPeriod->status === PayrollPeriod::STATUS_PAID, 409, 'Notifikasi slip hanya dapat dikirim untuk payroll yang sudah dibayar.');
+
+            $notificationCount = $this->createMissingPaidSlipNotifications($lockedPeriod);
+
+            ActivityLog::log('payroll.paid_slip_notifications_sent', "Payroll period ID: {$lockedPeriod->id}", [
+                'notification_count' => $notificationCount,
+                'period' => $lockedPeriod->label,
+            ]);
+
+            return $notificationCount;
+        });
+
+        $message = $notificationCount > 0
+            ? "Notifikasi slip gaji dikirim ke {$notificationCount} karyawan."
+            : 'Notifikasi slip gaji untuk periode ini sudah tersedia.';
+
+        return redirect()
+            ->route('admin.payroll.index', ['period_id' => $period->id])
+            ->with('success', $message);
     }
 
     public function cancel(Request $request, PayrollPeriod $period): RedirectResponse
@@ -499,5 +514,34 @@ class PayrollController extends Controller
                 ->route('admin.payroll.index', ['period_id' => $lockedPeriod->id])
                 ->with('success', 'Status payroll berhasil diperbarui.');
         });
+    }
+
+    private function createMissingPaidSlipNotifications(PayrollPeriod $period): int
+    {
+        $items = $period->items()->get(['id', 'user_id']);
+        $notifiedItemIds = Notification::query()
+            ->where('type', 'payroll_slip')
+            ->whereIn('target_id', $items->pluck('id'))
+            ->pluck('target_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->all();
+        $notifiedItemIds = array_fill_keys($notifiedItemIds, true);
+
+        $missingItems = $items->reject(
+            static fn (PayrollItem $item): bool => isset($notifiedItemIds[$item->id]),
+        );
+
+        $missingItems->each(function (PayrollItem $item) use ($period): void {
+            Notification::query()->create([
+                'user_id' => $item->user_id,
+                'title' => 'Slip gaji tersedia',
+                'message' => "Slip gaji periode {$period->label} sudah tersedia di aplikasi.",
+                'type' => 'payroll_slip',
+                'target_id' => $item->id,
+                'is_read' => false,
+            ]);
+        });
+
+        return $missingItems->count();
     }
 }

@@ -39,6 +39,7 @@ Route::middleware([
     Route::post('/periods/{period}/submit', [PayrollController::class, 'submit'])->name('submit');
     Route::post('/periods/{period}/approve', [PayrollController::class, 'approve'])->name('approve');
     Route::post('/periods/{period}/paid', [PayrollController::class, 'markPaid'])->name('paid');
+    Route::post('/periods/{period}/paid-notifications', [PayrollController::class, 'notifyPaidEmployees'])->name('paid-notifications');
     Route::post('/periods/{period}/cancel', [PayrollController::class, 'cancel'])->name('cancel');
     Route::delete('/periods/{period}', [PayrollController::class, 'destroy'])->name('destroy');
     Route::post('/periods/{period}/corrections', [PayrollController::class, 'recordCorrection'])->name('corrections.store');

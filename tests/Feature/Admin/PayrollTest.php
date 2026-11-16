@@ -479,6 +479,10 @@ it('allows direct Excel export and preserves manual payroll transitions', functi
         ->and(Notification::query()->where('type', 'payroll_slip')->pluck('target_id')->all())
         ->toEqualCanonicalizing($items->pluck('id')->all());
 
+    $this->post(route('admin.payroll.paid-notifications', $period))
+        ->assertRedirect();
+    expect(Notification::query()->where('type', 'payroll_slip')->count())->toBe(2);
+
     $this->actingAs($employee)
         ->getJson('/api/v1/notifications')
         ->assertOk()
@@ -514,6 +518,62 @@ it('allows direct Excel export and preserves manual payroll transitions', functi
         ->and($period->fresh()->paid_at)->not->toBeNull()
         ->and($correction->fresh()->status)->toBe('reconciled')
         ->and($correction->fresh()->settlement_reference)->toBe('REKON-001');
+});
+
+it('sends missing notifications for a payroll period that was already paid', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['role' => 'karyawan']);
+    $period = PayrollPeriod::query()->create([
+        'year' => 2026,
+        'month' => 10,
+        'period_number' => 1,
+        'start_date' => '2026-10-01',
+        'end_date' => '2026-10-15',
+        'status' => PayrollPeriod::STATUS_PAID,
+        'generated_by' => $hrd->id,
+        'paid_by' => $hrd->id,
+        'paid_at' => now(),
+        'payment_reference' => 'BUKTI-2026-001',
+    ]);
+    $item = PayrollItem::query()->create([
+        'payroll_period_id' => $period->id,
+        'user_id' => $employee->id,
+        'employee_id' => $employee->id_karyawan,
+        'employee_name' => $employee->name,
+        'employment_type' => 'freelance',
+        'work_days' => 1,
+        'daily_rate' => 120000,
+        'gross_pay' => 120000,
+        'late_occurrences' => 0,
+        'total_late_minutes' => 0,
+        'late_deduction' => 0,
+        'other_deductions' => 0,
+        'net_pay' => 120000,
+        'attendance_snapshot' => [],
+        'slip_number' => "SLIP-{$employee->id}",
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.payroll.index', ['period_id' => $period->id]))
+        ->assertOk()
+        ->assertSee('Kirim Notifikasi Slip');
+
+    $this->post(route('admin.payroll.paid-notifications', $period))
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Notifikasi slip gaji dikirim ke 1 karyawan.');
+
+    $this->actingAs($employee)
+        ->getJson('/api/v1/notifications')
+        ->assertOk()
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.type', 'payroll_slip')
+        ->assertJsonPath('data.0.target_id', $item->id);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.payroll.paid-notifications', $period))
+        ->assertRedirect()
+        ->assertSessionHas('success', 'Notifikasi slip gaji untuk periode ini sudah tersedia.');
+    expect(Notification::query()->where('type', 'payroll_slip')->count())->toBe(1);
 });
 
 it('rejects repeated approval and manual payment transitions', function () {

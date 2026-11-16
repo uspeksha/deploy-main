@@ -253,6 +253,12 @@
                             </div>
                         </div>
                         @if ($selectedPeriod->status === 'paid')
+                            <form method="POST" action="{{ route('admin.payroll.paid-notifications', $selectedPeriod) }}" class="mt-4" onsubmit="return confirm('Kirim notifikasi slip gaji yang belum tersedia di aplikasi karyawan?')">
+                                @csrf
+                                <button class="{{ $secondaryButtonClasses }}">
+                                    <i class="fas fa-bell"></i> Kirim Notifikasi Slip
+                                </button>
+                            </form>
                             <p class="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
                                 Pembayaran manual dikonfirmasi {{ $selectedPeriod->paid_at?->format('d/m/Y H:i') }}
                                 oleh {{ $selectedPeriod->payer?->name ?? 'pengguna yang sudah dihapus' }}.
