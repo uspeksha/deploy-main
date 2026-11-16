@@ -129,6 +129,7 @@ it('rejects check-out outside the workplace geofence', function () {
 
 it('allows the configured tester to check out outside the workplace', function () {
     config(['attendance.geofence.bypass_emails' => ['tester@example.test']]);
+    $this->travelTo(now()->setTime(18, 0));
     $employee = User::factory()->create([
         'email' => 'tester@example.test',
         'employment_type' => 'freelance',
