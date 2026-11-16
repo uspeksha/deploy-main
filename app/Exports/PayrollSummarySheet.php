@@ -54,6 +54,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
                         $item->employee_id,
                         $item->employee_name,
                         $item->employee?->bank_account_number,
+                        $this->bankGroup($item->employee?->bank_name),
                         $item->daily_rate_summary,
                         $productionAllowance,
                         $weeklyAllowance,
@@ -73,12 +74,12 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
 
         $totals = $employeeRows->reduce(function (array $totals, array $employee): array {
             $row = $employee['values'];
-            foreach ([4, 5, 6, 7, 8, 9, 10, 11, 12] as $column) {
+            foreach ([5, 6, 7, 8, 9, 10, 11, 12, 13] as $column) {
                 $totals[$column] += (float) ($row[$column] ?? 0);
             }
 
             return $totals;
-        }, array_fill(0, 13, 0));
+        }, array_fill(0, 14, 0));
 
         $items = collect();
         $bankGroups = $employeeRows
@@ -86,7 +87,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             ->sortKeysUsing(fn (string $left, string $right): int => $this->compareBanks($left, $right));
 
         foreach ($bankGroups as $bank => $employees) {
-            $items->push(array_merge(["REKENING {$bank}"], array_fill(0, 12, null)));
+            $items->push(array_merge(["REKENING {$bank}"], array_fill(0, 13, null)));
 
             foreach ($employees->sort(fn (array $left, array $right): int => strnatcasecmp($left['name'], $right['name'])) as $employee) {
                 $items->push($employee['values']);
@@ -107,6 +108,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             $totals[10],
             $totals[11],
             $totals[12],
+            $totals[13],
         ]);
 
         return $items;
@@ -142,6 +144,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             'Employee ID',
             'Full Name',
             'No. Rekening',
+            'Bank',
             'Upah Harian',
             'Tunjangan Produksi',
             'Tunjangan Mingguan',
@@ -171,7 +174,6 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
         $rupiahFormat = '"Rp" #,##0;[Red]-"Rp" #,##0;"Rp" -';
 
         return [
-            'D' => $rupiahFormat,
             'E' => $rupiahFormat,
             'F' => $rupiahFormat,
             'G' => $rupiahFormat,
@@ -181,6 +183,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             'K' => $rupiahFormat,
             'L' => $rupiahFormat,
             'M' => $rupiahFormat,
+            'N' => $rupiahFormat,
         ];
     }
 
@@ -190,24 +193,25 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             'A' => 16,
             'B' => 28,
             'C' => 22,
-            'D' => 18,
-            'E' => 21,
+            'D' => 16,
+            'E' => 18,
             'F' => 21,
-            'G' => 22,
-            'H' => 20,
-            'I' => 25,
-            'J' => 18,
-            'K' => 21,
-            'L' => 23,
-            'M' => 21,
+            'G' => 21,
+            'H' => 22,
+            'I' => 20,
+            'J' => 25,
+            'K' => 18,
+            'L' => 21,
+            'M' => 23,
+            'N' => 21,
         ];
     }
 
     public function styles(Worksheet $sheet): array
     {
         $sheet->insertNewRowBefore(1, 3);
-        $sheet->mergeCells('A1:M1');
-        $sheet->mergeCells('A2:M2');
+        $sheet->mergeCells('A1:N1');
+        $sheet->mergeCells('A2:N2');
         $startDate = $this->period->start_date->locale('id');
         $endDate = $this->period->end_date->locale('id');
         $periodRange = sprintf(
@@ -219,25 +223,25 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
         );
         $sheet->setCellValue('A1', 'PT. Followme Indonesia');
         $sheet->setCellValue('A2', 'Salary Report ('.$periodRange.')');
-        $sheet->mergeCells('D3:J3');
-        $sheet->setCellValue('D3', 'Allowance');
+        $sheet->mergeCells('E3:K3');
+        $sheet->setCellValue('E3', 'Allowance');
 
         $lastDataRow = $sheet->getHighestRow();
         $totalRow = $lastDataRow;
         $sheet->setShowGridlines(false);
         $sheet->freezePane('A5');
 
-        $sheet->getStyle('A1:M1')->applyFromArray([
+        $sheet->getStyle('A1:N1')->applyFromArray([
             'font' => ['bold' => true, 'size' => 16, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '385D8A']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getStyle('A2:M2')->applyFromArray([
+        $sheet->getStyle('A2:N2')->applyFromArray([
             'font' => ['bold' => true, 'size' => 12, 'color' => ['rgb' => 'FFFFFF']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '385D8A']],
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
         ]);
-        $sheet->getStyle('A3:M4')->applyFromArray([
+        $sheet->getStyle('A3:N4')->applyFromArray([
             'font' => ['bold' => true, 'size' => 10, 'color' => ['rgb' => '1F2937']],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'DCE6F1']],
             'alignment' => [
@@ -246,7 +250,7 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
                 'wrapText' => true,
             ],
         ]);
-        $sheet->getStyle("A3:M{$totalRow}")->applyFromArray([
+        $sheet->getStyle("A3:N{$totalRow}")->applyFromArray([
             'borders' => [
                 'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '808080']],
             ],
@@ -255,8 +259,8 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             $sheet->getRowDimension($row)->setRowHeight(21);
             $firstCell = (string) $sheet->getCell("A{$row}")->getValue();
             if (str_starts_with($firstCell, 'REKENING ')) {
-                $sheet->mergeCells("A{$row}:M{$row}");
-                $sheet->getStyle("A{$row}:M{$row}")->applyFromArray([
+                $sheet->mergeCells("A{$row}:N{$row}");
+                $sheet->getStyle("A{$row}:N{$row}")->applyFromArray([
                     'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
                     'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '5B9BD5']],
                     'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
@@ -266,16 +270,16 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
             }
 
             if (($row - 5) % 2 === 1) {
-                $sheet->getStyle("A{$row}:M{$row}")->getFill()
+                $sheet->getStyle("A{$row}:N{$row}")->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()
                     ->setRGB('F3F6FA');
             }
         }
-        $sheet->getStyle("A5:M{$totalRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
-        $sheet->getStyle("D5:M{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("A5:C{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
-        $sheet->getStyle("A{$totalRow}:M{$totalRow}")->applyFromArray([
+        $sheet->getStyle("A5:N{$totalRow}")->getAlignment()->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getStyle("E5:N{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("A5:D{$totalRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+        $sheet->getStyle("A{$totalRow}:N{$totalRow}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'BFBFBF']],
         ]);
