@@ -130,14 +130,12 @@
         @php
             $lateMinutes = $daily['late_minutes'] ?? 0;
         @endphp
-        @if($type === 'organik')
-            <span class="text-gray-400 text-sm">-</span>
-        @elseif($belumAbsen)
+        @if($belumAbsen)
             <span class="text-red-600 dark:text-red-400 text-sm font-bold">
                 <i class="fas fa-exclamation-circle"></i> -
             </span>
         @elseif($lateMinutes > 0)
-            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
                 <i class="fas fa-clock"></i>
                 @if($lateMinutes < 60)
                     {{ $lateMinutes }} menit
@@ -176,7 +174,7 @@
 
     {{-- Detail --}}
     <td class="px-6 py-4 whitespace-nowrap">
-        <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ $belumAbsen ? 'bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/50 dark:text-red-300' : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200' }} rounded-lg text-sm font-medium transition-all">
+        <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 {{ $belumAbsen ? 'bg-rose-50 text-rose-700 hover:bg-rose-100 dark:bg-rose-900/30 dark:text-rose-300' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-300' }} rounded-xl text-sm font-medium transition-all">
             <i class="fas fa-eye"></i>
             <span>Detail</span>
         </a>

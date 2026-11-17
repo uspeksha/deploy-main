@@ -3,5 +3,10 @@
 it('returns a successful response', function () {
     $response = $this->get('/');
 
-    $response->assertStatus(200);
+    $response
+        ->assertStatus(200)
+        ->assertSee('Masuk Akun')
+        ->assertSee('Sistem absensi PT Follow Me')
+        ->assertSee('Kerja lebih')
+        ->assertDontSee('Learn more');
 });

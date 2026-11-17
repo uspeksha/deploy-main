@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Holiday;
 use Illuminate\Console\Command;
 
 class SyncHolidaysCommand extends Command
@@ -54,11 +55,11 @@ class SyncHolidaysCommand extends Command
 
         $count = 0;
         foreach ($holidays2026 as $h) {
-            \App\Models\Holiday::updateOrCreate(
+            Holiday::updateOrCreate(
                 ['holiday_date' => $h['date']],
                 [
                     'name' => $h['name'],
-                    'is_national' => true
+                    'is_national' => true,
                 ]
             );
             $count++;

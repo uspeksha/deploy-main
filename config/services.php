@@ -35,4 +35,13 @@ return [
         ],
     ],
 
+    'kpi' => [
+        'api_key' => env('KPI_INTEGRATION_KEY'),
+    ],
+
+    'hrd_admin' => [
+        'email' => env('HRD_ADMIN_EMAIL'),
+        'password' => env('HRD_ADMIN_PASSWORD'),
+    ],
+
 ];

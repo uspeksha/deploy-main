@@ -11,9 +11,5 @@ export default defineConfig({
     server: {
         host: "0.0.0.0",
         port: 5173,
-        origin: "http://192.168.100.89:5173", // IP WiFi kamu
-        hmr: {
-            host: "192.168.100.89", // penting untuk HMR
-        },
     },
 });

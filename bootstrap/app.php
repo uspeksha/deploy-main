@@ -1,9 +1,19 @@
 <?php
 
+use App\Http\Middleware\BlockPkl;
+use App\Http\Middleware\EnsureActiveAccount;
+use App\Http\Middleware\IsAdmin;
+use App\Http\Middleware\IsSuperAdmin;
+use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\VerifyKpiApiKey;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
-use Illuminate\Auth\AuthenticationException;
+use Illuminate\Http\Exceptions\ThrottleRequestsException;
+use Illuminate\Http\Request;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
+use Sentry\Laravel\Integration;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -13,43 +23,48 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        
         $middleware->validateCsrfTokens(except: [
-            
         ]);
 
         $middleware->statefulApi();
 
-			$middleware->trustProxies(at: '*');
-		
+        $middleware->trustProxies(
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_PREFIX
+                | Request::HEADER_X_FORWARDED_AWS_ELB,
+        );
+
         $middleware->alias([
-            'admin' => \App\Http\Middleware\IsAdmin::class,
-            'super_admin' => \App\Http\Middleware\IsSuperAdmin::class, 
-            'api.kpi' => \App\Http\Middleware\VerifyKpiApiKey::class,
-            'block.pkl' => \App\Http\Middleware\BlockPkl::class,
-        ]);
-        
-        $middleware->api(prepend: [
-            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            'admin' => IsAdmin::class,
+            'super_admin' => IsSuperAdmin::class,
+            'api.kpi' => VerifyKpiApiKey::class,
+            'block.pkl' => BlockPkl::class,
+            'active.account' => EnsureActiveAccount::class,
         ]);
 
-        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
+        $middleware->api(prepend: [
+            EnsureFrontendRequestsAreStateful::class,
+        ]);
+
+        $middleware->append(SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        \Sentry\Laravel\Integration::handles($exceptions);
+        Integration::handles($exceptions);
 
         $exceptions->renderable(function (AuthenticationException $e, $request) {
             if ($request->is('api/*')) {
                 return response()->json([
-                    'message' => 'Unauthenticated.'
+                    'message' => 'Unauthenticated.',
                 ], 401);
             }
         });
 
         $exceptions->renderable(function (Throwable $e, $request) {
-            if ($request->is('api/*') && $e instanceof \Illuminate\Http\Exceptions\ThrottleRequestsException) {
+            if ($request->is('api/*') && $e instanceof ThrottleRequestsException) {
                 return response()->json([
-                    'message' => 'Too many attempts. Please try again later.'
+                    'message' => 'Too many attempts. Please try again later.',
                 ], 429);
             }
         });

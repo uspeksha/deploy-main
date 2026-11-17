@@ -2,26 +2,81 @@
 
 namespace App\Models;
 
+use App\Services\FreelancePayrollCalculator;
+use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property int|null $parent_id
+ * @property string $status
+ * @property string|null $tipe
+ * @property string|null $submission_type
+ * @property string|null $foto_masuk
+ * @property string|null $foto_pulang
+ * @property string|null $foto_pulang_2
+ * @property string|null $foto_pulang_3
+ * @property string|null $foto_pulang_4
+ * @property string|null $foto_pulang_5
+ * @property string|null $foto_pulang_6
+ * @property string|null $foto_masuk_url
+ * @property string|null $foto_pulang_url
+ * @property string|null $foto_pulang_2_url
+ * @property string|null $foto_pulang_3_url
+ * @property string|null $foto_pulang_4_url
+ * @property string|null $foto_pulang_5_url
+ * @property string|null $foto_pulang_6_url
+ * @property string|null $file_bukti
+ * @property string|null $file_bukti_url
+ * @property string|null $keterangan_izin_sakit
+ * @property string|null $lokasi_masuk
+ * @property string|null $lokasi_pulang
+ * @property int|null $late_minutes
+ * @property int|null $overtime_minutes
+ * @property float|string|null $overtime_pay
+ * @property Carbon|null $check_in_at
+ * @property Carbon|null $check_out_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $lembur_start
+ * @property Carbon|null $lembur_end
+ * @property array<string, mixed>|null $workflow_status
+ * @property-read User|null $user
+ * @property-read Absensi|null $parent
+ * @property-read Collection<int, Absensi> $children
+ */
 class Absensi extends Model
 {
     use HasFactory;
 
     // Konstanta Gaji
     const DAILY_SALARY = 150000;           // Gaji normal
+
     const WEEKEND_DAILY_SALARY = 300000;   // 🆕 Gaji weekend (2x lipat)
+
     const HOURLY_SALARY = 18750;           // Gaji per jam normal
+
     const WEEKEND_HOURLY_SALARY = 37500;   // 🆕 Gaji per jam weekend (2x)
+
     const SALARY_PER_MINUTE = 312.5;
+
     const WEEKEND_SALARY_PER_MINUTE = 625; // 🆕 Per menit weekend
 
     const OVERTIME_REST_DEDUCTION_MINUTES = 30;
 
     protected $fillable = [
         'user_id',
+        'shift_id',
+        'leave_type_id',
+        'check_in_lat',
+        'check_in_lng',
+        'check_out_lat',
+        'check_out_lng',
         'status',
         'tipe',
         'submission_type',
@@ -80,6 +135,10 @@ class Absensi extends Model
     protected $casts = [
         'check_in_at' => 'datetime',
         'check_out_at' => 'datetime',
+        'check_in_lat' => 'decimal:7',
+        'check_in_lng' => 'decimal:7',
+        'check_out_lat' => 'decimal:7',
+        'check_out_lng' => 'decimal:7',
         'end_date' => 'date',
         'approved_at' => 'datetime',
         'lembur_start' => 'datetime',
@@ -104,7 +163,7 @@ class Absensi extends Model
         'formatted_base_salary',
         'formatted_late_penalty',
         'formatted_final_salary',
-        'formatted_overtime_pay'
+        'formatted_overtime_pay',
     ];
 
     // ===================================================================
@@ -113,6 +172,7 @@ class Absensi extends Model
     public static function isWeekend($date): bool
     {
         $carbonDate = Carbon::parse($date);
+
         // dayOfWeek: 0=Sunday, 6=Saturday
         return in_array($carbonDate->dayOfWeek, [Carbon::SATURDAY, Carbon::SUNDAY]);
     }
@@ -122,7 +182,10 @@ class Absensi extends Model
     // ===================================================================
     public static function roundLateMinutes(int $actualLateMinutes): int
     {
-        if ($actualLateMinutes <= 0) return 0;
+        if ($actualLateMinutes <= 0) {
+            return 0;
+        }
+
         return (int) ceil($actualLateMinutes / 15) * 15;
     }
 
@@ -130,135 +193,141 @@ class Absensi extends Model
     // 🆕 HELPER: Hitung gaji (Support Weekend)
     // ===================================================================
     public static function calculateSalary(
-    int $actualLateMinutes,
-    string $status,
-    ?string $tipe = null,
-    bool $isWeekend = false,
-    ?\Carbon\Carbon $checkIn = null,
-    ?\Carbon\Carbon $checkOut = null,
-    string $kategori = 'organik'
-): array
-{
-    $baseSalary = 0;
-    $latePenalty = 0;
-    $finalSalary = 0;
-    $roundedLateMinutes = 0;
+        int $actualLateMinutes,
+        string $status,
+        ?string $tipe = null,
+        bool $isWeekend = false,
+        ?Carbon $checkIn = null,
+        ?Carbon $checkOut = null,
+        string $kategori = 'organik',
+        bool $autoCheckoutForgot = false,
+        ?int $freelanceDailyRate = null,
+    ): array {
+        $baseSalary = 0;
+        $latePenalty = 0;
+        $finalSalary = 0;
+        $roundedLateMinutes = 0;
 
-    $isHoliday = false;
-    if ($checkIn) {
-        $isHoliday = \App\Models\Holiday::isHoliday($checkIn);
-    }
-
-    if (strtolower($status) === 'hadir' || strtolower($tipe ?? '') === 'lembur') {
-        $isMultiplierDay = $isWeekend || $isHoliday;
-        $dailySalary = $isMultiplierDay ? self::WEEKEND_DAILY_SALARY : self::DAILY_SALARY;
-        $salaryPerMinute = $isMultiplierDay ? self::WEEKEND_SALARY_PER_MINUTE : self::SALARY_PER_MINUTE;
-
-        // 🆕 HITUNG TOTAL JAM KERJA
-        $workedMinutes = 0;
-        if ($checkIn && $checkOut) {
-            $effectiveCheckIn = $checkIn;
-            
-            // 🔥 KHUSUS FREELANCE & BORONGAN:
-            // Gunakan jam 08:00 sebagai start rasio gaji pokok agar tidak "Double Potong" dengan late_penalty
-            if (in_array(strtolower($kategori), ['freelance', 'borongan'])) {
-                $standardStart = $checkIn->copy()->setTime(8, 0, 0);
-                if ($checkIn->greaterThan($standardStart)) {
-                    $effectiveCheckIn = $standardStart;
-                }
-            }
-            
-            $workedMinutes = self::calculateWorkedMinutes($effectiveCheckIn, $checkOut);
-            
-            // 🔥 LOGIC AUTO-FLAG PENGINGAT ADMIN UNTUK ORGANIK
-            if ($kategori === 'organik' && $this->catatan_admin === 'AUTO_CHECKOUT_LUPA_ABSEN') {
-                $workedMinutes = 0; // Set ke 0 agar gaji tidak terhitung otomatis
-            }
-        } else {
-            // Kalo belum checkout, assume 8 jam kerja penuh
-            $workedMinutes = 480; // 8 jam
+        $isHoliday = false;
+        if ($checkIn) {
+            $isHoliday = Holiday::isHoliday($checkIn);
         }
 
-        // 🆕 PRORATA GAJI BERDASARKAN JAM KERJA
-        $expectedMinutes = 480; // 8 jam kerja normal (exclude istirahat)
-        $workRatio = min(1, $workedMinutes / $expectedMinutes); // Max 1 (100%)
-        $baseSalary = $dailySalary * $workRatio;
+        if (strtolower($status) === 'hadir' || strtolower($tipe ?? '') === 'lembur') {
+            $isFreelance = strtolower($kategori) === 'freelance';
+            $isMultiplierDay = $isWeekend || $isHoliday;
+            $dailySalary = $isMultiplierDay ? self::WEEKEND_DAILY_SALARY : self::DAILY_SALARY;
+            $salaryPerMinute = $isMultiplierDay ? self::WEEKEND_SALARY_PER_MINUTE : self::SALARY_PER_MINUTE;
 
-        // Potong penalty telat
-        $roundedLateMinutes = self::roundLateMinutes($actualLateMinutes);
-        $latePenalty = $roundedLateMinutes * $salaryPerMinute;
-        $finalSalary = max(0, $baseSalary - $latePenalty);
+            // 🆕 HITUNG TOTAL JAM KERJA
+            $workedMinutes = 0;
+            if ($checkIn && $checkOut) {
+                $effectiveCheckIn = $checkIn;
+
+                // 🔥 KHUSUS FREELANCE & BORONGAN:
+                // Gunakan jam 08:00 sebagai start rasio gaji pokok agar tidak "Double Potong" dengan late_penalty
+                if (in_array(strtolower($kategori), ['freelance', 'borongan'])) {
+                    $standardStart = $checkIn->copy()->setTime(8, 0, 0);
+                    if ($checkIn->greaterThan($standardStart)) {
+                        $effectiveCheckIn = $standardStart;
+                    }
+                }
+
+                $workedMinutes = self::calculateWorkedMinutes($effectiveCheckIn, $checkOut);
+
+                // 🔥 LOGIC AUTO-FLAG PENGINGAT ADMIN UNTUK ORGANIK
+                if ($kategori === 'organik' && $autoCheckoutForgot) {
+                    $workedMinutes = 0; // Set ke 0 agar gaji tidak terhitung otomatis
+                }
+            } else {
+                // Kalo belum checkout, assume 8 jam kerja penuh
+                $workedMinutes = 480; // 8 jam
+            }
+
+            // 🆕 PRORATA GAJI BERDASARKAN JAM KERJA
+            $expectedMinutes = 480; // 8 jam kerja normal (exclude istirahat)
+            $workRatio = min(1, $workedMinutes / $expectedMinutes); // Max 1 (100%)
+
+            if ($isFreelance) {
+                $dailyPay = FreelancePayrollCalculator::calculateDay(
+                    $actualLateMinutes,
+                    $freelanceDailyRate ?? FreelancePayrollCalculator::DAILY_RATE,
+                );
+                $baseSalary = $dailyPay['gross_pay'];
+                $roundedLateMinutes = $dailyPay['charged_late_minutes'];
+                $latePenalty = $dailyPay['late_deduction'];
+            } else {
+                $baseSalary = $dailySalary * $workRatio;
+                $roundedLateMinutes = self::roundLateMinutes($actualLateMinutes);
+                $latePenalty = $roundedLateMinutes * $salaryPerMinute;
+            }
+
+            $finalSalary = max(0, $baseSalary - $latePenalty);
+        }
+
+        return [
+            'base_salary' => round($baseSalary, 2),
+            'late_penalty' => round($latePenalty, 2),
+            'final_salary' => round($finalSalary, 2),
+            'rounded_late_minutes' => $roundedLateMinutes,
+            'worked_minutes' => $workedMinutes ?? 0,
+        ];
     }
 
-    return [
-        'base_salary' => round($baseSalary, 2),
-        'late_penalty' => round($latePenalty, 2),
-        'final_salary' => round($finalSalary, 2),
-        'rounded_late_minutes' => $roundedLateMinutes,
-        'worked_minutes' => $workedMinutes ?? 0,
-    ];
-}
+    /**
+     * Hitung total menit kerja (exclude istirahat 12:00-13:00)
+     */
+    private static function calculateWorkedMinutes(Carbon $checkIn, Carbon $checkOut): int
+    {
+        // Total menit dari check-in sampai check-out
+        $totalMinutes = $checkIn->diffInMinutes($checkOut);
 
-/**
- * Hitung total menit kerja (exclude istirahat 12:00-13:00)
- */
-private static function calculateWorkedMinutes(\Carbon\Carbon $checkIn, \Carbon\Carbon $checkOut): int
-{
-    // Total menit dari check-in sampai check-out
-    $totalMinutes = $checkIn->diffInMinutes($checkOut);
+        // Define waktu istirahat: 12:00 - 13:00
+        $restStart = $checkIn->copy()->setTime(12, 0, 0);
+        $restEnd = $checkIn->copy()->setTime(13, 0, 0);
 
-    // Define waktu istirahat: 12:00 - 13:00
-    $restStart = $checkIn->copy()->setTime(12, 0, 0);
-    $restEnd = $checkIn->copy()->setTime(13, 0, 0);
+        // Cek apakah periode kerja overlap dengan jam istirahat
+        if ($checkIn->lessThan($restEnd) && $checkOut->greaterThan($restStart)) {
+            // Hitung overlap duration
+            $overlapStart = $checkIn->greaterThan($restStart) ? $checkIn : $restStart;
+            $overlapEnd = $checkOut->lessThan($restEnd) ? $checkOut : $restEnd;
 
-    // Cek apakah periode kerja overlap dengan jam istirahat
-    if ($checkIn->lessThan($restEnd) && $checkOut->greaterThan($restStart)) {
-        // Hitung overlap duration
-        $overlapStart = $checkIn->greaterThan($restStart) ? $checkIn : $restStart;
-        $overlapEnd = $checkOut->lessThan($restEnd) ? $checkOut : $restEnd;
+            $restMinutes = $overlapStart->diffInMinutes($overlapEnd);
+            $totalMinutes -= $restMinutes;
+        }
 
-        $restMinutes = $overlapStart->diffInMinutes($overlapEnd);
-        $totalMinutes -= $restMinutes;
+        return max(0, $totalMinutes);
     }
-
-    return max(0, $totalMinutes);
-}
 
     // ===================================================================
     // 🆕 HELPER: Hitung lembur (Support Weekend Multiplier)
     // ===================================================================
     public static function calculateOvertimeFromInput($startTime, $endTime, bool $hasRest, bool $isWeekend = false): array
     {
-        try {
-            $start = Carbon::parse($startTime);
-            $end = Carbon::parse($endTime);
+        $start = Carbon::parse($startTime);
+        $end = Carbon::parse($endTime);
+        $totalOvertimeMinutes = (int) $start->diffInMinutes($end, false);
 
-            $totalOvertimeMinutes = abs($end->diffInMinutes($start, false));
-            $deduction = $hasRest ? self::OVERTIME_REST_DEDUCTION_MINUTES : 0;
-            $finalOvertimeMinutes = $totalOvertimeMinutes - $deduction;
+        if ($totalOvertimeMinutes <= 0) {
+            throw new \InvalidArgumentException('Waktu selesai lembur harus setelah waktu mulai.');
+        }
 
-            if ($finalOvertimeMinutes < 0) {
-                $finalOvertimeMinutes = 0;
-            }
-
-            $isHoliday = \App\Models\Holiday::isHoliday($startTime);
-            $isMultiplierDay = $isWeekend || $isHoliday;
-
-            // 🆕 Pake rate sesuai weekend atau bukan
-            $hourlyRate = $isMultiplierDay ? self::WEEKEND_HOURLY_SALARY : self::HOURLY_SALARY;
-            $overtimePay = ($finalOvertimeMinutes / 60) * $hourlyRate;
-
-            return [
-                'minutes' => (int) round($finalOvertimeMinutes),
-                'pay'     => (float) round($overtimePay, 2),
-            ];
-
-        } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('--- [CRITICAL] ERROR DI KALKULASI LEMBUR ---', [
-                'error' => $e->getMessage()
-            ]);
+        if ($totalOvertimeMinutes < 30) {
             return ['minutes' => 0, 'pay' => 0.0];
         }
+
+        $deduction = $hasRest ? self::OVERTIME_REST_DEDUCTION_MINUTES : 0;
+        $finalOvertimeMinutes = max(0, $totalOvertimeMinutes - $deduction);
+
+        $isHoliday = Holiday::isHoliday($startTime);
+        $isMultiplierDay = $isWeekend || $isHoliday;
+        $hourlyRate = $isMultiplierDay ? self::WEEKEND_HOURLY_SALARY : self::HOURLY_SALARY;
+        $overtimePay = ($finalOvertimeMinutes / 60) * $hourlyRate;
+
+        return [
+            'minutes' => (int) round($finalOvertimeMinutes),
+            'pay' => (float) round($overtimePay, 2),
+        ];
     }
 
     // ===================================================================
@@ -268,65 +337,93 @@ private static function calculateWorkedMinutes(\Carbon\Carbon $checkIn, \Carbon\
     {
         $lateMinutes = $this->late_minutes ?? 0;
         if ($lateMinutes <= 0 || strtolower($this->status ?? '') !== 'hadir') {
-             if(strtolower($this->tipe ?? '') !== 'lembur') {
+            if (strtolower($this->tipe ?? '') !== 'lembur') {
                 return null;
-             }
+            }
         }
         if ($lateMinutes < 60) {
             return "{$lateMinutes} menit";
         }
         $hours = floor($lateMinutes / 60);
         $minutes = $lateMinutes % 60;
+
         return $minutes > 0 ? "{$hours} jam {$minutes} menit" : "{$hours} jam";
     }
 
     public function getIsLateAttribute(): bool
     {
         $isHadirAtauLembur = strtolower($this->status ?? '') === 'hadir' || strtolower($this->tipe ?? '') === 'lembur';
+
         return ($this->late_minutes ?? 0) > 0 && $isHadirAtauLembur;
     }
 
     public function getFormattedBaseSalaryAttribute(): ?string
     {
-        return $this->base_salary ? 'Rp ' . number_format($this->base_salary, 0, ',', '.') : null;
+        return $this->base_salary ? 'Rp '.number_format((float) $this->base_salary, 0, ',', '.') : null;
     }
 
     public function getFormattedLatePenaltyAttribute(): ?string
     {
-        return $this->late_penalty ? 'Rp ' . number_format($this->late_penalty, 0, ',', '.') : null;
+        return $this->late_penalty ? 'Rp '.number_format((float) $this->late_penalty, 0, ',', '.') : null;
     }
 
     public function getFormattedFinalSalaryAttribute(): ?string
     {
-        return $this->final_salary ? 'Rp ' . number_format($this->final_salary, 0, ',', '.') : null;
+        return $this->final_salary ? 'Rp '.number_format((float) $this->final_salary, 0, ',', '.') : null;
     }
 
     public function getFormattedOvertimePayAttribute(): ?string
     {
-        return $this->overtime_pay ? 'Rp ' . number_format($this->overtime_pay, 0, ',', '.') : null;
+        return $this->overtime_pay ? 'Rp '.number_format((float) $this->overtime_pay, 0, ',', '.') : null;
     }
-
 
     // ===================================================================
     // RELATIONSHIPS
     // ===================================================================
-    public function user()
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    public function editor()
+    public function shift(): BelongsTo
+    {
+        return $this->belongsTo(Shift::class);
+    }
+
+    public function corrections(): HasMany
+    {
+        return $this->hasMany(AttendanceCorrection::class);
+    }
+
+    public function leaveType(): BelongsTo
+    {
+        return $this->belongsTo(LeaveType::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function editor(): BelongsTo
     {
         return $this->belongsTo(User::class, 'adjustment_by');
     }
-    public function parent()
-{
-    return $this->belongsTo(Absensi::class, 'parent_id');
-}
 
-public function children()
-{
-    return $this->hasMany(Absensi::class, 'parent_id');
-}
+    /**
+     * @return BelongsTo<Absensi, $this>
+     */
+    public function parent(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'parent_id');
+    }
 
+    /**
+     * @return HasMany<Absensi, $this>
+     */
+    public function children(): HasMany
+    {
+        return $this->hasMany(self::class, 'parent_id');
+    }
 }

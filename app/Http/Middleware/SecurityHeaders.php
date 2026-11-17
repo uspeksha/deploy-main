@@ -11,13 +11,13 @@ class SecurityHeaders
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         // 1. Generate nonce
         $cspNonce = bin2hex(random_bytes(16));
-        
+
         // Simpan ke config agar bisa diakses di Blade
         config(['app.csp_nonce' => $cspNonce]);
 
@@ -51,9 +51,9 @@ class SecurityHeaders
             "frame-ancestors 'self'",
             "object-src 'none'",
             "base-uri 'self'",
-            "upgrade-insecure-requests",
+            'upgrade-insecure-requests',
         ];
-        
+
         $response->headers->set('Content-Security-Policy', implode('; ', $csp));
 
         // Additional Security Headers
@@ -80,7 +80,7 @@ class SecurityHeaders
             'gyroscope=()',
             'magnetometer=()',
             'payment=()',
-            'usb=()'
+            'usb=()',
         ];
         $response->headers->set('Permissions-Policy', implode(', ', $permissions));
 

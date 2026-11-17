@@ -2,24 +2,29 @@
 
 namespace App\Exports;
 
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithTitle;
-use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use Carbon\Carbon;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AbsensiRekapExport implements FromCollection, WithHeadings, WithStyles, WithColumnWidths, WithTitle
+class AbsensiRekapExport implements FromCollection, WithColumnWidths, WithHeadings, WithStyles, WithTitle
 {
     protected $recapData;
+
     protected $month;
+
     protected $year;
+
     protected $type;
+
     protected $range;
+
     protected $week;
 
     public function __construct($recapData, $month, $year, $type = 'all', $range = 'monthly', $week = null)
@@ -58,11 +63,11 @@ class AbsensiRekapExport implements FromCollection, WithHeadings, WithStyles, Wi
                 'lembur_pending' => $recap['total_lembur_pending'],
                 'lembur_ditolak' => $recap['total_lembur_ditolak'],
                 'kolom_telat_atau_kurang' => ($kategori === 'organik') ? $recap['total_kurang_8_jam'] : $recap['total_telat'],
-                'gaji_pokok' => 'Rp ' . number_format($recap['total_gaji_pokok'] ?? 0, 0, ',', '.'), // Kolom 1
-                'gaji_lembur' => 'Rp ' . number_format($recap['total_gaji_lembur'] ?? 0, 0, ',', '.'), // Kolom 2
-                'total_potongan' => 'Rp ' . number_format($recap['total_potongan'] ?? 0, 0, ',', '.'), // Kolom 3
+                'gaji_pokok' => 'Rp '.number_format($recap['total_gaji_pokok'] ?? 0, 0, ',', '.'), // Kolom 1
+                'gaji_lembur' => 'Rp '.number_format($recap['total_gaji_lembur'] ?? 0, 0, ',', '.'), // Kolom 2
+                'total_potongan' => 'Rp '.number_format($recap['total_potongan'] ?? 0, 0, ',', '.'), // Kolom 3
                 'keterangan' => $recap['keterangan_adj'] ?: '-',
-                'total_diterima' => 'Rp ' . number_format($recap['total_gaji'] ?? 0, 0, ',', '.'), // Kolom 4 (Pasti Balance)
+                'total_diterima' => 'Rp '.number_format($recap['total_gaji'] ?? 0, 0, ',', '.'), // Kolom 4 (Pasti Balance)
                 'total_absensi' => $recap['total_absensi'] ?? 0,
             ]);
         }
@@ -97,7 +102,7 @@ class AbsensiRekapExport implements FromCollection, WithHeadings, WithStyles, Wi
     public function styles(Worksheet $sheet)
     {
         $monthName = Carbon::createFromFormat('!m', $this->month)->translatedFormat('F');
-        $typeLabel = match($this->type) {
+        $typeLabel = match ($this->type) {
             'organik' => 'Karyawan Organik',
             'freelance' => 'Karyawan Freelance',
             'borongan' => 'Karyawan Borongan',
@@ -183,6 +188,7 @@ class AbsensiRekapExport implements FromCollection, WithHeadings, WithStyles, Wi
     {
         $monthName = Carbon::createFromFormat('!m', $this->month)->format('M');
         $suffix = $this->range === 'weekly' && $this->week ? "W{$this->week}" : $monthName;
+
         return "Rekap_{$suffix}_{$this->year}";
     }
 }

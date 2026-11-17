@@ -48,7 +48,7 @@ class Holiday2026Seeder extends Seeder
                 ['holiday_date' => $holiday['date']],
                 [
                     'name' => $holiday['name'],
-                    'is_national' => true
+                    'is_national' => true,
                 ]
             );
         }

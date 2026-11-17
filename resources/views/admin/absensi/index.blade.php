@@ -3,892 +3,438 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-2xl font-bold text-gray-800 dark:text-white">
-                    {{ $dashboardTitle ?? 'Dashboard Absensi Karyawan' }}
-                </h2>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                    Kelola dan pantau kehadiran karyawan secara real-time
+                <h1 class="text-2xl font-semibold tracking-tight text-slate-900 dark:text-white">
+                    Ringkasan Absensi
+                </h1>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                    Pantau kehadiran karyawan dan tren bulanan.
                 </p>
             </div>
         </div>
     </x-slot>
 
-    <div class="py-8 px-4 sm:px-6 lg:px-8">
-        <div class="max-w-7xl mx-auto space-y-8">
+    <div class="ui-page">
+        <section class="lucent-panel rounded-xl p-4 md:p-5" aria-labelledby="work-queue-title">
+            <div class="mb-4">
+                <h2 id="work-queue-title" class="text-lg font-bold text-slate-900 dark:text-white">Perlu ditindaklanjuti</h2>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">Antrean yang masih menunggu proses admin.</p>
+            </div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 {{ auth()->user()?->role === 'hrd' ? 'xl:grid-cols-4' : '' }}">
+                <a href="{{ auth()->user()?->role === 'hrd' ? route('admin.absensi.approval.hrd', ['status' => 'pending']) : route('admin.absensi.index') }}"
+                   class="rounded-xl border border-amber-200 bg-amber-50 p-4 transition hover:border-amber-400 dark:border-amber-900 dark:bg-amber-950/30">
+                    <span class="text-sm font-semibold text-amber-900 dark:text-amber-200">Pengajuan absensi menunggu</span>
+                    <span class="mt-1 block text-2xl font-black text-amber-950 dark:text-amber-100">{{ $pendingAttendanceCount }}</span>
+                </a>
+                @if (auth()->user()?->role === 'hrd')
+                    <a href="{{ route('admin.absensi.approval.hrd', ['section' => 'employees']) }}"
+                       class="rounded-xl border border-sky-200 bg-sky-50 p-4 transition hover:border-sky-400 dark:border-sky-900 dark:bg-sky-950/30">
+                        <span class="text-sm font-semibold text-sky-900 dark:text-sky-200">Akun karyawan menunggu</span>
+                        <span class="mt-1 block text-2xl font-black text-sky-950 dark:text-sky-100">{{ $pendingEmployeeCount }}</span>
+                    </a>
+                    <a href="{{ route('admin.payroll.index', ['status' => 'pending_approval']) }}"
+                       class="rounded-xl border border-violet-200 bg-violet-50 p-4 transition hover:border-violet-400 dark:border-violet-900 dark:bg-violet-950/30">
+                        <span class="text-sm font-semibold text-violet-900 dark:text-violet-200">Payroll menunggu persetujuan</span>
+                        <span class="mt-1 block text-2xl font-black text-violet-950 dark:text-violet-100">{{ $pendingPayrollCount }}</span>
+                    </a>
+                    <a href="{{ route('admin.hr-requests.index') }}"
+                       class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition hover:border-emerald-400 dark:border-emerald-900 dark:bg-emerald-950/30">
+                        <span class="text-sm font-semibold text-emerald-900 dark:text-emerald-200">Pengajuan HR menunggu</span>
+                        <span class="mt-1 block text-2xl font-black text-emerald-950 dark:text-emerald-100">{{ $pendingHrRequestCount }}</span>
+                    </a>
+                @endif
+            </div>
+        </section>
 
-            {{-- Filter Section --}}
-            <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                <div class="flex items-center gap-3 mb-6">
-                    <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-                        <i class="fas fa-filter text-white text-lg"></i>
+        <section class="lucent-panel rounded-xl p-4 md:p-5">
+            <form method="GET" class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                        <i class="fas fa-filter"></i>
                     </div>
                     <div>
-                        <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Filter Statistik</h3>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Sesuaikan periode statistik</p>
+                        <h3 class="font-bold text-sm">Filter Statistik</h3>
+                        <p class="text-xs text-slate-500">Pilih bulan dan tahun periode</p>
                     </div>
                 </div>
 
-                <form method="GET" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Bulan</label>
-                        <select name="month" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            @for ($m = 1; $m <= 12; $m++)
-                                <option value="{{ $m }}" {{ request('month', $month) == $m ? 'selected' : '' }}>
-                                    {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
-                                </option>
-                            @endfor
-                        </select>
-                    </div>
+                <div class="grid w-full grid-cols-1 gap-3 sm:grid-cols-[1fr_7rem_auto] lg:w-auto">
+                    <select name="month" class="lucent-input">
+                        @for ($m = 1; $m <= 12; $m++)
+                            <option value="{{ $m }}" {{ request('month', $month) == $m ? 'selected' : '' }}>
+                                {{ \Carbon\Carbon::createFromFormat('!m', $m)->translatedFormat('F') }}
+                            </option>
+                        @endfor
+                    </select>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tahun</label>
-                        <select name="year" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            @for ($y = date('Y'); $y >= 2020; $y--)
-                                <option value="{{ $y }}" {{ request('year', $year) == $y ? 'selected' : '' }}>{{ $y }}</option>
-                            @endfor
-                        </select>
-                    </div>
+                    <select name="year" class="lucent-input">
+                        @for ($y = date('Y'); $y >= 2020; $y--)
+                            <option value="{{ $y }}" {{ request('year', $year) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                        @endfor
+                    </select>
 
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status Kepegawaian</label>
-                        <select name="employment_status" class="w-full px-4 py-2.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
-                            <option value="" {{ !request('employment_status') ? 'selected' : '' }}>Semua Status</option>
-                            <option value="organik" {{ request('employment_status') == 'organik' ? 'selected' : '' }}>Organik</option>
-                            <option value="freelance" {{ request('employment_status') == 'freelance' ? 'selected' : '' }}>Freelance</option>
-                        </select>
-                    </div>
+                    <button type="submit" class="btn-premium whitespace-nowrap">
+                        <i class="fas fa-filter" aria-hidden="true"></i>
+                        <span>Terapkan</span>
+                    </button>
+                </div>
+            </form>
+        </section>
 
-                    <div class="flex items-end">
-                        <button type="submit" class="w-full px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all transform hover:scale-105 flex items-center justify-center gap-2">
-                            <i class="fas fa-search"></i>
-                            <span>Terapkan</span>
-                        </button>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5">
+            @php
+                $statCards = [
+                    ['icon_classes' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'label' => 'Total Kehadiran', 'value' => $totalHadir,  'icon' => 'fa-check-circle', 'desc' => 'Karyawan hadir'],
+                    ['icon_classes' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300', 'label' => 'Total Telat', 'value' => $totalTelat, 'icon' => 'fa-user-clock', 'desc' => 'Karyawan terlambat'],
+                    ['icon_classes' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300', 'label' => 'Total Izin', 'value' => $totalIzin, 'icon' => 'fa-sticky-note', 'desc' => 'Izin disetujui'],
+                    ['icon_classes' => 'bg-orange-500/10 text-orange-700 dark:text-orange-300', 'label' => 'Total Sakit', 'value' => $totalSakit, 'icon' => 'fa-medkit', 'desc' => 'Keterangan sakit'],
+                    ['icon_classes' => 'bg-teal-500/10 text-teal-700 dark:text-teal-300', 'label' => 'Total Lembur', 'value' => $totalLembur, 'icon' => 'fa-clock', 'desc' => 'Jam lembur tercatat'],
+                ];
+            @endphp
+            @foreach ($statCards as $card)
+                <div class="lucent-panel rounded-xl p-4 sm:p-5">
+                    <div class="flex h-full flex-col">
+                        <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg {{ $card['icon_classes'] }}">
+                            <i class="fas {{ $card['icon'] }} text-xl"></i>
+                        </div>
+                        <p class="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500">{{ $card['label'] }}</p>
+                        <div class="flex items-baseline gap-2">
+                            <span class="text-2xl font-bold text-slate-900 dark:text-white">{{ $card['value'] }}</span>
+                        </div>
+                        <p class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                            {{ $card['desc'] }} · {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
+                        </p>
                     </div>
-                </form>
+                </div>
+            @endforeach
+        </div>
+
+        <section class="space-y-4">
+            <div>
+                <h2 class="text-xl font-black text-slate-900 dark:text-white">Statistik Karyawan</h2>
+                <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Gender seluruh karyawan aktif; ranking dari absensi disetujui pada {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}.
+                </p>
             </div>
 
-            {{-- Summary Cards --}}
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div class="relative overflow-hidden bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg hover:shadow-xl transition-all p-6">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <p class="text-emerald-100 text-xs font-medium uppercase">Total Kehadiran</p>
-                                <p class="text-white text-3xl font-bold mt-1">{{ $totalHadir }}</p>
-                            </div>
-                            <div class="p-3 bg-white/20 rounded-xl">
-                                <i class="fas fa-check-circle text-white text-xl"></i>
-                            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                @foreach ([
+                    ['label' => 'Laki-laki', 'value' => $employeeGenderStats['male'], 'icon' => 'fa-mars', 'icon_classes' => 'bg-blue-500/10 text-blue-600'],
+                    ['label' => 'Perempuan', 'value' => $employeeGenderStats['female'], 'icon' => 'fa-venus', 'icon_classes' => 'bg-pink-500/10 text-pink-600'],
+                    ['label' => 'Belum diisi', 'value' => $employeeGenderStats['unspecified'], 'icon' => 'fa-user', 'icon_classes' => 'bg-slate-500/10 text-slate-600'],
+                ] as $genderCard)
+                    <div class="lucent-panel flex items-center gap-4 rounded-xl p-4">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-lg {{ $genderCard['icon_classes'] }}">
+                            <i class="fas {{ $genderCard['icon'] }} text-lg"></i>
                         </div>
-                        <p class="text-emerald-100 text-sm">Bulan ini</p>
-                    </div>
-                </div>
-
-                <div class="relative overflow-hidden bg-gradient-to-br from-amber-500 to-orange-600 rounded-2xl shadow-lg hover:shadow-xl transition-all p-6">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <p class="text-amber-100 text-xs font-medium uppercase">Total Izin</p>
-                                <p class="text-white text-3xl font-bold mt-1">{{ $totalIzin }}</p>
-                            </div>
-                            <div class="p-3 bg-white/20 rounded-xl">
-                                <i class="fas fa-sticky-note text-white text-xl"></i>
-                            </div>
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-wider text-slate-500">{{ $genderCard['label'] }}</p>
+                            <p class="text-2xl font-black text-slate-900 dark:text-white">{{ $genderCard['value'] }}</p>
                         </div>
-                        <p class="text-amber-100 text-sm">Bulan ini</p>
                     </div>
-                </div>
-
-                <div class="relative overflow-hidden bg-gradient-to-br from-rose-500 to-pink-600 rounded-2xl shadow-lg hover:shadow-xl transition-all p-6">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <p class="text-rose-100 text-xs font-medium uppercase">Total Sakit</p>
-                                <p class="text-white text-3xl font-bold mt-1">{{ $totalSakit }}</p>
-                            </div>
-                            <div class="p-3 bg-white/20 rounded-xl">
-                                <i class="fas fa-medkit text-white text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-rose-100 text-sm">Bulan ini</p>
-                    </div>
-                </div>
-
-                <div class="relative overflow-hidden bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl shadow-lg hover:shadow-xl transition-all p-6">
-                    <div class="absolute top-0 right-0 w-24 h-24 bg-white/10 rounded-full -mr-12 -mt-12"></div>
-                    <div class="relative">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <p class="text-violet-100 text-xs font-medium uppercase">Total Lembur</p>
-                                <p class="text-white text-3xl font-bold mt-1">{{ $totalLembur }}</p>
-                            </div>
-                            <div class="p-3 bg-white/20 rounded-xl">
-                                <i class="fas fa-clock text-white text-xl"></i>
-                            </div>
-                        </div>
-                        <p class="text-violet-100 text-sm">Bulan ini</p>
-                    </div>
-                </div>
+                @endforeach
             </div>
 
-            {{-- Attendance Today Summary (Produksi vs Office) --}}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="p-4 bg-orange-100 dark:bg-orange-900/30 rounded-2xl">
-                            <i class="fas fa-industry text-orange-600 dark:text-orange-400 text-2xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kehadiran Produksi</h3>
-                            <div class="flex items-baseline gap-2 mt-1">
-                                <span class="text-3xl font-bold text-gray-800 dark:text-white">{{ $statsProduksi['hadir'] }}</span>
-                                <span class="text-lg text-gray-500">/ {{ $statsProduksi['total'] }}</span>
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                @foreach ([
+                    ['key' => 'attendance', 'title' => 'Paling Rajin Hadir', 'column' => 'attendance_count', 'icon' => 'fa-trophy', 'icon_classes' => 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300', 'text_class' => 'text-emerald-700 dark:text-emerald-300'],
+                    ['key' => 'sick', 'title' => 'Paling Sering Sakit', 'column' => 'sick_count', 'icon' => 'fa-medkit', 'icon_classes' => 'bg-rose-500/10 text-rose-700 dark:text-rose-300', 'text_class' => 'text-rose-700 dark:text-rose-300'],
+                    ['key' => 'late', 'title' => 'Paling Sering Terlambat', 'column' => 'late_count', 'icon' => 'fa-user-clock', 'icon_classes' => 'bg-amber-500/10 text-amber-700 dark:text-amber-300', 'text_class' => 'text-amber-700 dark:text-amber-300'],
+                    ['key' => 'leave', 'title' => 'Paling Banyak Izin', 'column' => 'leave_count', 'icon' => 'fa-calendar-minus', 'icon_classes' => 'bg-teal-500/10 text-teal-700 dark:text-teal-300', 'text_class' => 'text-teal-700 dark:text-teal-300'],
+                ] as $ranking)
+                    <section class="lucent-panel overflow-hidden rounded-xl">
+                        <div class="flex items-center gap-3 border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+                            <div class="flex h-9 w-9 items-center justify-center rounded-lg {{ $ranking['icon_classes'] }}">
+                                <i class="fas {{ $ranking['icon'] }}"></i>
                             </div>
-                            <p class="text-xs text-gray-400 mt-1">Karyawan hadir hari ini</p>
+                            <h3 class="text-sm font-semibold text-slate-900 dark:text-white">{{ $ranking['title'] }}</h3>
                         </div>
-                    </div>
-                    <div class="hidden sm:block">
-                        @php
-                            $percentProduksi = $statsProduksi['total'] > 0 ? ($statsProduksi['hadir'] / $statsProduksi['total']) * 100 : 0;
-                        @endphp
-                        <div class="relative inline-flex items-center justify-center">
-                            <svg class="w-20 h-20 transform -rotate-90">
-                                <circle cx="40" cy="40" r="34" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-200 dark:text-gray-700" />
-                                <circle cx="40" cy="40" r="34" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="{{ 2 * pi() * 34 }}" stroke-dashoffset="{{ (1 - $percentProduksi/100) * (2 * pi() * 34) }}" class="text-orange-500" stroke-linecap="round" />
-                            </svg>
-                            <span class="absolute text-sm font-bold text-gray-700 dark:text-gray-300">{{ round($percentProduksi) }}%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6 flex items-center justify-between">
-                    <div class="flex items-center gap-4">
-                        <div class="p-4 bg-blue-100 dark:bg-blue-900/30 rounded-2xl">
-                            <i class="fas fa-building text-blue-600 dark:text-blue-400 text-2xl"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kehadiran Office</h3>
-                            <div class="flex items-baseline gap-2 mt-1">
-                                <span class="text-3xl font-bold text-gray-800 dark:text-white">{{ $statsOffice['hadir'] }}</span>
-                                <span class="text-lg text-gray-500">/ {{ $statsOffice['total'] }}</span>
-                            </div>
-                            <p class="text-xs text-gray-400 mt-1">Karyawan hadir hari ini</p>
-                        </div>
-                    </div>
-                    <div class="hidden sm:block">
-                        @php
-                            $percentOffice = $statsOffice['total'] > 0 ? ($statsOffice['hadir'] / $statsOffice['total']) * 100 : 0;
-                        @endphp
-                        <div class="relative inline-flex items-center justify-center">
-                            <svg class="w-20 h-20 transform -rotate-90">
-                                <circle cx="40" cy="40" r="34" stroke="currentColor" stroke-width="8" fill="transparent" class="text-gray-200 dark:text-gray-700" />
-                                <circle cx="40" cy="40" r="34" stroke="currentColor" stroke-width="8" fill="transparent" stroke-dasharray="{{ 2 * pi() * 34 }}" stroke-dashoffset="{{ (1 - $percentOffice/100) * (2 * pi() * 34) }}" class="text-blue-500" stroke-linecap="round" />
-                            </svg>
-                            <span class="absolute text-sm font-bold text-gray-700 dark:text-gray-300">{{ round($percentOffice) }}%</span>
-                        </div>
-                    </div>
-                </div>
+                        <ol class="divide-y divide-slate-100 px-4 dark:divide-slate-800">
+                            @foreach ([1, 2, 3] as $rank)
+                                @php
+                                    $employee = $employeeRankings[$ranking['key']]->get($rank - 1);
+                                @endphp
+                                <li data-ranking-slot="{{ $ranking['key'] }}-{{ $rank }}" class="flex min-h-14 items-center gap-3 py-2.5">
+                                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold {{ $rank === 1 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-100' : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300' }}">
+                                        {{ $rank }}
+                                    </span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="truncate text-sm font-medium {{ $employee ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500' }}">
+                                            {{ $employee?->name ?? 'Belum ada data' }}
+                                        </p>
+                                    </div>
+                                    <span class="shrink-0 text-xs font-semibold {{ $employee ? $ranking['text_class'] : 'text-slate-400 dark:text-slate-500' }}">
+                                        {{ $employee ? $employee->{$ranking['column']} . ' ' . ($ranking['key'] === 'attendance' ? 'hari' : 'kali') : '—' }}
+                                    </span>
+                                </li>
+                            @endforeach
+                        </ol>
+                    </section>
+                @endforeach
             </div>
+        </section>
 
-            {{-- Comparison Cards --}}
-            @if($currentStatus === 'semua' && $comparison)
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-                            <i class="fas fa-balance-scale text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Perbandingan Organik vs Freelance</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Statistik berdasarkan status kepegawaian</p>
-                        </div>
-                    </div>
+        {{-- Tables Section --}}
+        <div class="lucent-table-wrapper">
+                            <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                    <h3 class="text-xl font-bold">Karyawan Freelance</h3>
+                                </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {{-- Hadir --}}
-                        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-5 border border-emerald-200 dark:border-emerald-700">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fas fa-check-circle text-emerald-600 text-xl"></i>
-                                <h4 class="font-bold text-gray-800 dark:text-gray-100">Kehadiran</h4>
+                                <form action="{{ url()->current() }}" method="GET" class="relative group">
+                                    <input type="hidden" name="month" value="{{ $month }}">
+                                    <input type="hidden" name="year" value="{{ $year }}">
+                                    <input type="search" name="search_freelance" placeholder="Cari nama..." class="lucent-input pl-10 w-full md:w-64 group-hover:border-emerald-500/50" value="{{ request('search_freelance') }}">
+                                    <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-emerald-500 transition-colors"></i>
+                                </form>
                             </div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Organik:</span>
-                                    <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ $comparison['organik']['hadir'] }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Freelance:</span>
-                                    <span class="font-bold text-emerald-700 dark:text-emerald-400">{{ $comparison['freelance']['hadir'] }}</span>
-                                </div>
-                                <div class="pt-3 border-t border-emerald-200 dark:border-emerald-700">
-                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        @if($comparison['organik']['hadir'] > $comparison['freelance']['hadir'])
-                                            <i class="fas fa-arrow-up text-emerald-600"></i> Organik lebih tinggi
-                                        @elseif($comparison['organik']['hadir'] < $comparison['freelance']['hadir'])
-                                            <i class="fas fa-arrow-up text-emerald-600"></i> Freelance lebih tinggi
-                                        @else
-                                            <i class="fas fa-equals text-gray-600"></i> Sama rata
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
 
-                        {{-- Izin --}}
-                        <div class="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 rounded-xl p-5 border border-amber-200 dark:border-amber-700">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fas fa-sticky-note text-amber-600 text-xl"></i>
-                                <h4 class="font-bold text-gray-800 dark:text-gray-100">Izin</h4>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Organik:</span>
-                                    <span class="font-bold text-amber-700 dark:text-amber-400">{{ $comparison['organik']['izin'] }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Freelance:</span>
-                                    <span class="font-bold text-amber-700 dark:text-amber-400">{{ $comparison['freelance']['izin'] }}</span>
-                                </div>
-                                <div class="pt-3 border-t border-amber-200 dark:border-amber-700">
-                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        @if($comparison['organik']['izin'] > $comparison['freelance']['izin'])
-                                            <i class="fas fa-arrow-up text-amber-600"></i> Organik lebih tinggi
-                                        @elseif($comparison['organik']['izin'] < $comparison['freelance']['izin'])
-                                            <i class="fas fa-arrow-up text-amber-600"></i> Freelance lebih tinggi
-                                        @else
-                                            <i class="fas fa-equals text-gray-600"></i> Sama rata
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Sakit --}}
-                        <div class="bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-900/20 dark:to-pink-900/20 rounded-xl p-5 border border-rose-200 dark:border-rose-700">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fas fa-medkit text-rose-600 text-xl"></i>
-                                <h4 class="font-bold text-gray-800 dark:text-gray-100">Sakit</h4>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Organik:</span>
-                                    <span class="font-bold text-rose-700 dark:text-rose-400">{{ $comparison['organik']['sakit'] }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Freelance:</span>
-                                    <span class="font-bold text-rose-700 dark:text-rose-400">{{ $comparison['freelance']['sakit'] }}</span>
-                                </div>
-                                <div class="pt-3 border-t border-rose-200 dark:border-rose-700">
-                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        @if($comparison['organik']['sakit'] > $comparison['freelance']['sakit'])
-                                            <i class="fas fa-arrow-up text-rose-600"></i> Organik lebih tinggi
-                                        @elseif($comparison['organik']['sakit'] < $comparison['freelance']['sakit'])
-                                            <i class="fas fa-arrow-up text-rose-600"></i> Freelance lebih tinggi
-                                        @else
-                                            <i class="fas fa-equals text-gray-600"></i> Sama rata
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- Lembur --}}
-                        <div class="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/20 dark:to-purple-900/20 rounded-xl p-5 border border-violet-200 dark:border-violet-700">
-                            <div class="flex items-center gap-2 mb-4">
-                                <i class="fas fa-clock text-violet-600 text-xl"></i>
-                                <h4 class="font-bold text-gray-800 dark:text-gray-100">Lembur</h4>
-                            </div>
-                            <div class="space-y-3">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Organik:</span>
-                                    <span class="font-bold text-violet-700 dark:text-violet-400">{{ $comparison['organik']['lembur'] }}</span>
-                                </div>
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm text-gray-600 dark:text-gray-400">Freelance:</span>
-                                    <span class="font-bold text-violet-700 dark:text-violet-400">{{ $comparison['freelance']['lembur'] }}</span>
-                                </div>
-                                <div class="pt-3 border-t border-violet-200 dark:border-violet-700">
-                                    <span class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                                        @if($comparison['organik']['lembur'] > $comparison['freelance']['lembur'])
-                                            <i class="fas fa-arrow-up text-violet-600"></i> Organik lebih tinggi
-                                        @elseif($comparison['organik']['lembur'] < $comparison['freelance']['lembur'])
-                                            <i class="fas fa-arrow-up text-violet-600"></i> Freelance lebih tinggi
-                                        @else
-                                            <i class="fas fa-equals text-gray-600"></i> Sama rata
-                                        @endif
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            @endif
-
-            {{-- Charts --}}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {{-- Statistik Bulanan --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                            <i class="fas fa-chart-bar text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Statistik Bulanan</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Tahun {{ $year }}</p>
-                        </div>
-                    </div>
-                    <div class="h-80 px-2 pt-2">
-                        <canvas id="grafikBulananLine"></canvas>
-                    </div>
-                </div>
-
-                {{-- Ringkasan Status --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl">
-                            <i class="fas fa-chart-pie text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Ringkasan Status</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Bulan ini</p>
-                        </div>
-                    </div>
-                    <div class="h-80 flex items-center justify-center">
-                        <canvas id="grafikStatus"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            {{-- 🔥 TODAY'S STATUS: 4 TABEL DENGAN ALPINE.JS TABS 🔥 --}}
-            @if($currentStatus === 'semua')
-                <div x-data="{ activeTab: 'semua' }" class="space-y-6">
-                    
-                    {{-- Tab Navigation Pills --}}
-                    <div class="flex flex-wrap items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl p-3 rounded-2xl shadow-md border border-gray-200/50 dark:border-gray-700/50">
-                        <button @click="activeTab = 'semua'" :class="activeTab === 'semua' ? 'bg-indigo-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                            <i class="fas fa-th-large"></i>
-                            <span>Semua Status</span>
-                        </button>
-                        <button @click="activeTab = 'organik'" :class="activeTab === 'organik' ? 'bg-emerald-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                            <i class="fas fa-users-cog"></i>
-                            <span>Organik</span>
-                        </button>
-                        <button @click="activeTab = 'freelance'" :class="activeTab === 'freelance' ? 'bg-cyan-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                            <i class="fas fa-users"></i>
-                            <span>Freelance</span>
-                        </button>
-                        <button @click="activeTab = 'borongan'" :class="activeTab === 'borongan' ? 'bg-purple-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                            <i class="fas fa-hammer"></i>
-                            <span>Borongan</span>
-                        </button>
-                        <button @click="activeTab = 'magang'" :class="activeTab === 'magang' ? 'bg-sky-600 text-white shadow-md' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'" class="px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2">
-                            <i class="fas fa-graduation-cap"></i>
-                            <span>Magang</span>
-                        </button>
-                    </div>
-
-                    {{-- Tabel Organik --}}
-                    <div x-show="activeTab === 'semua' || activeTab === 'organik'" x-transition.opacity id="tabel-organik" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                            <i class="fas fa-users-cog text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Karyawan Organik Hari Ini</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Form Pencarian Organik --}}
-                    <form action="{{ url()->current() }}" method="GET" class="mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-grow">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="search" name="search_organik" id="search_organik" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan organik..." value="{{ request('search_organik') }}">
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Cari
-                            </button>
-                            @if(request('search_organik'))
-                                <a href="{{ route('admin.absensi.index') }}" class="text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-white">
-                                    Reset
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-in</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Keterlambatan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-out</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                @forelse ($dailyStatusesOrganik as $daily)
-                                    <x-admin.absensi-row :daily="$daily" type="organik" />
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-12">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
-                                                @if(request('search_organik'))
-                                                    <p class="text-gray-500">Karyawan organik dengan nama "<strong class="text-indigo-600">{{ request('search_organik') }}</strong>" tidak ditemukan.</p>
-                                                @else
-                                                    <p class="text-gray-500">Tidak ada karyawan organik hari ini</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {{-- Tabel Freelance --}}
-                <div x-show="activeTab === 'semua' || activeTab === 'freelance'" x-transition.opacity id="tabel-freelance" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl">
-                            <i class="fas fa-users text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Karyawan Freelance Hari Ini</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Form Pencarian Freelance --}}
-                    <form action="{{ url()->current() }}" method="GET" class="mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-grow">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="search" name="search_freelance" id="search_freelance" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama freelance..." value="{{ request('search_freelance') }}">
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Cari
-                            </button>
-                            @if(request('search_freelance'))
-                                <a href="{{ route('admin.absensi.index') }}" class="text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-white">
-                                    Reset
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-in</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Keterlambatan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-out</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                @forelse ($dailyStatusesFreelance as $daily)
-                                    <x-admin.absensi-row :daily="$daily" type="freelance" />
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-12">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
-                                                @if(request('search_freelance'))
-                                                    <p class="text-gray-500">Karyawan freelance dengan nama "<strong class="text-indigo-600">{{ request('search_freelance') }}</strong>" tidak ditemukan.</p>
-                                                @else
-                                                    <p class="text-gray-500">Tidak ada karyawan freelance hari ini</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {{-- Tabel Borongan --}}
-                <div x-show="activeTab === 'semua' || activeTab === 'borongan'" x-transition.opacity id="tabel-borongan" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
-                            <i class="fas fa-hammer text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Karyawan Borongan Hari Ini</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Form Pencarian Borongan --}}
-                    <form action="{{ url()->current() }}" method="GET" class="mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-grow">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="search" name="search_borongan" id="search_borongan" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan borongan..." value="{{ request('search_borongan') }}">
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Cari
-                            </button>
-                            @if(request('search_borongan'))
-                                <a href="{{ route('admin.absensi.index') }}" class="text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-white">
-                                    Reset
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-in</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Keterlambatan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-out</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                @forelse ($dailyStatusesBorongan as $daily)
-                                    <x-admin.absensi-row :daily="$daily" type="borongan" />
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-12">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
-                                                @if(request('search_borongan'))
-                                                    <p class="text-gray-500">Karyawan borongan dengan nama "<strong class="text-indigo-600">{{ request('search_borongan') }}</strong>" tidak ditemukan.</p>
-                                                @else
-                                                    <p class="text-gray-500">Tidak ada karyawan borongan hari ini</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {{-- Tabel Magang --}}
-                <div x-show="activeTab === 'semua' || activeTab === 'magang'" x-transition.opacity id="tabel-magang" class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-sky-500 to-indigo-600 rounded-xl">
-                            <i class="fas fa-graduation-cap text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Karyawan Magang Hari Ini</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
-                        </div>
-                    </div>
-
-                    {{-- Form Pencarian Magang --}}
-                    <form action="{{ url()->current() }}" method="GET" class="mb-4">
-                        <div class="flex items-center gap-2">
-                            <div class="relative flex-grow">
-                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                    <i class="fas fa-search text-gray-400"></i>
-                                </div>
-                                <input type="search" name="search_magang" id="search_magang" class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white" placeholder="Cari nama karyawan magang..." value="{{ request('search_magang') }}">
-                            </div>
-                            <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Cari
-                            </button>
-                            @if(request('search_magang'))
-                                <a href="{{ route('admin.absensi.index') }}" class="text-sm text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-white">
-                                    Reset
-                                </a>
-                            @endif
-                        </div>
-                    </form>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-in</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Keterlambatan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-out</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                @forelse ($dailyStatusesMagang as $daily)
-                                    <x-admin.absensi-row :daily="$daily" type="magang" />
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-12">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
-                                                @if(request('search_magang'))
-                                                    <p class="text-gray-500">Karyawan magang dengan nama "<strong class="text-indigo-600">{{ request('search_magang') }}</strong>" tidak ditemukan.</p>
-                                                @else
-                                                    <p class="text-gray-500">Tidak ada karyawan magang hari ini</p>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            @else
-                {{-- Tabel Single (Kalo Filter Dipilih) --}}
-                <div class="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-6">
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="p-3 bg-gradient-to-br from-cyan-500 to-blue-600 rounded-xl">
-                            <i class="fas fa-users-cog text-white"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-lg font-bold text-gray-800 dark:text-gray-100">Status Absensi Hari Ini</h3>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">{{ \Carbon\Carbon::today()->format('d M Y') }}</p>
-                        </div>
-                    </div>
-
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                            <thead class="bg-gray-50 dark:bg-gray-900">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Karyawan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Status</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-in</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Keterlambatan</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Check-out</th>
-                                    <th class="px-6 py-3 text-left text-xs font-bold text-gray-700 dark:text-gray-300 uppercase">Detail</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                                @forelse ($dailyStatuses as $daily)
-                                    <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="block group">
-                                                <div class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600">
-                                                    {{ $daily['user']->name }}
-                                                </div>
-                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 mt-1">
-                                                    {{ ucfirst($daily['user']->employment_type ?? '-') }}
-                                                </span>
-                                            </a>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span class="px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1
-                                                @if(str_contains($daily['status'], 'Belum')) bg-gray-100 text-gray-700
-                                                @elseif(str_contains($daily['status'], 'Hadir')) bg-emerald-100 text-emerald-800
-                                                @elseif(str_contains($daily['status'], 'Izin')) bg-yellow-100 text-yellow-800
-                                                @elseif(str_contains($daily['status'], 'Sakit')) bg-red-100 text-red-800
-                                                @elseif(str_contains($daily['status'], 'Pending')) bg-orange-100 text-orange-800
-                                                @endif">
-                                                {{ $daily['status'] }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @if($daily['check_in_time'])
-                                                <div class="flex items-center gap-2">
-                                                    <i class="fas fa-sign-in-alt text-green-600 text-xs"></i>
-                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        {{ \Carbon\Carbon::parse($daily['check_in_time'])->format('H:i') }}
+                            <div class="overflow-x-auto">
+                                <table class="lucent-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Karyawan</th>
+                                            <th>Status Presensi</th>
+                                            <th>Check-in</th>
+                                            <th>Check-out</th>
+                                            <th>Status Waktu</th>
+                                            <th class="text-right">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse ($dailyStatusesFreelance as $daily)
+                                            <tr class="group">
+                                                <td>
+                                                    <div class="flex items-center gap-3">
+                                                        @if ($daily['user']->profile_photo_path)
+                                                            <div x-data="{ imageFailed: false }" class="relative h-9 w-9 shrink-0">
+                                                                <img
+                                                                    src="{{ route('admin.storage.file', ['path' => $daily['user']->profile_photo_path]) }}"
+                                                                    alt="Foto profil {{ $daily['user']->name }}"
+                                                                    class="absolute inset-0 h-full w-full rounded-full object-cover"
+                                                                    x-show="!imageFailed"
+                                                                    x-on:error="imageFailed = true"
+                                                                >
+                                                                <div
+                                                                    x-show="imageFailed"
+                                                                    x-cloak
+                                                                    class="flex h-full w-full items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800"
+                                                                >
+                                                                    {{ substr($daily['user']->name, 0, 1) }}
+                                                                </div>
+                                                            </div>
+                                                        @else
+                                                            <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-bold uppercase text-slate-500 transition-colors group-hover:bg-emerald-500 group-hover:text-white dark:bg-slate-800">
+                                                                {{ substr($daily['user']->name, 0, 1) }}
+                                                            </div>
+                                                        @endif
+                                                        <div>
+                                                            <p class="font-bold text-slate-900 dark:text-white">{{ $daily['user']->name }}</p>
+                                                            <p class="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{{ $daily['user']->id_karyawan ?? 'N/A' }}</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <span class="px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest inline-flex items-center gap-1.5
+                                                        @if(str_contains($daily['status'], 'Belum')) bg-slate-100 text-slate-500
+                                                        @elseif(str_contains($daily['status'], 'Hadir')) bg-emerald-500/10 text-emerald-600
+                                                        @elseif(str_contains($daily['status'], 'Izin')) bg-amber-500/10 text-amber-600
+                                                        @elseif(str_contains($daily['status'], 'Sakit')) bg-rose-500/10 text-rose-600
+                                                        @else bg-indigo-500/10 text-indigo-600
+                                                        @endif">
+                                                        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+                                                        {{ $daily['status'] }}
                                                     </span>
-                                                </div>
-                                            @else
-                                                <span class="text-gray-400 text-sm">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @php
-                                                $lateMinutes = $daily['late_minutes'] ?? 0;
-                                            @endphp
-                                            @if($lateMinutes > 0)
-                                                <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
-                                                    <i class="fas fa-clock"></i>
-                                                    @if($lateMinutes < 60)
-                                                        {{ $lateMinutes }} menit
+                                                </td>
+                                                <td>
+                                                    @if($daily['check_in_time'])
+                                                        <div class="flex flex-col">
+                                                            <span class="text-sm font-bold">{{ \Carbon\Carbon::parse($daily['check_in_time'])->format('H:i') }}</span>
+                                                            <span class="text-[10px] text-slate-400 uppercase font-bold">WIB</span>
+                                                        </div>
                                                     @else
-                                                        @php
-                                                            $hours = floor($lateMinutes / 60);
-                                                            $mins = $lateMinutes % 60;
-                                                        @endphp
-                                                        {{ $hours }} jam {{ $mins > 0 ? $mins . ' menit' : '' }}
+                                                        <span class="text-slate-300">—</span>
                                                     @endif
-                                                </span>
-                                            @else
-                                                <span class="text-green-600 dark:text-green-400 text-sm font-semibold">✓ Tepat waktu</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            @if($daily['check_out_time'])
-                                                <div class="flex items-center gap-2">
-                                                    <i class="fas fa-sign-out-alt text-red-600 text-xs"></i>
-                                                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                                        {{ \Carbon\Carbon::parse($daily['check_out_time'])->format('H:i') }}
-                                                    </span>
-                                                </div>
-                                            @else
-                                                <span class="text-gray-400 text-sm">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-200 transition-all">
-                                                <i class="fas fa-eye"></i>
-                                                <span>Detail</span>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="6" class="text-center py-12">
-                                            <div class="flex flex-col items-center">
-                                                <i class="fas fa-calendar-times text-4xl text-gray-400 mb-3"></i>
-                                                <p class="text-gray-500">Tidak ada data absensi hari ini</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
+                                                </td>
+                                                <td>
+                                                    @if($daily['check_out_time'])
+                                                        <div class="flex flex-col">
+                                                            <span class="text-sm font-bold">{{ \Carbon\Carbon::parse($daily['check_out_time'])->format('H:i') }}</span>
+                                                            <span class="text-[10px] text-slate-400 uppercase font-bold">WIB</span>
+                                                        </div>
+                                                    @else
+                                                        <span class="text-slate-300">—</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @php $late = $daily['late_minutes'] ?? 0; @endphp
+                                                    @if($daily['check_in_time'])
+                                                        @if($late > 0)
+                                                            <span class="text-red-600 dark:text-red-400 text-xs font-bold flex items-center gap-1.5">
+                                                                <i class="fas fa-clock text-[10px]"></i>
+                                                                Terlambat {{ $late }}m
+                                                            </span>
+                                                        @else
+                                                            <span class="text-emerald-500 text-xs font-bold flex items-center gap-1.5">
+                                                                <i class="fas fa-check-circle text-[10px]"></i>
+                                                                On Time
+                                                            </span>
+                                                        @endif
+                                                    @elseif(str_starts_with($daily['status'], 'Belum'))
+                                                        <span class="text-slate-400 text-xs font-semibold">Belum Absen</span>
+                                                    @else
+                                                        <span class="text-slate-400 text-xs">—</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-right">
+                                                    <a href="{{ route('admin.absensi.user', $daily['user']->id) }}" class="inline-flex items-center justify-center w-8 h-8 rounded-lg hover:bg-emerald-500 hover:text-white text-slate-400 transition-all">
+                                                        <i class="fas fa-external-link-alt text-xs"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="6" class="px-6 py-12 text-center">
+                                                    <div class="flex flex-col items-center">
+                                                        <div class="w-16 h-16 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center text-slate-300 mb-4">
+                                                            <i class="fas fa-inbox text-2xl"></i>
+                                                        </div>
+                                                        <p class="text-slate-500 font-medium">Tidak ada data ditemukan</p>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+        @php
+            $chartMonths = collect(range(1, 12))
+                ->map(fn ($chartMonth) => \Carbon\Carbon::createFromDate($year, $chartMonth, 1)->translatedFormat('M'));
+            $chartAttendance = array_values($grafikBulanan);
+            $chartMax = max(3, (int) (ceil(max($chartAttendance) / 3) * 3));
+            $chartPoints = collect($chartAttendance)->map(fn ($value, $index) => [
+                'x' => 50 + ($index * (650 / 11)),
+                'y' => 216 - (($value / $chartMax) * 190),
+                'value' => $value,
+            ]);
+            $linePath = $chartPoints
+                ->map(fn ($point, $index) => ($index === 0 ? 'M ' : 'L ').round($point['x'], 1).' '.round($point['y'], 1))
+                ->implode(' ');
+            $areaPath = $linePath.' L 700 216 L 50 216 Z';
+            $statusColors = ['#265970', '#4b7484', '#d29a43', '#8795a0'];
+            $statusTotal = array_sum($grafikStatus['values']);
+            $statusCircumference = 2 * pi() * 72;
+            $statusOffset = 0;
+            $statusSlices = collect($grafikStatus['values'])->map(function ($value, $index) use ($statusCircumference, &$statusOffset, $statusTotal, $statusColors, $grafikStatus) {
+                $length = $statusTotal > 0 ? ($value / $statusTotal) * $statusCircumference : 0;
+                $slice = [
+                    'label' => $grafikStatus['labels'][$index],
+                    'value' => $value,
+                    'color' => $statusColors[$index],
+                    'length' => $length,
+                    'offset' => $statusOffset,
+                ];
+                $statusOffset += $length;
+
+                return $slice;
+            });
+        @endphp
+
+        {{-- Charts Section --}}
+        <div class="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-2">
+            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
+                <div class="mb-5 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Tren Kehadiran</h3>
+                        <p class="text-xs text-slate-500">Kehadiran freelance per bulan, {{ $year }}</p>
                     </div>
                 </div>
-            @endif
+                <div class="relative h-64 min-w-0 rounded-lg bg-emerald-50/60 p-3 dark:bg-emerald-950/20 sm:h-72 sm:p-4">
+                    <svg class="h-full w-full overflow-visible" viewBox="0 0 720 260" role="img"
+                         aria-label="Grafik tren kehadiran freelance per bulan">
+                        @foreach ([0, 1, 2, 3] as $gridStep)
+                            @php $gridY = 216 - (($gridStep / 3) * 190); @endphp
+                            <line x1="50" y1="{{ $gridY }}" x2="700" y2="{{ $gridY }}"
+                                  stroke="currentColor" stroke-opacity="0.12" />
+                            <text x="40" y="{{ $gridY + 4 }}" text-anchor="end"
+                                  class="fill-slate-400" font-size="11">{{ (int) round($chartMax * $gridStep / 3) }}</text>
+                        @endforeach
+                        <defs>
+                            <linearGradient id="attendance-area" x1="0" x2="0" y1="0" y2="1">
+                                <stop offset="0%" stop-color="#265970" stop-opacity="0.24" />
+                                <stop offset="100%" stop-color="#265970" stop-opacity="0.01" />
+                            </linearGradient>
+                        </defs>
+                        <path d="{{ $areaPath }}" fill="url(#attendance-area)" />
+                        <path d="{{ $linePath }}" fill="none" stroke="#265970" stroke-width="3"
+                              stroke-linecap="round" stroke-linejoin="round" />
+                        @foreach ($chartPoints as $index => $point)
+                            <circle cx="{{ round($point['x'], 1) }}" cy="{{ round($point['y'], 1) }}" r="5"
+                                    fill="#265970" stroke="white" stroke-width="2">
+                                <title>{{ $chartMonths[$index] }}: {{ $point['value'] }} kehadiran</title>
+                            </circle>
+                            <text x="{{ round($point['x'], 1) }}" y="242" text-anchor="middle"
+                                  class="fill-slate-500" font-size="11">{{ $chartMonths[$index] }}</text>
+                        @endforeach
+                    </svg>
+                </div>
+            </div>
 
+            <div class="lucent-panel min-w-0 rounded-xl p-4 sm:p-5">
+                <div class="mb-5 flex items-center gap-4">
+                    <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-600 flex items-center justify-center">
+                        <i class="fas fa-chart-pie"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold">Distribusi Status</h3>
+                        <p class="text-xs text-slate-500">
+                            Status absensi freelance, {{ \Carbon\Carbon::create($year, $month, 1)->translatedFormat('F Y') }}
+                        </p>
+                    </div>
+                </div>
+                <div class="relative flex h-64 min-w-0 items-center justify-center rounded-lg bg-teal-50/70 p-4 dark:bg-teal-950/20 sm:h-72">
+                    <div class="flex w-full flex-col items-center justify-center gap-6 sm:flex-row sm:gap-10">
+                        <div class="relative h-44 w-44 shrink-0">
+                            <svg class="h-full w-full -rotate-90" viewBox="0 0 180 180" role="img"
+                                 aria-label="Grafik distribusi status absensi freelance">
+                                <circle cx="90" cy="90" r="72" fill="none" stroke="#e5e5e5" stroke-width="28" />
+                                @foreach ($statusSlices as $slice)
+                                    @if ($slice['length'] > 0)
+                                        <circle cx="90" cy="90" r="72" fill="none" stroke="{{ $slice['color'] }}"
+                                                stroke-width="28" stroke-dasharray="{{ $slice['length'] }} {{ $statusCircumference - $slice['length'] }}"
+                                                stroke-dashoffset="-{{ $slice['offset'] }}">
+                                            <title>{{ $slice['label'] }}: {{ $slice['value'] }}</title>
+                                        </circle>
+                                    @endif
+                                @endforeach
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span class="text-3xl font-black text-slate-900 dark:text-white">{{ $statusTotal }}</span>
+                                <span class="text-xs text-slate-500">Absensi</span>
+                            </div>
+                        </div>
+                        <ul class="grid w-full max-w-xs grid-cols-2 gap-3 text-sm sm:grid-cols-1">
+                            @foreach ($statusSlices as $slice)
+                                <li class="flex items-center justify-between gap-3">
+                                    <span class="flex items-center gap-2 text-slate-600 dark:text-slate-300">
+                                        <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background-color: {{ $slice['color'] }}"></span>
+                                        {{ $slice['label'] }}
+                                    </span>
+                                    <strong class="text-slate-900 dark:text-white">{{ $slice['value'] }}</strong>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    <script nonce="{{ config('app.csp_nonce') }}" src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script nonce="{{ config('app.csp_nonce') }}">
-        document.addEventListener('DOMContentLoaded', () => {
-        // 🔥 AUTO SCROLL KE TABEL YANG DI-SEARCH 🔥
-        const urlParams = new URLSearchParams(window.location.search);
-
-        if (urlParams.has('search_organik') && urlParams.get('search_organik') !== '') {
-            setTimeout(() => {
-                document.getElementById('tabel-organik')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-        } else if (urlParams.has('search_freelance') && urlParams.get('search_freelance') !== '') {
-            setTimeout(() => {
-                document.getElementById('tabel-freelance')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-        } else if (urlParams.has('search_borongan') && urlParams.get('search_borongan') !== '') {
-            setTimeout(() => {
-                document.getElementById('tabel-borongan')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-        } else if (urlParams.has('search_magang') && urlParams.get('search_magang') !== '') {
-            setTimeout(() => {
-                document.getElementById('tabel-magang')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 300);
-        }
-
-            const isDark = document.documentElement.classList.contains('dark');
-
-            Chart.defaults.color = isDark ? '#cbd5e0' : '#4b5563';
-            Chart.defaults.borderColor = isDark ? '#4a5568' : '#e5e7eb';
-
-            new Chart(document.getElementById('grafikBulananLine'), {
-                type: 'line',
-                data: {
-                    labels: [@for ($i = 1; $i <= 12; $i++) "{{ \Carbon\Carbon::createFromFormat('!m', $i)->translatedFormat('M') }}", @endfor],
-                    datasets: [
-                        {
-                            label: 'Organik',
-                            data: [@for ($i = 1; $i <= 12; $i++) {{ $grafikBulananOrganik[$i] ?? 0 }}, @endfor],
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59,130,246,0.08)',
-                            tension: 0.4,
-                            pointBackgroundColor: '#3b82f6',
-                            pointBorderColor: '#fff',
-                            pointRadius: 7,
-                            fill: true,
-                        },
-                        {
-                            label: 'Freelance',
-                            data: [@for ($i = 1; $i <= 12; $i++) {{ $grafikBulananFreelance[$i] ?? 0 }}, @endfor],
-                            borderColor: '#fb923c',
-                            backgroundColor: 'rgba(251,146,60,0.08)',
-                            tension: 0.4,
-                            pointBackgroundColor: '#fb923c',
-                            pointBorderColor: '#fff',
-                            pointRadius: 7,
-                            fill: true,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: {
-                                color: isDark ? '#cbd5e0' : '#4b5563',
-                                font: { weight: 'bold' }
-                            }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { display: false },
-                            ticks: { color: isDark ? '#cbd5e0' : '#4b5563', font: { weight: 'bold' } }
-                        },
-                        y: {
-                            grid: { color: isDark ? 'rgba(100,116,139,0.15)' : 'rgba(100,116,139,0.07)' },
-                            ticks: { color: isDark ? '#cbd5e0' : '#4b5563' }
-                        }
-                    },
-                    elements: {
-                        line: { borderWidth: 3 },
-                        point: { borderWidth: 2 }
-                    }
-                }
-            });
-
-            new Chart(document.getElementById('grafikStatus'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Hadir', 'Izin', 'Sakit', 'Lembur'],
-                    datasets: [{
-                        data: [{{ $totalHadir }}, {{ $totalIzin }}, {{ $totalSakit }}, {{ $totalLembur }}],
-                        backgroundColor: [
-                            'rgba(16,185,129,0.95)',
-                            'rgba(245,158,11,0.95)',
-                            'rgba(239,68,68,0.95)',
-                            'rgba(168,85,247,0.95)'
-                        ],
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                            labels: {
-                                color: isDark ? '#cbd5e0' : '#4b5563',
-                                font: { weight: 'bold' }
-                            }
-                        }
-                    },
-                    cutout: '65%'
-                }
-            });
-        });
-    </script>
 </x-app-layout>

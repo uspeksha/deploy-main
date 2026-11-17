@@ -10,18 +10,18 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-{
-    Schema::create('notifications', function (Blueprint $table) {
-        $table->id();
-        $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-        $table->string('title');
-        $table->text('message');
-        $table->string('type')->nullable(); // izin, sakit, lembur, dsb
-        $table->string('target_page')->nullable(); // misal: /absensi/sakit
-        $table->boolean('is_read')->default(false);
-        $table->timestamps();
-    });
-}
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->string('title');
+            $table->text('message');
+            $table->string('type')->nullable(); // izin, sakit, lembur, dsb
+            $table->string('target_page')->nullable(); // misal: /absensi/sakit
+            $table->boolean('is_read')->default(false);
+            $table->timestamps();
+        });
+    }
 
     /**
      * Reverse the migrations.

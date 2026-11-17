@@ -1,4 +1,5 @@
 <?php
+
 // database/migrations/xxxx_xx_xx_add_employment_status_to_users_table.php
 
 use Illuminate\Database\Migrations\Migration;

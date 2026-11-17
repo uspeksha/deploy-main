@@ -1,0 +1,384 @@
+<?php
+
+use App\Models\Absensi;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+
+it('shows the HRD approval page only to HRD and removes legacy approval URLs', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.approval.hrd'))
+        ->assertOk()
+        ->assertSee('Approval HRD')
+        ->assertDontSee('Supervisor (Freelance)')
+        ->assertDontSee('Manager (Freelance/Org)')
+        ->assertDontSee('HRGA (Final)');
+
+    $this->get('/admin/approval/supervisor')->assertNotFound();
+    $this->get('/admin/approval/manager')->assertNotFound();
+    $this->get('/admin/approval/hrga')->assertNotFound();
+});
+
+it('does not allow other roles to access HRD approval or admin dashboard', function () {
+    foreach (['admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl', 'user'] as $role) {
+        $account = User::factory()->create(['role' => $role]);
+
+        $this->actingAs($account)
+            ->get(route('admin.absensi.approval.hrd'))
+            ->assertForbidden();
+
+        $this->get(route('admin.absensi.index'))
+            ->assertForbidden();
+    }
+});
+
+it('shows pending late-excuse and leave requests in the HRD approval queue', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create([
+        'name' => 'Karyawan Pengajuan',
+        'registration_status' => 'approved',
+        'is_active' => true,
+    ]);
+
+    $attendance = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => null,
+        'check_in_at' => '2026-10-28 09:00:00',
+        'status_approval' => 'approved',
+        'late_minutes' => 60,
+        'base_salary' => 120000,
+        'late_penalty' => 15000,
+        'final_salary' => 105000,
+        'is_mocked' => false,
+    ]);
+    Absensi::create([
+        'user_id' => $employee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'hadir',
+        'tipe' => 'telat',
+        'check_in_at' => $attendance->check_in_at,
+        'status_approval' => 'pending',
+        'late_minutes' => 60,
+        'keterangan_izin_sakit' => 'Kendala transportasi',
+        'file_bukti' => 'bukti_telat/bukti.png',
+    ]);
+    Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'izin',
+        'tipe' => 'izin',
+        'submission_type' => 'cuti_tahunan',
+        'check_in_at' => '2026-10-29 00:00:00',
+        'end_date' => '2026-10-30',
+        'total_days' => 2,
+        'status_approval' => 'pending',
+        'keterangan_izin_sakit' => 'Keperluan keluarga',
+        'file_bukti' => 'bukti_sakit_izin/surat.png',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.approval.hrd'))
+        ->assertOk()
+        ->assertSee('Karyawan Pengajuan')
+        ->assertSee('telat')
+        ->assertSee('Kendala transportasi')
+        ->assertSee('cuti tahunan')
+        ->assertSee('Durasi izin/cuti')
+        ->assertSee('2 hari')
+        ->assertSee('Setujui')
+        ->assertSee('Tolak');
+});
+
+it('lets HRD approve leave and reject a late-excuse request', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create([
+        'registration_status' => 'approved',
+        'is_active' => true,
+        'sisa_cuti' => 12,
+        'total_cuti_diambil' => 0,
+    ]);
+    $leave = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'izin',
+        'tipe' => 'izin',
+        'submission_type' => 'cuti_tahunan',
+        'check_in_at' => '2026-10-29 00:00:00',
+        'end_date' => '2026-10-29',
+        'total_days' => 1,
+        'hari_potong_cuti' => 1,
+        'status_approval' => 'pending',
+        'keterangan_izin_sakit' => 'Keperluan keluarga',
+        'current_approval_level' => 3,
+        'workflow_status' => [
+            'supervisor' => 'approved',
+            'manager' => 'approved',
+            'hrga' => 'pending',
+        ],
+    ]);
+    $attendance = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'check_in_at' => '2026-10-28 09:00:00',
+        'status_approval' => 'approved',
+        'late_minutes' => 60,
+        'base_salary' => 120000,
+        'late_penalty' => 15000,
+        'final_salary' => 105000,
+    ]);
+    $lateExcuse = Absensi::create([
+        'user_id' => $employee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'hadir',
+        'tipe' => 'telat',
+        'check_in_at' => $attendance->check_in_at,
+        'status_approval' => 'pending',
+        'late_minutes' => 60,
+    ]);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.action', [
+            'absensi' => $leave->id,
+            'action' => 'approve',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $this->post(route('admin.absensi.approval.action', [
+        'absensi' => $lateExcuse->id,
+        'action' => 'reject',
+    ]), ['catatan_admin' => 'Bukti tidak memenuhi ketentuan.'])
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    expect($leave->fresh()->status_approval)->toBe('approved')
+        ->and($leave->fresh()->workflow_status)->toBe(['hrd' => 'approved'])
+        ->and($leave->fresh()->current_approval_level)->toBe(3)
+        ->and($employee->fresh()->sisa_cuti)->toBe(11)
+        ->and($employee->fresh()->total_cuti_diambil)->toBe(1)
+        ->and($lateExcuse->fresh()->status_approval)->toBe('rejected')
+        ->and($lateExcuse->fresh()->catatan_admin)->toBe('Bukti tidak memenuhi ketentuan.');
+});
+
+it('shows rejected child leave requests in the rejected HRD approval tab', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['name' => 'Karyawan Ditolak']);
+    $attendance = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => null,
+        'check_in_at' => '2026-11-08 09:00:00',
+        'status_approval' => 'approved',
+    ]);
+    $rejectedLeave = Absensi::create([
+        'user_id' => $employee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'izin',
+        'tipe' => 'izin',
+        'submission_type' => 'cuti_tahunan',
+        'check_in_at' => '2026-11-08 00:00:00',
+        'status_approval' => 'rejected',
+    ]);
+    DB::table('absensis')
+        ->where('id', $rejectedLeave->id)
+        ->update(['catatan_admin' => 'Dokumen pendukung belum sesuai.']);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.approval.hrd', ['status' => 'rejected']))
+        ->assertOk()
+        ->assertSee('Karyawan Ditolak')
+        ->assertSee('Dokumen pendukung belum sesuai.')
+        ->assertSee('cuti tahunan');
+});
+
+it('keeps the approval tab selected when a rejection reason is invalid', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create(['registration_status' => 'approved']);
+    $submission = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'sakit',
+        'tipe' => 'sakit',
+        'status_approval' => 'pending',
+        'check_in_at' => '2026-11-09 00:00:00',
+        'keterangan_izin_sakit' => 'Sedang sakit',
+    ]);
+    $approvalUrl = route('admin.absensi.approval.hrd');
+
+    $this->actingAs($hrd)
+        ->from($approvalUrl)
+        ->post(route('admin.absensi.approval.action', [
+            'absensi' => $submission->id,
+            'action' => 'reject',
+        ]), ['catatan_admin' => 'ok'])
+        ->assertSessionHasErrors('catatan_admin')
+        ->assertRedirect($approvalUrl);
+
+    $response = $this->get($approvalUrl)->assertOk();
+    preg_match('/section:\s*["\'](approvals|employees)["\']/', html_entity_decode($response->getContent()), $matches);
+
+    expect($matches[1] ?? null)->toBe('approvals');
+});
+
+it('does not approve overtime with an end time before its start', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create();
+    $overtime = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'lembur_start' => '2026-11-09 23:00:00',
+        'lembur_end' => '2026-11-09 01:00:00',
+        'status_approval' => 'pending',
+        'overtime_minutes' => 120,
+        'overtime_pay' => 37500,
+    ]);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.action', [
+            'absensi' => $overtime->id,
+            'action' => 'approve',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect($overtime->fresh()->status_approval)->toBe('pending')
+        ->and($overtime->fresh()->overtime_minutes)->toBe(120)
+        ->and((float) $overtime->fresh()->overtime_pay)->toBe(37500.0);
+});
+
+it('skips invalid overtime intervals during bulk approval', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $employee = User::factory()->create();
+    $overtime = Absensi::create([
+        'user_id' => $employee->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'lembur_start' => '2026-11-09 23:00:00',
+        'lembur_end' => '2026-11-09 01:00:00',
+        'status_approval' => 'pending',
+    ]);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.bulk-action'), ['ids' => [$overtime->id]])
+        ->assertRedirect()
+        ->assertSessionHas('error');
+
+    expect($overtime->fresh()->status_approval)->toBe('pending');
+});
+
+it('shows only freelance employees on the dashboard and marks missing check-ins correctly', function () {
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $freelanceEmployee = null;
+    foreach ([
+        ['name' => 'Karyawan Freelance Belum Absen', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-001'],
+        ['name' => 'Karyawan Freelance Nonaktif', 'employment_type' => 'freelance', 'id_karyawan' => 'FL-INACTIVE', 'is_active' => false],
+        ['name' => 'Karyawan Organik Tersembunyi', 'employment_type' => 'organik', 'id_karyawan' => 'ORG-001'],
+        ['name' => 'Karyawan Magang Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'MG-AMB-001'],
+        ['name' => 'Karyawan Borongan Tersembunyi', 'employment_type' => 'freelance', 'id_karyawan' => 'CS-AMB-001'],
+    ] as $employeeAttributes) {
+        $employee = User::factory()->create($employeeAttributes + [
+            'registration_status' => 'approved',
+        ]);
+        if ($employeeAttributes['id_karyawan'] === 'FL-001') {
+            $freelanceEmployee = $employee;
+        }
+    }
+    $attendanceDate = now()->startOfMonth()->addDays(1);
+    $attendance = Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'status' => 'hadir',
+        'check_in_at' => $attendanceDate->copy()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+    Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'parent_id' => $attendance->id,
+        'status' => 'hadir',
+        'tipe' => 'lembur',
+        'check_in_at' => $attendanceDate->copy()->setTime(17, 0),
+        'status_approval' => 'approved',
+    ]);
+    Absensi::create([
+        'user_id' => $freelanceEmployee->id,
+        'status' => 'izin',
+        'check_in_at' => $attendanceDate->copy()->addDay()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+    $inactiveFreelance = User::where('name', 'Karyawan Freelance Nonaktif')->firstOrFail();
+    Absensi::create([
+        'user_id' => $inactiveFreelance->id,
+        'status' => 'hadir',
+        'check_in_at' => $attendanceDate->copy()->setTime(8, 0),
+        'status_approval' => 'approved',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get('/dashboard')
+        ->assertRedirect(route('admin.absensi.index'));
+
+    $this->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertViewHas('totalHadir', 1)
+        ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Freelance Nonaktif')
+        ->assertDontSee('Karyawan Organik Tersembunyi')
+        ->assertDontSee('Karyawan Magang Tersembunyi')
+        ->assertDontSee('Karyawan Borongan Tersembunyi')
+        ->assertSee('Karyawan Freelance')
+        ->assertSee('Belum Absen')
+        ->assertSee('Grafik tren kehadiran freelance per bulan')
+        ->assertSee('Grafik distribusi status absensi freelance')
+        ->assertSee('Status absensi freelance')
+        ->assertSee('ui-page', false)
+        ->assertSee('attendance-area', false)
+        ->assertSee('>1</strong>', false)
+        ->assertSee('<svg', false)
+        ->assertDontSee('On Time')
+        ->assertDontSee('Perbandingan Status Pegawai')
+        ->assertDontSee('Produksi')
+        ->assertDontSee('Office')
+        ->assertDontSee('data-aos="fade-up"');
+
+    $this->get(route('admin.absensi.freelance'))
+        ->assertOk()
+        ->assertSee('Karyawan Freelance Belum Absen')
+        ->assertDontSee('Karyawan Freelance Nonaktif')
+        ->assertDontSee('Karyawan Organik Tersembunyi');
+});
+
+it('shows freelance profile photos on the attendance dashboard', function () {
+    Storage::fake('public');
+    $hrd = User::factory()->create(['role' => 'hrd']);
+    $photoPath = 'profile-photos/freelance-employee.jpg';
+    Storage::disk('public')->put($photoPath, 'test image');
+    User::factory()->create([
+        'name' => 'Karyawan Freelance dengan Foto',
+        'employment_type' => 'freelance',
+        'id_karyawan' => 'FL-PHOTO',
+        'profile_photo_path' => $photoPath,
+        'registration_status' => 'approved',
+    ]);
+
+    $this->actingAs($hrd)
+        ->get(route('admin.absensi.index'))
+        ->assertOk()
+        ->assertSee(route('admin.storage.file', ['path' => $photoPath]), false)
+        ->assertSee('Foto profil Karyawan Freelance dengan Foto');
+
+    $this->get(route('admin.storage.file', ['path' => $photoPath]))
+        ->assertOk();
+});
+
+it('rejects non-HRD roles from web login', function () {
+    foreach (['admin', 'super_admin', 'manager', 'supervisor', 'hrga', 'pkl', 'user'] as $role) {
+        $account = User::factory()->create(['role' => $role]);
+
+        $this->post('/login', [
+            'email' => $account->email,
+            'password' => 'password',
+        ])->assertRedirect('/');
+
+        $this->assertGuest();
+    }
+});

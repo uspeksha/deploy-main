@@ -33,7 +33,7 @@
         .header {
             text-align: center;
             margin-bottom: 20px;
-            background: #BDD7EE;
+            background: #d4d4d4;
             padding: 10px; /* Padding dikurangi sedikit karena ada tabel di dalam */
             border: 1px solid #333;
         }
@@ -61,7 +61,7 @@
         }
 
         .salary-table th {
-            background: #BDD7EE;
+            background: #d4d4d4;
             padding: 10px;
             font-weight: bold;
             text-align: left;
@@ -82,7 +82,7 @@
 
         /* TERBILANG */
         .terbilang {
-            background: #FFFF00;
+            background: #e5e5e5;
             padding: 10px;
             border: 1px solid #333;
             text-align: center;
@@ -110,11 +110,11 @@
             <table style="width: 100%; border-collapse: collapse; border: none;">
                 <tr>
                     <td style="width: 15%; text-align: left; vertical-align: middle; border: none; padding: 0;">
-                        <img src="{{ public_path('images/logo.png') }}" alt="Logo" style="width: 120px; height: auto;">
+                        <img src="{{ public_path('images/logo-followme.png') }}" alt="Logo Followme" style="width: 120px; height: auto; filter: grayscale(1);">
                     </td>
 
                     <td style="width: 85%; text-align: center; vertical-align: middle; border: none; padding: 0;" class="header-title">
-                        <h1>PT. ANSEL MUDA BERKARYA</h1>
+                        <h1>PT. FOLLOWME</h1>
                         <h2>SLIP GAJI KARYAWAN</h2>
                     </td>
                 </tr>
@@ -208,10 +208,10 @@
 
         <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
             <tr>
-                <td style="background: #C6E0B4; padding: 12px; border: 1px solid #333; font-weight: bold; font-size: 12pt; width: 70%;">
+                <td style="background: #e5e5e5; padding: 12px; border: 1px solid #333; font-weight: bold; font-size: 12pt; width: 70%;">
                     PENGHASILAN BERSIH (TAKE HOME PAY)
                 </td>
-                <td style="background: #C6E0B4; padding: 12px; border: 1px solid #333; font-weight: bold; font-size: 12pt; text-align: right; width: 30%;">
+                <td style="background: #e5e5e5; padding: 12px; border: 1px solid #333; font-weight: bold; font-size: 12pt; text-align: right; width: 30%;">
                     Rp {{ number_format($gajiBersih, 0, ',', '.') }}
                 </td>
             </tr>
@@ -224,8 +224,8 @@
         <div class="footer">
             <div class="quote">"Keep Up The Good Work"</div>
             <div class="signature">
-                <div style="font-weight: bold;">HRGA Division</div>
-                <div style="font-weight: bold; margin-top: 5px;">PT. ANSEL MUDA BERKARYA</div>
+                <div style="font-weight: bold;">HRD Division</div>
+                <div style="font-weight: bold; margin-top: 5px;">PT. FOLLOWME</div>
             </div>
         </div>
 

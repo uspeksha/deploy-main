@@ -1,139 +1,341 @@
 <x-guest-layout>
-    <section class="min-h-screen flex items-center justify-center px-6 py-20">
-        <div class="max-w-7xl w-full grid md:grid-cols-2 items-center gap-12">
+    <main class="welcome-page"
+          x-data="{
+              px: 0, py: 0,
+              now: new Date(),
+              init() { setInterval(() => this.now = new Date(), 1000); },
+              track(e) {
+                  if (e.pointerType !== 'mouse') return;
+                  const r = e.currentTarget.getBoundingClientRect();
+                  this.px = ((e.clientX - r.left) / r.width - .5) * 2;
+                  this.py = ((e.clientY - r.top) / r.height - .5) * 2;
+              },
+              reset() { this.px = 0; this.py = 0; }
+          }">
+        <div class="welcome-shell">
+            <header class="welcome-header">
+                <a class="welcome-brand" href="/" aria-label="Follow Me - Beranda">
+                    <span class="welcome-brand-mark" aria-hidden="true">F</span>
+                    <span class="welcome-brand-name">follow<span>me</span></span>
+                </a>
+                <div class="welcome-header-right">
+                    <span class="welcome-header-note">Portal absensi karyawan</span>
+                    <button type="button" class="welcome-theme" @click="darkMode = !darkMode"
+                            :aria-label="darkMode ? 'Aktifkan mode terang' : 'Aktifkan mode gelap'">
+                        <i class="fas fa-moon" x-show="!darkMode" x-transition.opacity.duration.200ms></i>
+                        <i class="fas fa-sun" x-show="darkMode" x-transition.opacity.duration.200ms style="display:none"></i>
+                    </button>
+                </div>
+            </header>
 
-            <!-- Left Content -->
-            <div data-aos="fade-right" data-aos-duration="1500" class="space-y-6">
-                <div class="flex items-center gap-4">
-                    <img src="{{ asset('images/logo.png') }}" alt="Logo PT" class="h-20 w-auto animate__animated animate__fadeInLeft">
-                    <div>
-                        <h1 class="text-xl font-semibold text-gray-700 dark:text-gray-200">PT. Ansel Muda Berkarya</h1>
-                        <p class="text-sm text-gray-500 dark:text-gray-400 tracking-wide">Sistem Absensi Digital Terintegrasi</p>
+            <section class="welcome-hero" aria-labelledby="welcome-title">
+                <div class="welcome-art"
+                     @pointermove="track($event)" @pointerleave="reset()"
+                     :style="{ '--px': px, '--py': py, '--sx': ((px + 1) * 50) + '%', '--sy': ((py + 1) * 50) + '%' }">
+                    <span class="welcome-art-spot" aria-hidden="true"></span>
+                    <span class="welcome-art-glow" aria-hidden="true"></span>
+
+                    <div class="welcome-chip" aria-hidden="true">
+                        <span class="welcome-pulse"></span>
+                        <span>
+                            <strong x-text="now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' })"></strong>
+                            <small x-text="now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'short' })"></small>
+                        </span>
+                    </div>
+
+                    <img
+                        class="welcome-team"
+                        src="{{ asset('images/welcome-team-reference.png') }}"
+                        alt="Rekan kerja berkolaborasi di depan komputer"
+                    >
+                    <div class="welcome-art-caption">
+                        <span class="welcome-caption-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="m5 12 4 4L19 6" />
+                            </svg>
+                        </span>
+                        <span><strong>Kerja bareng, lebih terarah</strong><small>Semua kehadiran dalam satu tempat</small></span>
                     </div>
                 </div>
 
-                <h2 class="text-4xl md:text-5xl font-bold leading-tight text-gray-900 dark:text-white animate__animated animate__fadeInDown">
-                    Presensi Online <br>
-                    <span class="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">Cepat & Efisien</span>
-                </h2>
-
-                <p class="text-lg text-gray-600 dark:text-gray-300 animate__animated animate__fadeIn animate__delay-1s">
-                    Kelola kehadiran karyawan dengan akurat, berbasis foto & lokasi realtime. Solusi modern untuk perusahaan profesional.
-                </p>
-
-                <div class="flex flex-wrap gap-4">
-                    <a href="{{ route('login') }}"
-                       class="group px-8 py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-105 animate__animated animate__fadeInUp animate__delay-2s flex items-center gap-2">
-                        <span>Masuk Sekarang</span>
-                        <i class="fas fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                <div class="welcome-copy">
+                    <p class="welcome-eyebrow"><span></span> Sistem absensi PT Follow Me</p>
+                    <h1 id="welcome-title">Kerja lebih <span>teratur.</span><br>Mulai dari hadir.</h1>
+                    <p class="welcome-description">
+                        Selamat datang di portal absensi PT Follow Me. Catat kehadiran dan mulai aktivitas kerja dengan lebih mudah.
+                    </p>
+                    <a class="welcome-login" href="{{ route('login') }}"
+                       x-data="{ mx: 0, my: 0 }"
+                       @pointermove="
+                           if ($event.pointerType === 'mouse') {
+                               const r = $el.getBoundingClientRect();
+                               mx = ($event.clientX - (r.left + r.width / 2)) * .16;
+                               my = ($event.clientY - (r.top + r.height / 2)) * .28;
+                           }"
+                       @pointerleave="mx = 0; my = 0"
+                       :style="`translate: ${mx}px ${my}px`">
+                        <span class="welcome-login-label">Masuk Akun</span>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M5 12h14m-6-6 6 6-6 6" />
+                        </svg>
                     </a>
-
-                    
+                    <p class="welcome-assurance">
+                        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                            <path d="M10 2.5 4 5v4.2c0 3.8 2.5 6.8 6 8.3 3.5-1.5 6-4.5 6-8.3V5l-6-2.5Z" />
+                            <path d="m7.5 9.8 1.7 1.7 3.5-3.7" />
+                        </svg>
+                        Akses khusus karyawan PT Follow Me
+                    </p>
                 </div>
+            </section>
 
-                <!-- Features List -->
-                <div class="pt-8 space-y-3 animate__animated animate__fadeIn animate__delay-4s">
-                    <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
-                        </div>
-                        <span class="font-medium">Absensi berbasis GPS & Foto</span>
-                    </div>
-                    <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
-                        </div>
-                        <span class="font-medium">Laporan Real-time & Analitik</span>
-                    </div>
-                    <div class="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                        <div class="w-8 h-8 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                            <i class="fas fa-check text-green-600 dark:text-green-400 text-sm"></i>
-                        </div>
-                        <span class="font-medium">Mudah digunakan & Terintegrasi</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Illustration (Optional) -->
-            <div data-aos="fade-left" data-aos-duration="1500" class="hidden md:flex justify-center">
-                <div class="relative">
-                    <!-- Decorative Elements -->
-                    <div class="absolute -top-4 -left-4 w-72 h-72 bg-purple-300 dark:bg-purple-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob"></div>
-                    <div class="absolute -bottom-8 right-4 w-72 h-72 bg-indigo-300 dark:bg-indigo-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
-                    <div class="absolute -bottom-4 left-20 w-72 h-72 bg-pink-300 dark:bg-pink-900 rounded-full mix-blend-multiply dark:mix-blend-soft-light filter blur-xl opacity-70 animate-blob animation-delay-4000"></div>
-
-                    <!-- Icon Grid -->
-                    <div class="relative grid grid-cols-2 gap-6 p-8">
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-users text-5xl text-indigo-600 dark:text-indigo-400"></i>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-clock text-5xl text-purple-600 dark:text-purple-400"></i>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-chart-line text-5xl text-pink-600 dark:text-pink-400"></i>
-                        </div>
-                        <div class="bg-white dark:bg-gray-800 p-8 rounded-2xl shadow-xl transform hover:scale-110 transition-all">
-                            <i class="fas fa-mobile-alt text-5xl text-blue-600 dark:text-blue-400"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+            <footer class="welcome-footer">
+                <span>© {{ date('Y') }} PT Follow Me</span>
+                <span>Presensi jadi lebih sederhana.</span>
+            </footer>
         </div>
-    </section>
-
-    <!-- Footer -->
-    <footer class="text-center text-sm py-6 text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm border-t border-gray-200 dark:border-gray-800">
-        &copy; {{ date('Y') }} PT. Ansel Muda Berkarya. All rights reserved.
-    </footer>
+    </main>
 
     @push('styles')
-        <link href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.css" rel="stylesheet"
-              integrity="sha512-1cK78a1o+hpVvTgaWw28SrjkAt+vA1mWxeE695jp9EHuxeyru473uFB6iCha7awqmsuyFutfnMbcTCm9txot6Q=="
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-              nonce="{{ config('app.csp_nonce') }}">
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"
-              integrity="sha512-c42qTSw/wPZ3/5LBzD+Bw5f7bSF2oxou6wEb+I/lqADuhyWpId36goLJtfsZX61B851m1UV6L3PdwGNo6iGq7A=="
-              crossorigin="anonymous"
-              referrerpolicy="no-referrer"
-              nonce="{{ config('app.csp_nonce') }}"/>
         <style nonce="{{ config('app.csp_nonce') }}">
-            @keyframes blob {
-                0%, 100% {
-                    transform: translate(0, 0) scale(1);
-                }
-                33% {
-                    transform: translate(30px, -50px) scale(1.1);
-                }
-                66% {
-                    transform: translate(-20px, 20px) scale(0.9);
-                }
+            .welcome-page {
+                --w-ink: #262626;
+                --w-muted: #525252;
+                --w-faint: #737373;
+                --w-line: rgba(64, 64, 64, .1);
+                --w-accent: #a8642f;
+                --w-chip-bg: #fff8f1;
+                --w-chip-line: #f5d2b5;
+                --w-chip-ink: #854d28;
+                min-height: 100vh;
+                min-height: 100svh;
+                overflow: hidden;
+                position: relative;
+                isolation: isolate;
+                color: var(--w-ink);
+                background: linear-gradient(145deg, #fafafa, #f5f5f5 62%, #f3f4f6);
             }
-            .animate-blob {
-                animation: blob 7s infinite;
+            .dark .welcome-page {
+                --w-ink: #f5f5f5;
+                --w-muted: #d4d4d4;
+                --w-faint: #a3a3a3;
+                --w-line: rgba(255, 255, 255, .09);
+                --w-chip-bg: rgba(196, 122, 60, .12);
+                --w-chip-line: rgba(218, 153, 103, .24);
+                --w-chip-ink: #f5d2b5;
+                background: linear-gradient(145deg, #0a0a0a, #171717 62%, #262626);
             }
-            .animation-delay-2000 {
-                animation-delay: 2s;
+
+            .welcome-shell {
+                display: flex;
+                width: min(100%, 1320px);
+                min-height: 100vh;
+                min-height: 100svh;
+                flex-direction: column;
+                margin: 0 auto;
+                padding: 0 clamp(1.5rem, 5.5vw, 5rem);
             }
-            .animation-delay-4000 {
-                animation-delay: 4s;
+
+            /* ---------- Header ---------- */
+            .welcome-header {
+                display: flex;
+                min-height: 5.5rem;
+                align-items: center;
+                justify-content: space-between;
+                border-bottom: 1px solid var(--w-line);
+            }
+            .welcome-header-right { display: flex; align-items: center; gap: .9rem; }
+
+            .welcome-brand {
+                display: inline-flex; align-items: center; gap: .65rem;
+                color: var(--w-ink); text-decoration: none;
+            }
+            .welcome-brand-mark {
+                display: grid; width: 2.2rem; height: 2.2rem; place-items: center;
+                border-radius: .72rem; color: #fff; font-size: 1.15rem; font-weight: 800;
+                background: linear-gradient(135deg, #a8642f, #c47a3c);
+                box-shadow: 0 6px 16px rgba(168, 100, 47, .2);
+                transition: transform .4s cubic-bezier(.3, 1.6, .5, 1);
+            }
+            .welcome-brand:hover .welcome-brand-mark { transform: rotate(-8deg) scale(1.08); }
+            .welcome-brand-name { font-size: 1.1rem; font-weight: 800; letter-spacing: -.055em; }
+            .welcome-brand-name span { color: var(--w-accent); }
+            .dark .welcome-brand-name span { color: #eab88f; }
+
+            .welcome-header-note { color: var(--w-faint); font-size: .75rem; font-weight: 600; }
+
+            .welcome-theme {
+                display: grid; width: 2.4rem; height: 2.4rem; place-items: center;
+                border: 1px solid var(--w-line); border-radius: .75rem;
+                background: rgba(255, 255, 255, .5); color: var(--w-muted); cursor: pointer;
+                transition: background-color .2s ease, color .2s ease, transform .2s ease;
+            }
+            .dark .welcome-theme { background: rgba(255, 255, 255, .05); }
+            .welcome-theme:hover { background: rgba(196, 122, 60, .1); color: var(--w-accent); }
+            .dark .welcome-theme:hover { color: #eab88f; }
+            .welcome-theme:active { transform: scale(.92); }
+            .welcome-theme:focus-visible { outline: 2px solid #da9967; outline-offset: 2px; }
+            .welcome-theme .fa-sun { color: #fbbf24; }
+
+            /* ---------- Hero ---------- */
+            .welcome-hero {
+                display: grid; flex: 1; grid-template-columns: 1.03fr .97fr; align-items: center;
+                gap: clamp(2.5rem, 7vw, 6rem); padding: 2.75rem 0;
+            }
+
+            .welcome-art {
+                position: relative; display: grid; min-height: 32rem; place-items: center; overflow: hidden;
+                border: 1px solid rgba(255, 255, 255, .85); border-radius: 2rem;
+                background: linear-gradient(145deg, #fff8f1, #fcebdc 58%, #f5f5f5);
+                box-shadow: 0 28px 70px -28px rgba(168, 100, 47, .2);
+                isolation: isolate;
+                animation: welcome-enter-left 700ms cubic-bezier(.2, .7, .25, 1) both;
+            }
+            .dark .welcome-art { border-color: rgba(255, 255, 255, .12); box-shadow: 0 28px 70px -28px rgba(0, 0, 0, .7); }
+
+            .welcome-art-spot {
+                position: absolute; inset: 0; z-index: -1; pointer-events: none;
+                background: radial-gradient(360px circle at var(--sx, 50%) var(--sy, 40%), rgba(255, 255, 255, .7), transparent 70%);
+            }
+            .welcome-art-glow {
+                position: absolute; z-index: -1; top: 8%; right: -12%; width: 15rem; aspect-ratio: 1;
+                border-radius: 50%; background: rgba(218, 153, 103, .2); filter: blur(24px);
+                translate: calc(var(--px, 0) * -18px) calc(var(--py, 0) * -14px);
+                transition: translate .35s cubic-bezier(.2, .8, .2, 1);
+            }
+
+            .welcome-team {
+                display: block; width: min(84%, 350px); height: auto; max-height: 90%;
+                border-radius: 1rem; filter: grayscale(1); mix-blend-mode: multiply; object-fit: contain;
+                translate: calc(var(--px, 0) * 14px) calc(var(--py, 0) * 10px);
+                transition: translate .35s cubic-bezier(.2, .8, .2, 1);
+                animation: welcome-image-float 7s ease-in-out 700ms infinite;
+            }
+
+            .welcome-chip {
+                position: absolute; top: 1.15rem; left: 1.15rem; display: flex; align-items: center; gap: .6rem;
+                padding: .55rem .85rem .55rem .7rem; border: 1px solid rgba(255, 255, 255, .85); border-radius: 9999px;
+                background: rgba(255, 255, 255, .9); box-shadow: 0 8px 25px rgba(64, 64, 64, .08);
+                -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+                translate: calc(var(--px, 0) * 22px) calc(var(--py, 0) * 16px);
+                transition: translate .35s cubic-bezier(.2, .8, .2, 1);
+            }
+            .welcome-chip strong { display: block; color: #262626; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+            .welcome-chip small { display: block; color: #737373; font-size: .65rem; }
+            .welcome-pulse { position: relative; width: 8px; height: 8px; border-radius: 9999px; background: #c47a3c; }
+            .welcome-pulse::after {
+                content: ""; position: absolute; inset: 0; border-radius: inherit; background: #c47a3c;
+                animation: welcome-ping 1.8s cubic-bezier(0, 0, .2, 1) infinite;
+            }
+
+            .welcome-art-caption {
+                position: absolute; right: 1.15rem; bottom: 1.15rem; left: 1.15rem; display: flex; align-items: center; gap: .7rem;
+                padding: .8rem .9rem; border: 1px solid rgba(255, 255, 255, .8); border-radius: 1rem;
+                background: rgba(255, 255, 255, .9); box-shadow: 0 8px 25px rgba(64, 64, 64, .07);
+                -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+            }
+            .welcome-caption-icon {
+                display: grid; width: 2.15rem; height: 2.15rem; flex: none; place-items: center;
+                border-radius: .7rem; background: linear-gradient(135deg, #a8642f, #c47a3c); color: #fff;
+                box-shadow: 0 6px 14px -4px rgba(168, 100, 47, .32);
+            }
+            .welcome-caption-icon svg { width: 1.1rem; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 2; }
+            .welcome-art-caption strong, .welcome-art-caption small { display: block; }
+            .welcome-art-caption strong { color: #262626; font-size: .78rem; font-weight: 750; }
+            .welcome-art-caption small { margin-top: .15rem; color: #737373; font-size: .66rem; }
+
+            /* ---------- Teks ---------- */
+            .welcome-copy {
+                max-width: 35rem; padding: 1rem 0;
+                animation: welcome-enter-right 650ms cubic-bezier(.2, .7, .25, 1) 100ms both;
+            }
+            .welcome-eyebrow {
+                display: inline-flex; align-items: center; gap: .5rem; margin: 0 0 1.25rem; padding: .48rem .8rem;
+                border: 1px solid var(--w-chip-line); border-radius: 999px; background: var(--w-chip-bg);
+                color: var(--w-chip-ink); font-size: .75rem; font-weight: 650;
+            }
+            .welcome-eyebrow span {
+                width: .42rem; height: .42rem; border-radius: 50%; background: #c47a3c;
+                box-shadow: 0 0 0 3px rgba(196, 122, 60, .14);
+            }
+            .welcome-copy h1 {
+                margin: 0; color: var(--w-ink); font-size: clamp(3rem, 5.4vw, 5.1rem);
+                font-weight: 760; letter-spacing: -.075em; line-height: 1.04;
+            }
+            .welcome-copy h1 span {
+                background: linear-gradient(100deg, #a8642f, #c47a3c 55%, #da9967 100%);
+                -webkit-background-clip: text; background-clip: text; color: transparent;
+            }
+            .dark .welcome-copy h1 span { background-image: linear-gradient(100deg, #eab88f, #f5d2b5 55%, #da9967 100%); }
+            .welcome-description { max-width: 29rem; margin: 1.25rem 0 1.75rem; color: var(--w-muted); font-size: .98rem; line-height: 1.75; }
+
+            /* ---------- Tombol masuk ---------- */
+            .welcome-login {
+                position: relative; display: inline-flex; min-height: 3.25rem; align-items: center; justify-content: center;
+                gap: .85rem; padding: 0 1.5rem; overflow: hidden; border-radius: .9rem; color: #fff;
+                font-size: .9rem; font-weight: 750; text-decoration: none;
+                background: linear-gradient(135deg, #a8642f, #c47a3c);
+                box-shadow: 0 12px 26px -8px rgba(168, 100, 47, .34), inset 0 1px 0 rgba(255, 255, 255, .25);
+                transition: translate .25s cubic-bezier(.2, .8, .2, 1), transform .18s ease, box-shadow .18s ease;
+            }
+            .welcome-login::before {
+                content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%;
+                background: linear-gradient(100deg, transparent, rgba(255, 255, 255, .45), transparent);
+                transform: skewX(-20deg); transition: left .6s ease;
+            }
+            .welcome-login:hover { transform: translateY(-2px); box-shadow: 0 16px 32px -8px rgba(168, 100, 47, .42), inset 0 1px 0 rgba(255, 255, 255, .25); }
+            .welcome-login:hover::before { left: 130%; }
+            .welcome-login:active { transform: translateY(0) scale(.98); }
+            .welcome-login:focus-visible { outline: 3px solid #eab88f; outline-offset: 3px; }
+            .welcome-login-label, .welcome-login svg { position: relative; }
+            .welcome-login svg {
+                width: 1.05rem; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round;
+                stroke-width: 1.8; transition: transform .18s ease;
+            }
+            .welcome-login:hover svg { transform: translateX(4px); }
+
+            .welcome-assurance { display: flex; align-items: center; gap: .45rem; margin: 1rem 0 0; color: var(--w-faint); font-size: .75rem; }
+            .welcome-assurance svg { width: 1rem; flex: none; stroke: #a8642f; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.6; }
+
+            .welcome-footer {
+                display: flex; min-height: 3.5rem; align-items: center; justify-content: space-between;
+                border-top: 1px solid var(--w-line); color: var(--w-faint); font-size: .72rem;
+            }
+
+            @keyframes welcome-enter-left { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: translateX(0); } }
+            @keyframes welcome-enter-right { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: translateX(0); } }
+            @keyframes welcome-image-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+            @keyframes welcome-ping { 75%, 100% { transform: scale(2.6); opacity: 0; } }
+
+            @media (max-width: 760px) {
+                .welcome-shell { padding: 0 1.25rem; }
+                .welcome-header { min-height: 4.5rem; }
+                .welcome-hero { grid-template-columns: 1fr; gap: 1.75rem; padding: 1.5rem 0 2rem; }
+                .welcome-art { min-height: clamp(16rem, 58vw, 23rem); border-radius: 1.5rem; }
+                .welcome-team { width: auto; height: min(48vw, 19rem); max-width: 76%; }
+                .welcome-art-caption { right: .75rem; bottom: .75rem; left: .75rem; }
+                .welcome-chip { top: .75rem; left: .75rem; }
+                .welcome-copy { justify-self: center; padding: 0; }
+                .welcome-copy h1 { font-size: clamp(2.8rem, 11vw, 4.25rem); }
+                .welcome-description { margin: .9rem 0 1.25rem; font-size: .91rem; }
+            }
+
+            @media (max-width: 420px) {
+                .welcome-header-note { display: none; }
+                .welcome-art { min-height: 15rem; }
+                .welcome-team { height: 12.5rem; }
+                .welcome-art-caption { gap: .5rem; padding: .65rem .7rem; }
+                .welcome-art-caption strong { font-size: .7rem; }
+                .welcome-art-caption small { font-size: .6rem; }
+                .welcome-footer { min-height: 3rem; font-size: .66rem; }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                .welcome-art, .welcome-team, .welcome-copy, .welcome-pulse::after { animation: none; }
+                .welcome-team, .welcome-chip, .welcome-art-glow, .welcome-login, .welcome-login::before,
+                .welcome-login svg, .welcome-brand-mark, .welcome-theme { transition: none; }
+                .welcome-team, .welcome-chip, .welcome-art-glow { translate: none; }
             }
         </style>
-    @endpush
-
-    @push('scripts')
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.3.4/aos.js"
-                integrity="sha512-A7AYk1fGKX6S2HuqX7WZOKzLPfhUp7uZG0PUtzhGuK8pqUqhhuplqADutJ0iJyq8VJS0M67gz6S0lX4vkpkvuw=="
-                crossorigin="anonymous"
-                referrerpolicy="no-referrer"
-                nonce="{{ config('app.csp_nonce') }}"></script>
-        <script nonce="{{ config('app.csp_nonce') }}">
-            AOS.init({
-                once: true,
-                duration: 1000
-            });
-        </script>
     @endpush
 </x-guest-layout>

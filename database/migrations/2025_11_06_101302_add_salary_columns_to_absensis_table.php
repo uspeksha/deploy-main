@@ -30,7 +30,7 @@ return new class extends Migration
                 'base_salary',
                 'late_penalty',
                 'final_salary',
-                'rounded_late_minutes'
+                'rounded_late_minutes',
             ]);
         });
     }

@@ -1,0 +1,30 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('employee_components', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('component_id')->constrained('payroll_components')->cascadeOnDelete();
+            $table->bigInteger('amount');
+            $table->date('effective_at');
+            $table->date('end_at')->nullable();
+            $table->timestamps();
+
+            $table->index('user_id');
+            $table->index('component_id');
+            $table->index(['user_id', 'component_id', 'effective_at', 'end_at'], 'employee_components_period_index');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('employee_components');
+    }
+};

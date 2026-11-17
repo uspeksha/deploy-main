@@ -21,14 +21,14 @@
                 }
             }
 
-            $userNameColor = $hasMissingDate ? '#FF0000' : '#000000';
+            $userNameColor = $hasMissingDate ? '#404040' : '#000000';
             $userNameWeight = $hasMissingDate ? 'bold' : 'normal';
         @endphp
 
         {{-- Header Karyawan --}}
         <thead>
             <tr>
-                <td colspan="{{ $isOnlyOrganik ? '11' : '14' }}" style="font-weight: bold; font-size: 16px; text-align: center; height: 30px; vertical-align: middle; background-color: #BDD7EE;">
+                <td colspan="{{ $isOnlyOrganik ? '11' : '14' }}" style="font-weight: bold; font-size: 16px; text-align: center; height: 30px; vertical-align: middle; background-color: #d4d4d4;">
                     REKAP ABSENSI KARYAWAN
                 </td>
             </tr>
@@ -42,7 +42,7 @@
             <tr><td colspan="{{ $isOnlyOrganik ? '11' : '14' }}"></td></tr>
 
             {{-- Header Tabel --}}
-            <tr style="background-color: #4F46E5; color: #FFFFFF;">
+            <tr style="background-color: #525252; color: #FFFFFF;">
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 50px;">No</th>
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px;">Tanggal</th>
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 80px;">In</th>
@@ -51,13 +51,13 @@
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 100px;">{{ $isOnlyOrganik ? 'Kurang 8 Jam' : 'Telat' }}</th>
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 100px;">Menit Lbr</th>
                 @if (!$isOnlyOrganik)
-                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #E2EFDA; color: #000;">Gaji Pokok</th>
-                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #FFF2CC; color: #000;">Gaji Lembur</th>
-                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #FFD9D9; color: #000;">Potongan</th>
+                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #e5e5e5; color: #000;">Gaji Pokok</th>
+                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #d4d4d4; color: #000;">Gaji Lembur</th>
+                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 120px; background-color: #e5e5e5; color: #000;">Potongan</th>
                 @endif
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 250px;">Keterangan Koreksi</th>
                 @if (!$isOnlyOrganik)
-                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 130px; background-color: #C6E0B4; color: #000;">TOTAL DITERIMA</th>
+                    <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 130px; background-color: #e5e5e5; color: #000;">TOTAL DITERIMA</th>
                 @endif
                 <th style="font-weight: bold; text-align: center; border: 1px solid #000000; width: 100px;">Approval</th>
             </tr>
@@ -127,11 +127,11 @@
                         @if (!$isOnlyOrganik)
                             <td style="text-align: right; border: 1px solid #000000;">Rp {{ number_format($gajiPokokHarian, 0, ',', '.') }}</td>
                             <td style="text-align: right; border: 1px solid #000000;">Rp {{ number_format($gajiLemburHarian, 0, ',', '.') }}</td>
-                            <td style="text-align: right; border: 1px solid #000000; color: #FF0000;">Rp {{ number_format($totalPotonganHarian, 0, ',', '.') }}</td>
+                            <td style="text-align: right; border: 1px solid #000000; color: #404040;">Rp {{ number_format($totalPotonganHarian, 0, ',', '.') }}</td>
                         @endif
                         <td style="text-align: left; border: 1px solid #000000; font-size: 10px;">{{ $keteranganHarian }}</td>
                         @if (!$isOnlyOrganik)
-                            <td style="text-align: right; border: 1px solid #000000; background-color: #E2EFDA; font-weight: bold;">Rp {{ number_format($totalDiterimaHarian, 0, ',', '.') }}</td>
+                            <td style="text-align: right; border: 1px solid #000000; background-color: #e5e5e5; font-weight: bold;">Rp {{ number_format($totalDiterimaHarian, 0, ',', '.') }}</td>
                         @endif
                         <td style="text-align: center; border: 1px solid #000000; font-size: 9px;">{{ ucfirst($item->status_approval) }}</td>
                     </tr>
@@ -170,11 +170,11 @@
                 @if (!$isOnlyOrganik)
                     <td style="text-align: right; border: 1px solid #000000;">Rp {{ number_format($totalPokokUser, 0, ',', '.') }}</td>
                     <td style="text-align: right; border: 1px solid #000000;">Rp {{ number_format($totalLemburUser, 0, ',', '.') }}</td>
-                    <td style="text-align: right; border: 1px solid #000000; color: #FF0000;">Rp {{ number_format($totalPotonganUser, 0, ',', '.') }}</td>
+                    <td style="text-align: right; border: 1px solid #000000; color: #404040;">Rp {{ number_format($totalPotonganUser, 0, ',', '.') }}</td>
                 @endif
                 <td style="border: 1px solid #000000;"></td>
                 @if (!$isOnlyOrganik)
-                    <td style="text-align: right; border: 1px solid #000000; background-color: #C6E0B4; font-size: 11px;">Rp {{ number_format($userTotalDiterima, 0, ',', '.') }}</td>
+                    <td style="text-align: right; border: 1px solid #000000; background-color: #e5e5e5; font-size: 11px;">Rp {{ number_format($userTotalDiterima, 0, ',', '.') }}</td>
                 @endif
                 <td style="border: 1px solid #000000;"></td>
             </tr>
@@ -186,21 +186,21 @@
     {{-- GRAND TOTAL --}}
     @if (!$isOnlyOrganik)
         <tbody>
-            <tr style="background-color: #00B0F0; color: #FFFFFF; font-weight: bold;">
+            <tr style="background-color: #737373; color: #FFFFFF; font-weight: bold;">
                 <td colspan="7" rowspan="2" style="text-align: center; vertical-align: middle; border: 1px solid #000000; font-size: 14px;">TOTAL KESELURUHAN</td>
-                <td style="text-align: center; border: 1px solid #000000; background-color: #E2EFDA; color: #000;">Gaji Pokok</td>
-                <td style="text-align: center; border: 1px solid #000000; background-color: #FFF2CC; color: #000;">Gaji Lembur</td>
-                <td style="text-align: center; border: 1px solid #000000; background-color: #FFD9D9; color: #000;">Potongan</td>
+                <td style="text-align: center; border: 1px solid #000000; background-color: #e5e5e5; color: #000;">Gaji Pokok</td>
+                <td style="text-align: center; border: 1px solid #000000; background-color: #d4d4d4; color: #000;">Gaji Lembur</td>
+                <td style="text-align: center; border: 1px solid #000000; background-color: #e5e5e5; color: #000;">Potongan</td>
                 <td colspan="1" style="border: 1px solid #000000; background-color: #FFFFFF;"></td>
-                <td style="text-align: center; border: 1px solid #000000; background-color: #C6E0B4; color: #000;">TOTAL DITERIMA</td>
+                <td style="text-align: center; border: 1px solid #000000; background-color: #e5e5e5; color: #000;">TOTAL DITERIMA</td>
                 <td rowspan="2" style="border: 1px solid #000000; background-color: #FFFFFF;"></td>
             </tr>
             <tr style="font-weight: bold;">
-                <td style="text-align: right; border: 1px solid #000000; background-color: #E2EFDA; color: #000;">Rp {{ number_format($grandTotalGajiPokok, 0, ',', '.') }}</td>
-                <td style="text-align: right; border: 1px solid #000000; background-color: #FFF2CC; color: #000;">Rp {{ number_format($grandTotalGajiLembur, 0, ',', '.') }}</td>
-                <td style="text-align: right; border: 1px solid #000000; background-color: #FFD9D9; color: #FF0000;">Rp {{ number_format($grandTotalPotongan, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000; background-color: #e5e5e5; color: #000;">Rp {{ number_format($grandTotalGajiPokok, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000; background-color: #d4d4d4; color: #000;">Rp {{ number_format($grandTotalGajiLembur, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000; background-color: #e5e5e5; color: #404040;">Rp {{ number_format($grandTotalPotongan, 0, ',', '.') }}</td>
                 <td style="border: 1px solid #000000; background-color: #FFFFFF;"></td>
-                <td style="text-align: right; border: 1px solid #000000; background-color: #C6E0B4; color: #000; font-size: 12px;">Rp {{ number_format($grandTotalGajiBersih, 0, ',', '.') }}</td>
+                <td style="text-align: right; border: 1px solid #000000; background-color: #e5e5e5; color: #000; font-size: 12px;">Rp {{ number_format($grandTotalGajiBersih, 0, ',', '.') }}</td>
             </tr>
         </tbody>
     @endif

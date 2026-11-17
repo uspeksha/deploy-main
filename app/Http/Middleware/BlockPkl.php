@@ -13,9 +13,11 @@ class BlockPkl
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'Akses ditolak.'], 403);
             }
+
             return redirect()->route('admin.absensi.index')
                 ->with('error', '⛔ Akses ditolak. PKL tidak memiliki izin untuk halaman ini.');
         }
+
         return $next($request);
     }
 }

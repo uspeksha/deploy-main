@@ -1,19 +1,10 @@
 <?php
 
-test('registration screen can be rendered', function () {
-    $response = $this->get('/register');
+test('public web registration is disabled and not linked from login', function () {
+    $this->get('/register')->assertNotFound();
+    $this->post('/register')->assertNotFound();
 
-    $response->assertStatus(200);
-});
-
-test('new users can register', function () {
-    $response = $this->post('/register', [
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-    ]);
-
-    $this->assertAuthenticated();
-    $response->assertRedirect(route('dashboard', absolute: false));
+    $this->get('/login')
+        ->assertOk()
+        ->assertDontSee('Daftar di sini');
 });

@@ -17,12 +17,12 @@ return new class extends Migration
             $table->text('late_penalty')->nullable()->change();
             $table->text('final_salary')->nullable()->change();
             $table->text('overtime_pay')->nullable()->change();
-            
+
             $table->text('keterangan_izin_sakit')->nullable()->change();
             $table->text('catatan_admin')->nullable()->change();
             $table->text('lembur_keterangan')->nullable()->change();
             $table->text('keterangan_goals')->nullable()->change();
-            
+
             $table->text('lokasi_masuk')->nullable()->change();
             $table->text('lokasi_pulang')->nullable()->change();
         });
@@ -39,12 +39,12 @@ return new class extends Migration
             $table->decimal('late_penalty', 10, 2)->nullable()->change();
             $table->decimal('final_salary', 10, 2)->nullable()->change();
             $table->decimal('overtime_pay', 10, 2)->nullable()->change();
-            
+
             $table->string('keterangan_izin_sakit')->nullable()->change();
             $table->string('catatan_admin')->nullable()->change();
             $table->string('lembur_keterangan')->nullable()->change();
             $table->string('keterangan_goals')->nullable()->change();
-            
+
             $table->string('lokasi_masuk')->nullable()->change();
             $table->string('lokasi_pulang')->nullable()->change();
         });

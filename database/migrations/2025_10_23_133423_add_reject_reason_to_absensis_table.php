@@ -9,10 +9,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('absensis', function (Blueprint $table) {
-            if (!Schema::hasColumn('absensis', 'catatan_admin')) {
+            if (! Schema::hasColumn('absensis', 'catatan_admin')) {
                 $table->text('catatan_admin')->nullable()->after('status_approval');
             }
-            if (!Schema::hasColumn('absensis', 'rejected_at')) {
+            if (! Schema::hasColumn('absensis', 'rejected_at')) {
                 $table->timestamp('rejected_at')->nullable()->after('catatan_admin');
             }
         });

@@ -3,13 +3,13 @@
     <thead>
         {{-- ROW 1 --}}
         <tr>
-            <td colspan="17" style="font-weight:bold; font-size:16px; text-align:center; height:40px; vertical-align:middle; background:#4F46E5; color:#ffffff; border:1px solid #000;">
+            <td colspan="17" style="font-weight:bold; font-size:16px; text-align:center; height:40px; vertical-align:middle; background:#525252; color:#ffffff; border:1px solid #000;">
                 LAPORAN REKAP ABSENSI SEMUA KARYAWAN
             </td>
         </tr>
         {{-- ROW 2 --}}
         <tr>
-            <td colspan="17" style="font-weight:bold; text-align:center; background:#4F46E5; color:#ffffff; border:1px solid #000;">
+            <td colspan="17" style="font-weight:bold; text-align:center; background:#525252; color:#ffffff; border:1px solid #000;">
                 {{ strtoupper(\Carbon\Carbon::parse($allDates[0])->translatedFormat('F Y')) }}
             </td>
         </tr>
@@ -88,7 +88,7 @@
         <tr><td colspan="17"></td></tr>
 
         {{-- HEADER KOLOM DATA --}}
-        <tr style="background:#4F46E5; color:#ffffff;">
+        <tr style="background:#525252; color:#ffffff;">
             <th style="border:1px solid #000; width:50px;">NO</th>
             <th colspan="11" style="border:1px solid #000; text-align:center;">Tanggal Dan Bulan (Check-In / Check-Out)</th>
             <th style="border:1px solid #000; width:45px;">Telat</th>
@@ -196,7 +196,7 @@
                                         $bg = 'background:#D3D3D3;';
                                     } else {
                                         $cell = 'TA';
-                                        $bg = 'background:#FFB6C1;';
+                                        $bg = 'background:#d4d4d4;';
                                     }
                                 }
                             }
