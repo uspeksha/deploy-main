@@ -210,8 +210,8 @@
                                     @endif
                                 </td>
                                 <td style="width: 18rem" class="px-5 py-4">
-                                    <div data-employee-actions style="width: 18rem; grid-template-columns: 8rem 9rem; justify-content: end"
-                                         class="ml-auto grid items-center gap-2">
+                                    <div data-employee-actions style="width: 18rem; grid-template-columns: 8rem 9rem; justify-content: end; align-items: start"
+                                         class="ml-auto grid gap-2">
                                         <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
                                            class="ui-button-primary h-10 w-full !px-3 !py-2">Detail</a>
                                         <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}"

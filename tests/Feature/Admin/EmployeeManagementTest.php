@@ -62,7 +62,7 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertSee($inactiveEmployee->name)
         ->assertSee('Nonaktif')
         ->assertSee('data-employee-actions', false)
-        ->assertSee('grid-template-columns: 8rem 9rem; justify-content: end', false)
+        ->assertSee('grid-template-columns: 8rem 9rem; justify-content: end; align-items: start', false)
         ->assertSee('ui-button-danger h-10 w-full !px-3 !py-2 cursor-not-allowed', false)
         ->assertDontSee('opacity-50', false)
         ->assertSee('Hapus permanen')
