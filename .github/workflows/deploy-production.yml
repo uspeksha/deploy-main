@@ -57,16 +57,27 @@ jobs:
             echo "Production checkout is not on branch main; refusing deployment."
             exit 1
           fi
-          if ! git diff --quiet || ! git diff --cached --quiet; then
-            echo "Production checkout has tracked local changes; refusing deployment."
+          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
+            echo "Production checkout has local changes; refusing deployment."
             exit 1
           fi
 
           compose=(docker compose -p followme-app -f compose.yaml)
+
+          running_app="$("${compose[@]}" ps --status running -q app)"
+          if [ -z "$running_app" ]; then
+            echo "The existing Sistem Absensi app container is not running; refusing deployment."
+            exit 1
+          fi
+          if ! curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
+            echo "The existing Sistem Absensi health check failed; refusing deployment."
+            exit 1
+          fi
+
+          previous_image="$(docker image inspect --format='{{.Id}}' deploy-main:local)"
           git fetch origin main
           git merge --ff-only origin/main
 
-          previous_image="$(docker image inspect --format='{{.Id}}' deploy-main:local)"
           "${compose[@]}" build app
           if ! "${compose[@]}" up -d --no-deps app; then
             docker tag "$previous_image" deploy-main:local
