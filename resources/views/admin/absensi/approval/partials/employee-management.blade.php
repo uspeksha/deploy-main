@@ -145,7 +145,7 @@
                             <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Pekerjaan</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Identitas & rekening</th>
                             <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Status</th>
-                            <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aksi</th>
+                            <th style="width: 18rem" class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100 bg-white dark:divide-gray-800 dark:bg-gray-800">
@@ -202,27 +202,29 @@
                                         <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Nonaktif</span>
                                     @endif
                                 </td>
-                                <td class="px-5 py-4 text-right">
-                                    <div class="flex flex-wrap items-center justify-end gap-2">
+                                <td style="width: 18rem" class="px-5 py-4">
+                                    <div data-employee-actions style="width: 18rem; grid-template-columns: 8rem 9rem; justify-content: end"
+                                         class="ml-auto grid items-center gap-2">
                                         <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
-                                           class="ui-button-primary !px-3 !py-2">Detail</a>
-                                        <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}" class="ui-button-secondary !px-3 !py-2">Edit</a>
+                                           class="ui-button-primary w-full !px-3 !py-2">Detail</a>
+                                        <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}"
+                                           class="ui-button-secondary w-full !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
                                             <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
-                                                <button type="submit" class="ui-button-primary !px-3 !py-2">Kirim akses</button>
+                                                <button type="submit" class="ui-button-primary w-full !px-3 !py-2">Kirim akses</button>
                                             </form>
                                         @elseif ($employee->is_active)
                                             <form method="POST" action="{{ route('admin.employees.deactivate', ['user' => $employee] + $employeeListQuery) }}" onsubmit="return confirm('Nonaktifkan akun ini? Data dan riwayat tetap disimpan.')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="ui-button-danger !px-3 !py-2">Nonaktifkan</button>
+                                                <button type="submit" class="ui-button-danger w-full !px-3 !py-2">Nonaktifkan</button>
                                             </form>
                                         @else
                                             <form method="POST" action="{{ route('admin.employees.activate', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="ui-button-primary !px-3 !py-2">Aktifkan</button>
+                                                <button type="submit" class="ui-button-primary w-full !px-3 !py-2">Aktifkan</button>
                                             </form>
                                         @endif
                                         @if (! $employee->is_active)
@@ -230,15 +232,15 @@
                                                   onsubmit="return confirm('HAPUS PERMANEN akun ini, seluruh riwayat absensi, dan data payroll-nya? Tindakan ini tidak dapat dibatalkan.')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="ui-button-danger !px-3 !py-2">Hapus permanen</button>
+                                                <button type="submit" class="ui-button-danger w-full !px-3 !py-2">Hapus permanen</button>
                                             </form>
                                         @else
-                                            <div class="text-right">
+                                            <div>
                                                 <button type="button" disabled title="Nonaktifkan akun terlebih dahulu"
-                                                        class="ui-button-danger !px-3 !py-2 cursor-not-allowed opacity-50">
+                                                        class="ui-button-danger w-full !px-3 !py-2 cursor-not-allowed opacity-50">
                                                     Hapus permanen
                                                 </button>
-                                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Nonaktifkan dulu untuk menghapus</p>
+                                                <p class="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">Nonaktifkan dulu untuk menghapus</p>
                                             </div>
                                         @endif
                                     </div>

@@ -61,6 +61,8 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertSee('Aktif')
         ->assertSee($inactiveEmployee->name)
         ->assertSee('Nonaktif')
+        ->assertSee('data-employee-actions', false)
+        ->assertSee('grid-template-columns: 8rem 9rem; justify-content: end', false)
         ->assertSee('Hapus permanen')
         ->assertSee('Nonaktifkan dulu untuk menghapus')
         ->assertSee('Buat akun karyawan');
