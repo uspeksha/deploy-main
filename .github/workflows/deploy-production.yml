@@ -52,7 +52,36 @@ jobs:
             "$PRODUCTION_USER@$PRODUCTION_HOST" 'bash -se' <<'REMOTE'
           set -Eeuo pipefail
 
-          cd /home/deploy/app
+          app_container_ids="$(docker ps \
+            --filter label=com.docker.compose.project=followme-app \
+            --filter label=com.docker.compose.service=app \
+            --format '{{.ID}}')"
+          if [ -z "$app_container_ids" ]; then
+            echo "No running app container found for the followme-app project."
+            exit 1
+          fi
+          if [ "$(printf '%s\n' "$app_container_ids" | wc -l)" -ne 1 ]; then
+            echo "Expected exactly one Sistem Absensi app container."
+            exit 1
+          fi
+
+          app_container="$app_container_ids"
+          production_dir="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$app_container")"
+          config_files="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$app_container")"
+          app_image="$(docker inspect --format='{{.Config.Image}}' "$app_container")"
+          previous_image="$(docker inspect --format='{{.Image}}' "$app_container")"
+
+          if [ -z "$production_dir" ] || [ ! -d "$production_dir" ]; then
+            echo "Could not resolve the Sistem Absensi project directory from its container."
+            exit 1
+          fi
+          if ! git -C "$production_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+            echo "The Sistem Absensi project directory is not a Git checkout."
+            exit 1
+          fi
+          production_dir="$(git -C "$production_dir" rev-parse --show-toplevel)"
+          cd "$production_dir"
+
           if [ "$(git branch --show-current)" != "main" ]; then
             echo "Production checkout is not on branch main; refusing deployment."
             exit 1
@@ -62,7 +91,31 @@ jobs:
             exit 1
           fi
 
-          compose=(docker compose -p followme-app -f compose.yaml)
+          if [ -z "$config_files" ]; then
+            echo "The Sistem Absensi Compose configuration could not be resolved."
+            exit 1
+          fi
+          if [ "$app_image" != "deploy-main:local" ]; then
+            echo "The running app image does not match the repository's deployment image."
+            exit 1
+          fi
+
+          compose=(docker compose -p followme-app)
+          IFS=',' read -r -a config_paths <<< "$config_files"
+          for config_path in "${config_paths[@]}"; do
+            case "$config_path" in
+              "$production_dir"/*) ;;
+              *)
+                echo "A Compose config resolves outside the Sistem Absensi checkout."
+                exit 1
+                ;;
+            esac
+            if [ ! -f "$config_path" ]; then
+              echo "A configured Sistem Absensi Compose file is missing."
+              exit 1
+            fi
+            compose+=(-f "$config_path")
+          done
 
           running_app="$("${compose[@]}" ps --status running -q app)"
           if [ -z "$running_app" ]; then
@@ -74,7 +127,6 @@ jobs:
             exit 1
           fi
 
-          previous_image="$(docker image inspect --format='{{.Id}}' deploy-main:local)"
           git fetch origin main
           git merge --ff-only origin/main
 
