@@ -8,14 +8,18 @@ use App\Models\ActivityLog;
 use App\Models\EmployeeSalaryRate;
 use App\Models\Notification;
 use App\Models\User;
+use App\Services\EmployeeImportService;
 use App\Services\EmployeeRegistrationMailer;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ApprovalController extends Controller
 {
@@ -97,13 +101,224 @@ class ApprovalController extends Controller
             ->orderByDesc('created_at')
             ->paginate(15, ['*'], 'employee_page')
             ->withQueryString();
+        $employeeImportPreview = $this->currentEmployeeImportPreview();
 
         return view('admin.absensi.approval.hrd', compact(
             'submissions',
             'status',
             'employees',
             'employeeStatus',
+            'employeeImportPreview',
         ));
+    }
+
+    public function downloadEmployeeImportTemplate()
+    {
+        $this->ensureHrdApprover();
+
+        $headers = [
+            'Employee ID', 'Full Name', 'Email', 'Mobile Phone', 'Residential Address',
+            'Department', 'Employment Type', 'Join Date', 'Work Location', 'NIK',
+            'Gender', 'Bank Name', 'Bank Account', 'Bank Account Holder', 'Daily Rate',
+        ];
+
+        return response()->streamDownload(
+            fn () => print implode(',', $headers)."\r\n",
+            'employee-import-template.csv',
+            ['Content-Type' => 'text/csv; charset=UTF-8'],
+        );
+    }
+
+    public function previewEmployeeImport(Request $request, EmployeeImportService $importService)
+    {
+        $this->ensureHrdApprover();
+        $previousToken = $request->session()->pull('employee_import_token');
+        if (is_string($previousToken)) {
+            Cache::forget($this->employeeImportCacheKey($previousToken));
+        }
+
+        $request->validate([
+            'employee_file' => ['required', 'file', 'mimes:xlsx,csv', 'max:10240'],
+        ]);
+
+        $preview = $importService->preview($request->file('employee_file'));
+        $token = (string) Str::uuid();
+        $preview['hrd_user_id'] = auth()->id();
+        Cache::put(
+            $this->employeeImportCacheKey($token),
+            Crypt::encryptString(json_encode($preview, JSON_THROW_ON_ERROR)),
+            now()->addHour(),
+        );
+        $request->session()->put('employee_import_token', $token);
+
+        return redirect()
+            ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+            ->with('success', 'Pratinjau impor siap. Akun belum dibuat; periksa hasilnya sebelum konfirmasi.');
+    }
+
+    public function confirmEmployeeImport(
+        Request $request,
+        EmployeeRegistrationMailer $registrationMailer,
+    ) {
+        $this->ensureHrdApprover();
+        $token = $request->session()->get('employee_import_token');
+        if (! is_string($token)) {
+            return redirect()
+                ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+                ->with('warning', 'Pratinjau impor tidak ditemukan. Unggah file lagi.');
+        }
+
+        $encryptedPreview = Cache::get($this->employeeImportCacheKey($token));
+        if (! is_string($encryptedPreview)) {
+            $request->session()->forget('employee_import_token');
+
+            return redirect()
+                ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+                ->with('warning', 'Pratinjau impor sudah kedaluwarsa. Unggah file lagi.');
+        }
+
+        $preview = json_decode(Crypt::decryptString($encryptedPreview), true, flags: JSON_THROW_ON_ERROR);
+        abort_unless(($preview['hrd_user_id'] ?? null) === auth()->id(), 403);
+        if (($preview['errors'] ?? []) !== [] || ($preview['rows'] ?? []) === []) {
+            throw ValidationException::withMessages([
+                'employee_import' => 'Ada baris bermasalah. Perbaiki file lalu unggah kembali; tidak ada akun yang dibuat.',
+            ]);
+        }
+
+        if ($preview['uses_organization'] ?? false) {
+            $request->validate([
+                'confirm_organization_department' => ['required', 'accepted'],
+            ], [
+                'confirm_organization_department.accepted' => 'Pastikan kolom Organization memang berisi nama departemen.',
+            ]);
+        }
+
+        try {
+            $accounts = DB::transaction(function () use ($preview): array {
+                $accounts = [];
+                foreach ($preview['rows'] as $index => $row) {
+                    if (User::query()->whereRaw('LOWER(email) = ?', [$row['email']])->exists()
+                        || User::query()->whereRaw('LOWER(id_karyawan) = ?', [strtolower($row['id_karyawan'])])->exists()) {
+                        throw ValidationException::withMessages([
+                            'employee_import' => 'Email atau Employee ID pada baris data '.($index + 2).' sudah terdaftar sejak pratinjau dibuat. Unggah file kembali untuk memeriksa ulang.',
+                        ]);
+                    }
+
+                    $temporaryPassword = Str::password(6, true, true, true, false);
+                    $user = User::create([
+                        'name' => $row['name'],
+                        'gender' => $row['gender'] ?: null,
+                        'email' => $row['email'],
+                        'id_karyawan' => $row['id_karyawan'],
+                        'phone' => $row['phone'],
+                        'address' => $row['address'],
+                        'departemen' => $row['departemen'],
+                        'employment_type' => $row['employment_type'],
+                        'work_location' => $row['work_location'],
+                        'nik' => $row['nik'],
+                        'bank_name' => $row['bank_name'],
+                        'bank_account_number' => $row['bank_account_number'],
+                        'bank_account_name' => $row['bank_account_name'],
+                        'password' => Hash::make($temporaryPassword),
+                        'role' => 'user',
+                        'registration_status' => 'pending',
+                        'is_active' => false,
+                    ]);
+
+                    $user->employmentHistories()->create([
+                        'employment_type' => $user->employment_type,
+                        'start_date' => $row['start_date'],
+                    ]);
+
+                    if ($user->employment_type === 'freelance') {
+                        $user->salaryRates()->create([
+                            'daily_rate' => (int) $row['daily_rate'],
+                            'effective_at' => now(),
+                            'recorded_by' => auth()->id(),
+                        ]);
+                    }
+
+                    $accounts[] = [$user, $temporaryPassword];
+                }
+
+                return $accounts;
+            });
+        } catch (ValidationException $exception) {
+            Cache::forget($this->employeeImportCacheKey($token));
+            $request->session()->forget('employee_import_token');
+
+            throw $exception;
+        }
+
+        $sentCount = 0;
+        foreach ($accounts as [$employee, $temporaryPassword]) {
+            if ($registrationMailer->sendTemporaryPassword($employee, $temporaryPassword)) {
+                $employee->update([
+                    'registration_status' => 'approved',
+                    'is_active' => true,
+                ]);
+                $sentCount++;
+            }
+        }
+
+        $pendingCount = count($accounts) - $sentCount;
+        ActivityLog::log(
+            'Bulk Create Employee Accounts',
+            'Jumlah akun: '.count($accounts),
+            'HRD mengimpor '.count($accounts)." akun karyawan; {$sentCount} email akses berhasil diproses.",
+        );
+
+        Cache::forget($this->employeeImportCacheKey($token));
+        $request->session()->forget('employee_import_token');
+
+        if ($pendingCount > 0) {
+            return redirect()
+                ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+                ->with('warning', count($accounts).' akun tersimpan. '.$pendingCount.' email belum terkirim; akun tersebut tetap menunggu dan dapat dikirimi ulang dari daftar karyawan.');
+        }
+
+        return redirect()
+            ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+            ->with('success', count($accounts).' akun karyawan berhasil dibuat dan email akses dikirim.');
+    }
+
+    public function cancelEmployeeImport(Request $request)
+    {
+        $this->ensureHrdApprover();
+        $token = $request->session()->pull('employee_import_token');
+        if (is_string($token)) {
+            Cache::forget($this->employeeImportCacheKey($token));
+        }
+
+        return redirect()
+            ->route('admin.absensi.approval.hrd', ['section' => 'employees'])
+            ->with('success', 'Pratinjau impor dibatalkan. Tidak ada akun yang dibuat.');
+    }
+
+    private function currentEmployeeImportPreview(): ?array
+    {
+        $token = session('employee_import_token');
+        if (! is_string($token)) {
+            return null;
+        }
+
+        $encryptedPreview = Cache::get($this->employeeImportCacheKey($token));
+        if (! is_string($encryptedPreview)) {
+            session()->forget('employee_import_token');
+            session()->flash('warning', 'Pratinjau impor sudah kedaluwarsa. Unggah file lagi.');
+
+            return null;
+        }
+
+        $preview = json_decode(Crypt::decryptString($encryptedPreview), true, flags: JSON_THROW_ON_ERROR);
+        abort_unless(($preview['hrd_user_id'] ?? null) === auth()->id(), 403);
+
+        return $preview;
+    }
+
+    private function employeeImportCacheKey(string $token): string
+    {
+        return 'employee-import-preview:'.$token;
     }
 
     public function createEmployeeAccount(

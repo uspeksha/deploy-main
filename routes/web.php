@@ -158,6 +158,14 @@ Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::cla
 
     Route::get('/employees', [EmployeeController::class, 'index'])->name('admin.employees.index');
     Route::post('/employees', [ApprovalController::class, 'createEmployeeAccount'])->name('admin.absensi.approval.employees.store');
+    Route::get('/employees/import/template', [ApprovalController::class, 'downloadEmployeeImportTemplate'])
+        ->name('admin.absensi.approval.employees.import.template');
+    Route::post('/employees/import/preview', [ApprovalController::class, 'previewEmployeeImport'])
+        ->name('admin.absensi.approval.employees.import.preview');
+    Route::post('/employees/import/confirm', [ApprovalController::class, 'confirmEmployeeImport'])
+        ->name('admin.absensi.approval.employees.import.confirm');
+    Route::delete('/employees/import/preview', [ApprovalController::class, 'cancelEmployeeImport'])
+        ->name('admin.absensi.approval.employees.import.cancel');
     Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
         ->name('admin.absensi.approval.employees.resend');
     Route::get('/employees/{user}/edit', [EmployeeController::class, 'edit'])->name('admin.employees.edit');
