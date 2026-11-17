@@ -1,0 +1,90 @@
+name: Deploy Sistem Absensi Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sistem-absensi-production
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: Deploy Sistem Absensi app
+    runs-on: ubuntu-latest
+    env:
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+      PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+      PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+      PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+
+    steps:
+      - name: Validate deployment configuration
+        run: |
+          missing=0
+          if [ -z "$PRODUCTION_HOST" ]; then echo "Missing PRODUCTION_HOST"; missing=1; fi
+          if [ -z "$PRODUCTION_USER" ]; then echo "Missing PRODUCTION_USER"; missing=1; fi
+          if [ -z "$PRODUCTION_SSH_PORT" ]; then echo "Missing PRODUCTION_SSH_PORT"; missing=1; fi
+          if [ -z "$PRODUCTION_SSH_KEY" ]; then echo "Missing PRODUCTION_SSH_KEY"; missing=1; fi
+          if [ -z "$PRODUCTION_KNOWN_HOSTS" ]; then echo "Missing PRODUCTION_KNOWN_HOSTS"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$PRODUCTION_SSH_KEY" > "$HOME/.ssh/production"
+          printf '%s\n' "$PRODUCTION_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/production" "$HOME/.ssh/known_hosts"
+
+      - name: Deploy only the Sistem Absensi app and verify health
+        run: |
+          ssh \
+            -i "$HOME/.ssh/production" \
+            -p "$PRODUCTION_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            "$PRODUCTION_USER@$PRODUCTION_HOST" 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+
+          cd /home/deploy/app
+          if [ "$(git branch --show-current)" != "main" ]; then
+            echo "Production checkout is not on branch main; refusing deployment."
+            exit 1
+          fi
+          if ! git diff --quiet || ! git diff --cached --quiet; then
+            echo "Production checkout has tracked local changes; refusing deployment."
+            exit 1
+          fi
+
+          compose=(docker compose -p followme-app -f compose.yaml)
+          git fetch origin main
+          git merge --ff-only origin/main
+
+          previous_image="$(docker image inspect --format='{{.Id}}' deploy-main:local)"
+          "${compose[@]}" build app
+          if ! "${compose[@]}" up -d --no-deps app; then
+            docker tag "$previous_image" deploy-main:local
+            "${compose[@]}" up -d --no-deps app
+            echo "Deployment failed; restored the previous app image."
+            exit 1
+          fi
+
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
+              echo "Sistem Absensi health check passed."
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker tag "$previous_image" deploy-main:local
+          "${compose[@]}" up -d --no-deps app
+          echo "Health check failed; restored the previous app image."
+          exit 1
+          REMOTE
