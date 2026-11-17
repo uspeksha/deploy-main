@@ -1,0 +1,136 @@
+name: Inspect Sistem Absensi Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sistem-absensi-production-inspection
+  cancel-in-progress: false
+
+jobs:
+  inspect-production:
+    name: Read-only container inspection
+    runs-on: ubuntu-latest
+    env:
+      PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+      PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+      PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+      PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+
+    steps:
+      - name: Validate inspection configuration
+        run: |
+          missing=0
+          if [ -z "$PRODUCTION_HOST" ]; then echo "Missing PRODUCTION_HOST"; missing=1; fi
+          if [ -z "$PRODUCTION_USER" ]; then echo "Missing PRODUCTION_USER"; missing=1; fi
+          if [ -z "$PRODUCTION_SSH_PORT" ]; then echo "Missing PRODUCTION_SSH_PORT"; missing=1; fi
+          if [ -z "$PRODUCTION_SSH_KEY" ]; then echo "Missing PRODUCTION_SSH_KEY"; missing=1; fi
+          if [ -z "$PRODUCTION_KNOWN_HOSTS" ]; then echo "Missing PRODUCTION_KNOWN_HOSTS"; missing=1; fi
+          if [ "$missing" -ne 0 ]; then exit 1; fi
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$PRODUCTION_SSH_KEY" > "$HOME/.ssh/production"
+          printf '%s\n' "$PRODUCTION_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/production" "$HOME/.ssh/known_hosts"
+
+      - name: Inspect production without changing containers
+        run: |
+          ssh \
+            -i "$HOME/.ssh/production" \
+            -p "$PRODUCTION_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            "$PRODUCTION_USER@$PRODUCTION_HOST" 'bash -se' <<'REMOTE'
+          set -Eeuo pipefail
+
+          echo "Inspection is read-only: no container, image, volume, or network changes will be made."
+          echo "Containers labeled as the followme-app Compose project:"
+          app_ids="$(docker ps -a \
+            --filter label=com.docker.compose.project=followme-app \
+            --format '{{.ID}}')"
+          if [ -z "$app_ids" ]; then
+            echo "No containers found for Compose project followme-app."
+          else
+            while IFS= read -r id; do
+              name="$(docker inspect --format='{{.Name}}' "$id" | sed 's#^/##')"
+              state="$(docker inspect --format='{{.State.Status}}' "$id")"
+              service="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.service" }}' "$id")"
+              image_ref="$(docker inspect --format='{{.Config.Image}}' "$id")"
+              image_id="$(docker inspect --format='{{.Image}}' "$id")"
+              working_dir="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$id")"
+              config_files="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$id")"
+              networks="$(docker inspect --format='{{range $network, $settings := .NetworkSettings.Networks}}{{printf "%s " $network}}{{end}}' "$id")"
+              ports="$(docker port "$id" 2>/dev/null || true)"
+
+              echo "--- Container $id"
+              echo "name=$name state=$state service=$service"
+              echo "image_ref=$image_ref image_id=$image_id"
+              echo "published_ports=${ports:-none}"
+              echo "networks=${networks:-none}"
+              if [ -n "$working_dir" ] && [ -d "$working_dir" ]; then
+                if git -C "$working_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+                  branch="$(git -C "$working_dir" branch --show-current)"
+                  if [ -n "$(git -C "$working_dir" status --porcelain --untracked-files=all)" ]; then
+                    checkout_state=dirty
+                  else
+                    checkout_state=clean
+                  fi
+                  echo "checkout_branch=$branch checkout_state=$checkout_state"
+                else
+                  echo "checkout_state=not-a-git-checkout"
+                fi
+              else
+                echo "checkout_state=working-directory-unavailable"
+              fi
+              if [ -n "$config_files" ]; then
+                IFS=',' read -r -a paths <<< "$config_files"
+                config_names=()
+                for path in "${paths[@]}"; do config_names+=("$(basename "$path")"); done
+                printf 'compose_config_names=%s\n' "${config_names[*]}"
+              else
+                echo "compose_config_names=missing"
+              fi
+
+              for network in $networks; do
+                echo "network_peers[$network]:"
+                peer_ids="$(docker network inspect --format='{{range $id, $container := .Containers}}{{printf "%s\n" $id}}{{end}}' "$network")"
+                while IFS= read -r peer_id; do
+                  [ -n "$peer_id" ] || continue
+                  peer_name="$(docker inspect --format='{{.Name}}' "$peer_id" | sed 's#^/##')"
+                  peer_project="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}' "$peer_id")"
+                  peer_service="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.service" }}' "$peer_id")"
+                  echo "  $peer_name project=$peer_project service=$peer_service"
+                done <<< "$peer_ids"
+              done
+            done <<< "$app_ids"
+          fi
+
+          echo "Containers publishing host port 8081:"
+          port_ids="$(docker ps -a --filter publish=8081 --format '{{.ID}}')"
+          if [ -z "$port_ids" ]; then
+            echo "No containers publish host port 8081."
+          else
+            while IFS= read -r id; do
+              name="$(docker inspect --format='{{.Name}}' "$id" | sed 's#^/##')"
+              state="$(docker inspect --format='{{.State.Status}}' "$id")"
+              project="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project" }}' "$id")"
+              service="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.service" }}' "$id")"
+              echo "container=$name id=$id state=$state project=$project service=$service"
+              docker port "$id" 2>/dev/null || true
+            done <<< "$port_ids"
+          fi
+
+          if command -v curl >/dev/null 2>&1; then
+            code="$(curl --silent --output /dev/null --max-time 5 --write-out '%{http_code}' http://127.0.0.1:8081/up || true)"
+            echo "local_health_http_status=${code:-unavailable}"
+          else
+            echo "local_health_http_status=not-checked-curl-unavailable"
+          fi
+          REMOTE
