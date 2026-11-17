@@ -83,7 +83,11 @@ jobs:
             echo "The Sistem Absensi Compose configuration could not be resolved."
             exit 1
           fi
-          compose=(docker compose -p followme-app --project-directory "$production_dir")
+          if ! sudo -n true; then
+            echo "Non-interactive sudo is required to read the protected production Compose configuration."
+            exit 1
+          fi
+          compose=(sudo -n docker compose -p followme-app --project-directory "$production_dir")
           IFS=',' read -r -a config_paths <<< "$config_files"
           for config_path in "${config_paths[@]}"; do
             case "$config_path" in
@@ -175,7 +179,11 @@ jobs:
             exit 1
           fi
 
-          compose=(docker compose -p followme-app --project-directory "$production_dir")
+          if ! sudo -n true; then
+            echo "Non-interactive sudo is required to read the protected production Compose configuration."
+            exit 1
+          fi
+          compose=(sudo -n docker compose -p followme-app --project-directory "$production_dir")
           IFS=',' read -r -a config_paths <<< "$config_files"
           for config_path in "${config_paths[@]}"; do
             case "$config_path" in
