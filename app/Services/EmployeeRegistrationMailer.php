@@ -12,6 +12,14 @@ class EmployeeRegistrationMailer
 {
     public function sendTemporaryPassword(User $employee, string $temporaryPassword): bool
     {
+        if (config('mail.default') === 'log') {
+            Log::warning('Employee credentials were not sent because the log mail driver is configured.', [
+                'employee_id' => $employee->id,
+            ]);
+
+            return false;
+        }
+
         try {
             Mail::to($employee->email)->send(
                 new EmployeeRegistrationMail($employee, $temporaryPassword),
@@ -22,18 +30,9 @@ class EmployeeRegistrationMailer
             Log::error('Could not send employee credentials email via SMTP.', [
                 'employee_id' => $employee->id,
                 'exception' => $exception::class,
-                'message' => $exception->getMessage(),
             ]);
 
-            // Graceful fallback for local development or log mail driver:
-            // Log credentials clearly and return true so account activation succeeds.
-            Log::info('--- EMPLOYEE TEMPORARY CREDENTIALS (FALLBACK / LOG) ---', [
-                'name' => $employee->name,
-                'email' => $employee->email,
-                'temporary_password' => $temporaryPassword,
-            ]);
-
-            return true;
+            return false;
         }
     }
 }

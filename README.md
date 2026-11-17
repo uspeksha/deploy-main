@@ -34,6 +34,14 @@ Sebelum meminta review, jalankan `npm ci`, `composer install`, `npm run build`, 
 
 Dashboard admin menampilkan jumlah karyawan aktif laki-laki, perempuan, dan yang jenis kelaminnya belum diisi. HRD dapat mengisi data tersebut saat membuat atau mengedit akun karyawan. Ranking bulanan menampilkan maksimal tiga karyawan untuk kategori hadir, sakit, terlambat, dan izin, dihitung dari catatan absensi yang disetujui. Jika jumlahnya seri, urutan nama lalu ID karyawan menjadi pemutus seri yang konsisten.
 
+## Impor Massal Karyawan
+
+HRD dapat mengunduh template CSV dari bagian **Data Karyawan**, mengisi satu baris per karyawan, lalu mengunggah file `.xlsx` atau `.csv` (maksimal 500 baris dan 10 MB). Impor menampilkan pratinjau dan validasi sebelum akun dibuat; bila ada baris bermasalah, seluruh batch harus diperbaiki dan diunggah kembali. Email dan Employee ID yang sudah terdaftar atau duplikat dalam file ditolak.
+
+Kolom wajib: `Employee ID`, `Full Name`, `Email`, `Mobile Phone`, `Residential Address`, `Department`, `Employment Type`, `Join Date`, `Work Location`, `NIK`, `Bank Name`, `Bank Account`, dan `Bank Account Holder`. `Gender` dan `Daily Rate` juga tersedia; tarif wajib untuk karyawan freelance dan harus berupa angka bulat tanpa simbol mata uang. Jenis karyawan yang diterima adalah `organik` atau `freelance`, lokasi `office` atau `produksi`, dan bank `BCA` atau `BRI`. Kolom `Organization` dapat digunakan sebagai departemen, tetapi HRD harus mengonfirmasi pemetaan tersebut saat pratinjau.
+
+Pastikan NIK memang NIK 16 digit (bukan NPWP) dan simpan Employee ID, nomor telepon, NIK, serta nomor rekening sebagai teks di Excel agar angka nol atau digit tidak hilang. Data pratinjau disimpan sementara dalam cache terenkripsi selama maksimal satu jam. Akun dibuat nonaktif lebih dulu; hanya akun yang email akses sementaranya berhasil dikirim yang diaktifkan. Jika pengiriman gagal, HRD dapat mengirim ulang akses dari daftar karyawan.
+
 ## Payroll Freelance
 
 Payroll is available to HRD accounts from the **Payroll Freelance** sidebar menu. It uses approved, non-mocked `hadir` attendance records and counts at most one approved check-in per employee per local work date. Absences and unapproved records are not paid.

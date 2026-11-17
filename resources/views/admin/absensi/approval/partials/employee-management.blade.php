@@ -11,7 +11,7 @@
     ], fn ($value) => $value !== null && $value !== '');
 @endphp
 <div class="space-y-6">
-        <details class="ui-panel group" {{ $errors->any() ? 'open' : '' }}>
+        <details class="ui-panel group" {{ $errors->any() && ! $errors->has('employee_file') && ! $errors->has('employee_import') && ! $errors->has('confirm_organization_department') ? 'open' : '' }}>
             <summary class="flex cursor-pointer list-none items-center justify-between gap-4">
                 <div>
                     <h3 class="text-lg font-bold text-gray-900 dark:text-white">Buat akun karyawan</h3>
@@ -117,6 +117,122 @@
                 </div>
             </form>
         </details>
+
+        <section class="ui-panel space-y-4">
+            <div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white">Impor karyawan dari Excel</h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Unggah file sekali untuk memeriksa banyak karyawan. Akun belum dibuat sampai pratinjau dikonfirmasi.
+                </p>
+            </div>
+            <a href="{{ route('admin.absensi.approval.employees.import.template') }}" class="ui-button-secondary inline-flex">
+                <i class="fas fa-download mr-2"></i>Unduh template CSV
+            </a>
+            <div class="rounded-lg bg-gray-50 p-4 text-sm text-gray-600 dark:bg-gray-900/50 dark:text-gray-300">
+                <p class="font-semibold">Sebelum mengunggah:</p>
+                <ul class="mt-2 list-inside list-disc space-y-1">
+                    <li>Kolom wajib: Employee ID, Full Name, Email, Mobile Phone, Residential Address, Department, Employment Type, Join Date, Work Location, NIK, Bank Name, Bank Account, dan Bank Account Holder.</li>
+                    <li>Employment Type: <span class="font-medium">organik</span> atau <span class="font-medium">freelance</span>; Work Location: <span class="font-medium">office</span> atau <span class="font-medium">produksi</span>.</li>
+                    <li>Bank yang didukung saat ini hanya BCA dan BRI. Isi Daily Rate untuk setiap karyawan freelance.</li>
+                    <li>Pastikan NIK benar-benar NIK 16 digit, bukan NPWP. Simpan Employee ID, nomor telepon, NIK, dan nomor rekening sebagai teks agar angka nol atau digit tidak hilang.</li>
+                    <li>File sumber dengan kolom Organization boleh dipakai, tetapi saat pratinjau HRD harus memastikan Organization memang berisi nama departemen.</li>
+                </ul>
+            </div>
+            <form method="POST" action="{{ route('admin.absensi.approval.employees.import.preview') }}"
+                  enctype="multipart/form-data" class="flex flex-col gap-3 sm:flex-row sm:items-end">
+                @csrf
+                <div class="min-w-0 flex-1">
+                    <x-input-label for="employee_import_file" value="File Excel (.xlsx) atau CSV (maksimal 10 MB, 500 baris)" />
+                    <input id="employee_import_file" name="employee_file" type="file" accept=".xlsx,.csv"
+                           class="mt-1 block w-full rounded-lg border border-gray-300 bg-white p-2 text-sm text-gray-700 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200" required />
+                    <x-input-error :messages="$errors->get('employee_file')" class="mt-2" />
+                </div>
+                <button type="submit" class="ui-button-primary shrink-0">
+                    <i class="fas fa-eye mr-2"></i>Periksa & tampilkan pratinjau
+                </button>
+            </form>
+
+            @if ($employeeImportPreview)
+                <div class="space-y-4 border-t border-gray-200 pt-4 dark:border-gray-700">
+                    <div>
+                        <h4 class="font-semibold text-gray-900 dark:text-white">Pratinjau impor</h4>
+                        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                            {{ count($employeeImportPreview['rows']) }} baris siap dibuat;
+                            {{ count($employeeImportPreview['errors']) }} baris perlu diperbaiki.
+                            Tidak ada akun yang dibuat sebelum konfirmasi.
+                        </p>
+                    </div>
+
+                    @if ($employeeImportPreview['uses_organization'])
+                        <div class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+                            Kolom <strong>Organization</strong> akan dipakai sebagai departemen. Pastikan nilainya memang nama departemen sebelum melanjutkan.
+                        </div>
+                    @endif
+
+                    @if ($employeeImportPreview['errors'] !== [])
+                        <div class="max-h-64 overflow-auto rounded-lg border border-rose-200 bg-rose-50 p-3 dark:border-rose-900 dark:bg-rose-950/20">
+                            <h5 class="font-semibold text-rose-800 dark:text-rose-200">Perbaiki baris berikut di Excel, lalu unggah kembali:</h5>
+                            <ul class="mt-2 space-y-2 text-sm text-rose-800 dark:text-rose-200">
+                                @foreach ($employeeImportPreview['errors'] as $rowError)
+                                    <li><strong>Baris {{ $rowError['row'] }}:</strong> {{ implode(' ', $rowError['messages']) }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @else
+                        <div class="max-h-64 overflow-auto rounded-lg border border-gray-200 dark:border-gray-700">
+                            <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
+                                <thead class="bg-gray-50 dark:bg-gray-900/50">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left">Employee ID</th>
+                                        <th class="px-3 py-2 text-left">Nama</th>
+                                        <th class="px-3 py-2 text-left">Email</th>
+                                        <th class="px-3 py-2 text-left">Jenis karyawan</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
+                                    @foreach ($employeeImportPreview['rows'] as $row)
+                                        <tr>
+                                            <td class="px-3 py-2">{{ $row['id_karyawan'] }}</td>
+                                            <td class="px-3 py-2">{{ $row['name'] }}</td>
+                                            <td class="px-3 py-2">{{ $row['email'] }}</td>
+                                            <td class="px-3 py-2">{{ ucfirst($row['employment_type']) }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                    @endif
+
+                    @if ($errors->has('employee_import'))
+                        <div class="text-sm text-rose-700 dark:text-rose-300">{{ $errors->first('employee_import') }}</div>
+                    @endif
+
+                    <div class="flex flex-wrap gap-3">
+                        @if ($employeeImportPreview['errors'] === [] && $employeeImportPreview['rows'] !== [])
+                            <form method="POST" action="{{ route('admin.absensi.approval.employees.import.confirm') }}"
+                                  onsubmit="return confirm('Buat {{ count($employeeImportPreview['rows']) }} akun karyawan dari file ini?')">
+                                @csrf
+                                @if ($employeeImportPreview['uses_organization'])
+                                    <label class="mb-3 flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200">
+                                        <input type="checkbox" name="confirm_organization_department" value="1" required
+                                               class="mt-1 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500">
+                                        <span>Saya memastikan Organization adalah nama departemen.</span>
+                                    </label>
+                                @endif
+                                <button type="submit" class="ui-button-primary">
+                                    <i class="fas fa-check mr-2"></i>Konfirmasi & buat akun
+                                </button>
+                            </form>
+                        @endif
+                        <form method="POST" action="{{ route('admin.absensi.approval.employees.import.cancel') }}">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="ui-button-secondary">Batalkan pratinjau</button>
+                        </form>
+                    </div>
+                </div>
+            @endif
+        </section>
 
         <section class="ui-panel overflow-hidden !p-0">
             <div class="flex flex-col gap-4 border-b border-gray-200 p-5 dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between">
