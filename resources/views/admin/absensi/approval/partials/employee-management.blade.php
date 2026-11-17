@@ -68,6 +68,13 @@
                     <x-input-error :messages="$errors->get('employment_type')" class="mt-2" />
                 </div>
                 <div>
+                    <x-input-label for="employee_start_date" value="Tanggal mulai kerja" />
+                    <x-text-input id="employee_start_date" name="start_date" type="date" max="{{ now()->toDateString() }}"
+                                  class="mt-1 w-full ui-control" :value="old('start_date')" required />
+                    <x-input-error :messages="$errors->get('start_date')" class="mt-2" />
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Masukkan tanggal mulai kerja yang terverifikasi HRD.</p>
+                </div>
+                <div>
                     <x-input-label for="employee_work_location" value="Lokasi kerja" />
                     <select id="employee_work_location" name="work_location" required class="mt-1 w-full ui-control">
                         <option value="">Pilih lokasi kerja</option>
@@ -206,25 +213,25 @@
                                     <div data-employee-actions style="width: 18rem; grid-template-columns: 8rem 9rem; justify-content: end"
                                          class="ml-auto grid items-center gap-2">
                                         <a href="{{ route('admin.employees.show', ['user' => $employee] + $employeeListQuery) }}"
-                                           class="ui-button-primary w-full !px-3 !py-2">Detail</a>
+                                           class="ui-button-primary h-10 w-full !px-3 !py-2">Detail</a>
                                         <a href="{{ route('admin.employees.edit', ['user' => $employee] + $employeeListQuery) }}"
-                                           class="ui-button-secondary w-full !px-3 !py-2">Edit</a>
+                                           class="ui-button-secondary h-10 w-full !px-3 !py-2">Edit</a>
                                         @if ($employee->registration_status === 'pending')
                                             <form method="POST" action="{{ route('admin.absensi.approval.employees.resend', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
-                                                <button type="submit" class="ui-button-primary w-full !px-3 !py-2">Kirim akses</button>
+                                                <button type="submit" class="ui-button-primary h-10 w-full !px-3 !py-2">Kirim akses</button>
                                             </form>
                                         @elseif ($employee->is_active)
                                             <form method="POST" action="{{ route('admin.employees.deactivate', ['user' => $employee] + $employeeListQuery) }}" onsubmit="return confirm('Nonaktifkan akun ini? Data dan riwayat tetap disimpan.')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="ui-button-danger w-full !px-3 !py-2">Nonaktifkan</button>
+                                                <button type="submit" class="ui-button-danger h-10 w-full !px-3 !py-2">Nonaktifkan</button>
                                             </form>
                                         @else
                                             <form method="POST" action="{{ route('admin.employees.activate', ['user' => $employee] + $employeeListQuery) }}">
                                                 @csrf
                                                 @method('PATCH')
-                                                <button type="submit" class="ui-button-primary w-full !px-3 !py-2">Aktifkan</button>
+                                                <button type="submit" class="ui-button-primary h-10 w-full !px-3 !py-2">Aktifkan</button>
                                             </form>
                                         @endif
                                         @if (! $employee->is_active)
@@ -232,12 +239,12 @@
                                                   onsubmit="return confirm('HAPUS PERMANEN akun ini, seluruh riwayat absensi, dan data payroll-nya? Tindakan ini tidak dapat dibatalkan.')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="ui-button-danger w-full !px-3 !py-2">Hapus permanen</button>
+                                                <button type="submit" class="ui-button-danger h-10 w-full !px-3 !py-2">Hapus permanen</button>
                                             </form>
                                         @else
                                             <div>
                                                 <button type="button" disabled title="Nonaktifkan akun terlebih dahulu"
-                                                        class="ui-button-danger w-full !px-3 !py-2 cursor-not-allowed opacity-50">
+                                                        class="ui-button-danger h-10 w-full !px-3 !py-2 cursor-not-allowed">
                                                     Hapus permanen
                                                 </button>
                                                 <p class="mt-1 text-center text-xs text-gray-500 dark:text-gray-400">Nonaktifkan dulu untuk menghapus</p>
