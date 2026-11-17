@@ -20,6 +20,8 @@ jobs:
       PRODUCTION_SSH_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
       PRODUCTION_SSH_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
       PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
+      RELEASE_IMAGE: deploy-main:release-${{ github.sha }}
+      ROLLBACK_TAG: deploy-main:rollback-${{ github.run_id }}
 
     steps:
       - name: Validate deployment configuration
@@ -34,6 +36,9 @@ jobs:
             exit 1
           fi
 
+      - name: Check out release source
+        uses: actions/checkout@v4
+
       - name: Configure SSH
         run: |
           install -m 700 -d "$HOME/.ssh"
@@ -41,7 +46,7 @@ jobs:
           printf '%s\n' "$PRODUCTION_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
           chmod 600 "$HOME/.ssh/production" "$HOME/.ssh/known_hosts"
 
-      - name: Deploy only the Sistem Absensi app and verify health
+      - name: Verify the exact production app target before building or transferring
         run: |
           ssh \
             -i "$HOME/.ssh/production" \
@@ -53,59 +58,32 @@ jobs:
           set -Eeuo pipefail
 
           app_container_ids="$(docker ps \
+            --filter publish=8081 \
             --filter label=com.docker.compose.project=followme-app \
             --filter label=com.docker.compose.service=app \
             --format '{{.ID}}')"
-          if [ -z "$app_container_ids" ]; then
-            echo "No running app container found for the followme-app project."
+          if [ "$(printf '%s\n' "$app_container_ids" | sed '/^$/d' | wc -l | tr -d '[:space:]')" != "1" ]; then
+            echo "Expected exactly one running followme-app app container publishing port 8081; refusing deployment."
             exit 1
           fi
-          app_count="$(printf '%s\n' "$app_container_ids" | wc -l | tr -d '[:space:]')"
-          app_container="$(printf '%s\n' "$app_container_ids" | head -n 1)"
+          app_container="$app_container_ids"
+          published_port="$(docker port "$app_container" 80/tcp)"
+          if [ "$published_port" != "127.0.0.1:8081" ]; then
+            echo "The target app is not bound exclusively to 127.0.0.1:8081; refusing deployment."
+            exit 1
+          fi
           production_dir="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$app_container")"
           config_files="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$app_container")"
           app_image="$(docker inspect --format='{{.Config.Image}}' "$app_container")"
-          previous_image="$(docker inspect --format='{{.Image}}' "$app_container")"
-          while IFS= read -r candidate; do
-            if [ "$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$candidate")" != "$production_dir" ] ||
-              [ "$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$candidate")" != "$config_files" ] ||
-              [ "$(docker inspect --format='{{.Config.Image}}' "$candidate")" != "$app_image" ] ||
-              [ "$(docker inspect --format='{{.Image}}' "$candidate")" != "$previous_image" ]; then
-              echo "The running Sistem Absensi app containers do not share one deployment configuration."
-              exit 1
-            fi
-          done <<< "$app_container_ids"
-
           if [ -z "$production_dir" ] || [ ! -d "$production_dir" ]; then
             echo "Could not resolve the Sistem Absensi project directory from its container."
             exit 1
           fi
-          if ! git -C "$production_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
-            echo "The Sistem Absensi project directory is not a Git checkout."
-            exit 1
-          fi
-          production_dir="$(git -C "$production_dir" rev-parse --show-toplevel)"
-          cd "$production_dir"
-
-          if [ "$(git branch --show-current)" != "main" ]; then
-            echo "Production checkout is not on branch main; refusing deployment."
-            exit 1
-          fi
-          if [ -n "$(git status --porcelain --untracked-files=all)" ]; then
-            echo "Production checkout has local changes; refusing deployment."
-            exit 1
-          fi
-
-          if [ -z "$config_files" ]; then
+          if [ -z "$config_files" ] || [ "$app_image" != "deploy-main:local" ]; then
             echo "The Sistem Absensi Compose configuration could not be resolved."
             exit 1
           fi
-          if [ "$app_image" != "deploy-main:local" ]; then
-            echo "The running app image does not match the repository's deployment image."
-            exit 1
-          fi
-
-          compose=(docker compose -p followme-app)
+          compose=(docker compose -p followme-app --project-directory "$production_dir")
           IFS=',' read -r -a config_paths <<< "$config_files"
           for config_path in "${config_paths[@]}"; do
             case "$config_path" in
@@ -122,9 +100,8 @@ jobs:
             compose+=(-f "$config_path")
           done
 
-          running_app="$("${compose[@]}" ps --status running -q app)"
-          if [ -z "$running_app" ]; then
-            echo "The existing Sistem Absensi app container is not running; refusing deployment."
+          if ! "${compose[@]}" config --services | grep -Fxq app; then
+            echo "The production Compose configuration does not define the app service."
             exit 1
           fi
           if ! curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
@@ -132,27 +109,139 @@ jobs:
             exit 1
           fi
 
-          git fetch origin main
-          git merge --ff-only origin/main
+          echo "Verified one healthy followme-app app container at 127.0.0.1:8081. No production changes made."
+          REMOTE
 
-          "${compose[@]}" build app
-          if ! "${compose[@]}" up -d --no-deps --scale "app=$app_count" app; then
-            docker tag "$previous_image" deploy-main:local
-            "${compose[@]}" up -d --no-deps --scale "app=$app_count" app
-            echo "Deployment failed; restored the previous app image."
+      - name: Build release image from the validated main source
+        run: docker build --tag "$RELEASE_IMAGE" .
+
+      - name: Transfer the release image without changing running containers
+        run: |
+          docker save "$RELEASE_IMAGE" | ssh \
+            -i "$HOME/.ssh/production" \
+            -p "$PRODUCTION_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            "$PRODUCTION_USER@$PRODUCTION_HOST" 'docker load'
+
+      - name: Replace only the app service and verify rollback path
+        run: |
+          ssh \
+            -i "$HOME/.ssh/production" \
+            -p "$PRODUCTION_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            "$PRODUCTION_USER@$PRODUCTION_HOST" \
+            "RELEASE_IMAGE=$RELEASE_IMAGE ROLLBACK_TAG=$ROLLBACK_TAG bash -se" <<'REMOTE'
+          set -Eeuo pipefail
+
+          if [[ ! "$RELEASE_IMAGE" =~ ^deploy-main:release-[a-f0-9]+$ ]]; then
+            echo "Invalid release image identifier."
+            exit 1
+          fi
+          if [[ ! "$ROLLBACK_TAG" =~ ^deploy-main:rollback-[0-9]+$ ]]; then
+            echo "Invalid rollback image identifier."
+            exit 1
+          fi
+          app_container_ids="$(docker ps \
+            --filter publish=8081 \
+            --filter label=com.docker.compose.project=followme-app \
+            --filter label=com.docker.compose.service=app \
+            --format '{{.ID}}')"
+          if [ "$(printf '%s\n' "$app_container_ids" | sed '/^$/d' | wc -l | tr -d '[:space:]')" != "1" ]; then
+            echo "Production app target changed after preflight; refusing deployment."
+            exit 1
+          fi
+          app_container="$app_container_ids"
+          if [ "$(docker port "$app_container" 80/tcp)" != "127.0.0.1:8081" ]; then
+            echo "Production app port binding changed after preflight; refusing deployment."
             exit 1
           fi
 
+          production_dir="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$app_container")"
+          config_files="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$app_container")"
+          app_image="$(docker inspect --format='{{.Config.Image}}' "$app_container")"
+          previous_image="$(docker inspect --format='{{.Image}}' "$app_container")"
+          if [ -z "$production_dir" ] || [ ! -d "$production_dir" ] ||
+            [ -z "$config_files" ] || [ "$app_image" != "deploy-main:local" ]; then
+            echo "Production app metadata changed or does not match the expected service."
+            exit 1
+          fi
+          if ! curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
+            echo "Production app is not healthy immediately before deployment; refusing."
+            exit 1
+          fi
+
+          compose=(docker compose -p followme-app --project-directory "$production_dir")
+          IFS=',' read -r -a config_paths <<< "$config_files"
+          for config_path in "${config_paths[@]}"; do
+            case "$config_path" in
+              "$production_dir"/*) ;;
+              *)
+                echo "A production Compose config resolves outside the app project."
+                exit 1
+                ;;
+            esac
+            if [ ! -f "$config_path" ]; then
+              echo "A production Compose config file is missing; refusing deployment."
+              exit 1
+            fi
+            compose+=(-f "$config_path")
+          done
+          if ! "${compose[@]}" config --services | grep -Fxq app; then
+            echo "Production Compose configuration does not define app."
+            exit 1
+          fi
+          if ! docker image inspect "$RELEASE_IMAGE" >/dev/null 2>&1; then
+            echo "The validated release image was not transferred successfully."
+            exit 1
+          fi
+
+          release_image_id="$(docker image inspect --format='{{.Id}}' "$RELEASE_IMAGE")"
+          rollback_tag="$ROLLBACK_TAG"
+          docker tag "$previous_image" "$rollback_tag"
+          docker tag "$RELEASE_IMAGE" deploy-main:local
+
+          restore_previous_app() {
+            docker tag "$previous_image" deploy-main:local
+            if ! "${compose[@]}" up -d --no-deps --no-build app; then
+              echo "Rollback could not restart the previous app image."
+              return 1
+            fi
+            for attempt in $(seq 1 30); do
+              if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
+                echo "Previous app image restored and healthy."
+                return 0
+              fi
+              sleep 2
+            done
+            echo "Previous app image was restored, but its health check did not recover."
+            return 1
+          }
+
+          if ! "${compose[@]}" up -d --no-deps --no-build app; then
+            echo "App replacement failed; restoring the previous image."
+            restore_previous_app
+            exit 1
+          fi
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
-              echo "Sistem Absensi health check passed."
+            running_ids="$(docker ps \
+              --filter publish=8081 \
+              --filter label=com.docker.compose.project=followme-app \
+              --filter label=com.docker.compose.service=app \
+              --format '{{.ID}}')"
+            if [ "$(printf '%s\n' "$running_ids" | sed '/^$/d' | wc -l | tr -d '[:space:]')" = "1" ] &&
+              [ "$(docker inspect --format='{{.Image}}' "$running_ids")" = "$release_image_id" ] &&
+              curl --fail --silent --show-error --max-time 3 http://127.0.0.1:8081/up >/dev/null; then
+              echo "Sistem Absensi app release is healthy. Previous image retained as $rollback_tag."
               exit 0
             fi
             sleep 2
           done
 
-          docker tag "$previous_image" deploy-main:local
-          "${compose[@]}" up -d --no-deps --scale "app=$app_count" app
-          echo "Health check failed; restored the previous app image."
+          echo "New app health verification failed; restoring the previous image."
+          restore_previous_app
           exit 1
           REMOTE
