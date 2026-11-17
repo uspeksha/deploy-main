@@ -100,7 +100,8 @@ jobs:
             compose+=(-f "$config_path")
           done
 
-          if ! "${compose[@]}" config --services | grep -Fxq app; then
+          services="$("${compose[@]}" config --services)"
+          if ! grep -Fxq app <<< "$services"; then
             echo "The production Compose configuration does not define the app service."
             exit 1
           fi
@@ -190,7 +191,8 @@ jobs:
             fi
             compose+=(-f "$config_path")
           done
-          if ! "${compose[@]}" config --services | grep -Fxq app; then
+          services="$("${compose[@]}" config --services)"
+          if ! grep -Fxq app <<< "$services"; then
             echo "Production Compose configuration does not define app."
             exit 1
           fi
