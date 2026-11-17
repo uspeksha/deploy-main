@@ -60,16 +60,21 @@ jobs:
             echo "No running app container found for the followme-app project."
             exit 1
           fi
-          if [ "$(printf '%s\n' "$app_container_ids" | wc -l)" -ne 1 ]; then
-            echo "Expected exactly one Sistem Absensi app container."
-            exit 1
-          fi
-
-          app_container="$app_container_ids"
+          app_count="$(printf '%s\n' "$app_container_ids" | wc -l | tr -d '[:space:]')"
+          app_container="$(printf '%s\n' "$app_container_ids" | head -n 1)"
           production_dir="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$app_container")"
           config_files="$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$app_container")"
           app_image="$(docker inspect --format='{{.Config.Image}}' "$app_container")"
           previous_image="$(docker inspect --format='{{.Image}}' "$app_container")"
+          while IFS= read -r candidate; do
+            if [ "$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.working_dir" }}' "$candidate")" != "$production_dir" ] ||
+              [ "$(docker inspect --format='{{ index .Config.Labels "com.docker.compose.project.config_files" }}' "$candidate")" != "$config_files" ] ||
+              [ "$(docker inspect --format='{{.Config.Image}}' "$candidate")" != "$app_image" ] ||
+              [ "$(docker inspect --format='{{.Image}}' "$candidate")" != "$previous_image" ]; then
+              echo "The running Sistem Absensi app containers do not share one deployment configuration."
+              exit 1
+            fi
+          done <<< "$app_container_ids"
 
           if [ -z "$production_dir" ] || [ ! -d "$production_dir" ]; then
             echo "Could not resolve the Sistem Absensi project directory from its container."
@@ -131,9 +136,9 @@ jobs:
           git merge --ff-only origin/main
 
           "${compose[@]}" build app
-          if ! "${compose[@]}" up -d --no-deps app; then
+          if ! "${compose[@]}" up -d --no-deps --scale "app=$app_count" app; then
             docker tag "$previous_image" deploy-main:local
-            "${compose[@]}" up -d --no-deps app
+            "${compose[@]}" up -d --no-deps --scale "app=$app_count" app
             echo "Deployment failed; restored the previous app image."
             exit 1
           fi
@@ -147,7 +152,7 @@ jobs:
           done
 
           docker tag "$previous_image" deploy-main:local
-          "${compose[@]}" up -d --no-deps app
+          "${compose[@]}" up -d --no-deps --scale "app=$app_count" app
           echo "Health check failed; restored the previous app image."
           exit 1
           REMOTE
