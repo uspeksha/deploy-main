@@ -19,7 +19,7 @@ test('profile information can be updated', function () {
         ->actingAs($user)
         ->patch('/profile', [
             'name' => 'Test User',
-            'email' => 'test@example.com',
+            'email' => 'TEST@EXAMPLE.COM',
         ]);
 
     $response
