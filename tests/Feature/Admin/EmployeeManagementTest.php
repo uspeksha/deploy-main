@@ -172,7 +172,7 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
         'employee_page' => 2,
     ]), [
         'name' => 'Nama Diperbarui',
-        'email' => $employee->email,
+        'email' => strtoupper($employee->email),
         'id_karyawan' => 'EMP-UPDATED',
         'phone' => '081111111111',
         'address' => 'Alamat baru',
@@ -191,6 +191,7 @@ it('lets HRD edit employee details and reactivate a deactivated employee', funct
     ]));
 
     expect($employee->fresh()->name)->toBe('Nama Diperbarui')
+        ->and($employee->fresh()->email)->toBe(strtolower($employee->email))
         ->and($employee->fresh()->id_karyawan)->toBe('EMP-UPDATED')
         ->and($employee->fresh()->phone)->toBe('081111111111')
         ->and($employee->fresh()->bank_name)->toBe('BRI')

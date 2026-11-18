@@ -78,6 +78,23 @@ it('lets HRD create an active employee account and emails temporary credentials'
         ->assertJsonMissingPath('user.bank_account_number');
 });
 
+it('normalizes mixed-case email addresses when HRD creates an employee account', function () {
+    Mail::fake();
+    config(['mail.default' => 'smtp']);
+    $hrd = User::factory()->create(['role' => 'hrd']);
+
+    $this->actingAs($hrd)
+        ->post(route('admin.absensi.approval.employees.store'), employeeAccountPayload([
+            'email' => 'New.Employee@Example.COM',
+        ]))
+        ->assertRedirect()
+        ->assertSessionHas('success');
+
+    $employee = User::where('email', 'new.employee@example.com')->firstOrFail();
+    expect($employee->email)->toBe('new.employee@example.com');
+    Mail::assertSent(EmployeeRegistrationMail::class, fn (EmployeeRegistrationMail $mail) => $mail->hasTo($employee->email));
+});
+
 it('keeps an account inactive if email fails and lets HRD resend credentials', function () {
     Mail::fake();
     $this->mock(EmployeeRegistrationMailer::class)

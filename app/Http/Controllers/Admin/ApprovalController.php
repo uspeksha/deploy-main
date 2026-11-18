@@ -327,10 +327,15 @@ class ApprovalController extends Controller
     ) {
         abort_unless(auth()->user()->role === 'hrd', 403);
 
+        $email = $request->input('email');
+        if (is_string($email)) {
+            $request->merge(['email' => mb_strtolower(trim($email))]);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['nullable', 'in:male,female'],
-            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:users,email'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
             'id_karyawan' => ['required', 'string', 'max:255', 'unique:users,id_karyawan'],
             'phone' => ['required', 'string', 'max:30'],
             'address' => ['required', 'string', 'max:1000'],
