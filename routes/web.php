@@ -168,6 +168,7 @@ Route::middleware(['auth', 'active.account', 'admin', ActivityLogMiddleware::cla
         ->name('admin.absensi.approval.employees.import.cancel');
     Route::post('/employees/{user}/resend-access', [ApprovalController::class, 'resendEmployeeCredentials'])
         ->name('admin.absensi.approval.employees.resend');
+    Route::get('/employees/{user}', [EmployeeController::class, 'show'])->name('admin.employees.show');
     Route::get('/employees/{user}/edit', [EmployeeController::class, 'edit'])->name('admin.employees.edit');
     Route::put('/employees/{user}', [EmployeeController::class, 'update'])->name('admin.employees.update');
     Route::put('/employees/{user}/hr-profile', [EmployeeHrDataController::class, 'updateProfile'])
