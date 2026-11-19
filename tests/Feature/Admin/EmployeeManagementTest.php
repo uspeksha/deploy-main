@@ -137,6 +137,11 @@ it('shows employee profile photos in the HRD employee list', function () {
     Storage::disk('public')->put($employee->profile_photo_path, 'test image');
 
     $this->actingAs($hrd)
+        ->get(route('admin.employees.show', $employee))
+        ->assertOk()
+        ->assertSee('class="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover', false);
+
+    $this->actingAs($hrd)
         ->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertOk()
         ->assertSee(route('admin.storage.file', ['path' => $employee->profile_photo_path]), false)

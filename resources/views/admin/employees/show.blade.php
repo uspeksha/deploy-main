@@ -41,9 +41,9 @@
                 @if ($user->profile_photo_path)
                     <img src="{{ route('admin.storage.file', ['path' => $user->profile_photo_path]) }}"
                          alt="Foto profil {{ $user->name }}"
-                         class="h-20 w-20 rounded-full border border-gray-200 object-cover dark:border-gray-700">
+                         class="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover dark:border-gray-700">
                 @else
-                    <div class="flex h-20 w-20 shrink-0 items-center justify-center rounded-full bg-gray-100 text-2xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
+                    <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500 dark:bg-gray-700 dark:text-gray-300"
                          aria-label="Belum ada foto profil">
                         <i class="fas fa-user"></i>
                     </div>
