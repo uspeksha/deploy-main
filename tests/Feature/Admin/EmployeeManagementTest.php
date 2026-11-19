@@ -46,6 +46,7 @@ it('shows employee data in the HRD page data employees section', function () {
         'employee_page' => 2,
     ]))
         ->assertOk()
+        ->assertSee('Kembali ke Data Karyawan')
         ->assertSee(route('admin.absensi.approval.hrd', [
             'section' => 'employees',
             'employee_status' => 'active',
