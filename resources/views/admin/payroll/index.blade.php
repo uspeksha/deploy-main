@@ -377,14 +377,14 @@
                                             <td class="px-3 py-3 text-gray-600 dark:text-gray-300">{{ ucfirst($item->employment_type) }}<br>{{ $item->department ?? '-' }}</td>
                                             <td class="px-3 py-3">{{ $item->work_days }}</td>
                                             <td class="px-3 py-3 whitespace-nowrap">
-                                                {{ is_numeric($item->daily_rate_summary) ? $money($item->daily_rate_summary) : $item->daily_rate_summary }}
+                                                {{ is_numeric($item->currentDailyRate()) ? $money($item->currentDailyRate()) : $item->currentDailyRate() }}
                                             </td>
-                                            <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->gross_pay) }}</td>
+                                            <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->currentGrossPay()) }}</td>
                                             <td class="px-3 py-3">{{ $item->late_occurrences }}x</td>
                                             <td class="px-3 py-3">{{ $item->total_late_minutes }}</td>
                                             <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->late_deduction) }}</td>
                                             <td class="px-3 py-3 whitespace-nowrap">{{ $money($item->other_deductions) }}</td>
-                                            <td class="px-3 py-3 whitespace-nowrap font-bold">{{ $money($item->net_pay) }}</td>
+                                            <td class="px-3 py-3 whitespace-nowrap font-bold">{{ $money($item->currentNetPay()) }}</td>
                                             <td class="px-3 py-3">
                                                 <span class="rounded-full px-2 py-1 text-xs font-semibold {{ $statusClasses[$selectedPeriod->status] ?? $statusClasses['draft'] }}">
                                                     {{ $statusLabels[$selectedPeriod->status] ?? $selectedPeriod->status }}
@@ -397,8 +397,8 @@
                                                     <details class="max-w-72 rounded-lg">
                                                         <summary class="cursor-pointer rounded-lg px-2 py-1.5 text-center text-xs font-semibold text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700">Rincian hitung</summary>
                                                         <p class="mt-2 rounded-lg bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-900/60 dark:text-gray-300">
-                                                            @if (is_numeric($item->daily_rate_summary))
-                                                                {{ $item->work_days }} hari × {{ $money($item->daily_rate_summary) }} = {{ $money($item->gross_pay) }}.
+                                                            @if (is_numeric($item->currentDailyRate()))
+                                                                {{ $item->work_days }} hari × {{ $money($item->currentDailyRate()) }} = {{ $money($item->currentGrossPay()) }}.
                                                             @else
                                                                 Tarif berubah selama periode; total gaji kotor merupakan penjumlahan tarif harian yang tercatat.
                                                             @endif

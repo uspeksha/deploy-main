@@ -1,6 +1,7 @@
 <?php
 
 use App\Exports\PayrollSummaryExport;
+use App\Exports\PayrollSummarySheet;
 use App\Models\ActivityLog;
 use App\Models\Notification;
 use App\Models\PayrollCorrection;
@@ -158,6 +159,8 @@ it('uses each attendance date rate in payroll snapshots and leaves generated pay
         'registration_status' => 'approved',
         'is_active' => true,
         'id_karyawan' => 'AMB-RATE-001',
+        'bank_name' => 'BCA',
+        'bank_account_number' => '000000000001',
     ]);
     $employee->salaryRates()->create([
         'daily_rate' => 100000,
@@ -188,13 +191,70 @@ it('uses each attendance date rate in payroll snapshots and leaves generated pay
         ->and($item->daily_rate_summary)->toBe('Tarif')
         ->and(array_column($item->attendance_snapshot['daily_details'], 'daily_rate'))->toBe([100000, 150000]);
 
+    $effectiveAt = now()->startOfMinute()->format('Y-m-d\TH:i');
     $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
         'daily_rate' => 175000,
-        'effective_at' => '2026-10-05T00:00',
+        'effective_at' => $effectiveAt,
     ])->assertSessionHas('success');
+
+    $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
+        ->assertOk()
+        ->assertSee('Rp175.000')
+        ->assertSee('Rp350.000');
+    $this->get(route('admin.payroll.slip.preview', [$period, $item]))
+        ->assertOk()
+        ->assertSee('2 hari kerja × Rp175.000')
+        ->assertSee('Rp350.000');
+
+    $temporaryFile = tempnam(sys_get_temp_dir(), 'payroll-current-rate-test');
+    try {
+        file_put_contents($temporaryFile, Excel::raw(
+            new PayrollSummaryExport($period),
+            Maatwebsite\Excel\Excel::XLSX,
+        ));
+        $worksheet = IOFactory::load($temporaryFile)->getActiveSheet();
+
+        expect($worksheet->getCell('D6')->getValue())->toBe(175000)
+            ->and($worksheet->getCell('G6')->getValue())->toBe(350000)
+            ->and($worksheet->getCell('M6')->getValue())->toBe(350000.0);
+    } finally {
+        unlink($temporaryFile);
+    }
 
     expect($item->fresh()->gross_pay)->toBe(250000)
         ->and($item->fresh()->attendance_snapshot)->toBe($originalSnapshot);
+
+    $period->status = PayrollPeriod::STATUS_PAID;
+    $period->save();
+    expect($period->fresh()->status)->toBe(PayrollPeriod::STATUS_PAID)
+        ->and($item->fresh()->load('period:id,status')->period->status)->toBe(PayrollPeriod::STATUS_PAID)
+        ->and($item->fresh()->load('period:id,status')->currentDailyRate())->toBe('Tarif');
+    $paidEmployeeRow = collect((new PayrollSummarySheet($period->fresh()))->collection())
+        ->first(fn (array $row): bool => ($row[1] ?? null) === $employee->name);
+    expect($paidEmployeeRow[3])->toBe('Tarif')
+        ->and($paidEmployeeRow[6])->toBe(250000)
+        ->and($paidEmployeeRow[12])->toBe(250000.0);
+    $this->get(route('admin.payroll.index', ['period_id' => $period->id]))
+        ->assertOk()
+        ->assertSee('Rp250.000');
+
+    expect($item->fresh()->load('period')->currentGrossPay())->toBe(250000)
+        ->and($item->fresh()->load('period')->currentNetPay())->toBe(250000);
+
+    $temporaryFile = tempnam(sys_get_temp_dir(), 'payroll-paid-rate-test');
+    try {
+        file_put_contents($temporaryFile, Excel::raw(
+            new PayrollSummaryExport($period->fresh()),
+            Maatwebsite\Excel\Excel::XLSX,
+        ));
+        $worksheet = IOFactory::load($temporaryFile)->getActiveSheet();
+
+        expect($worksheet->getCell('D6')->getValue())->toBe('Tarif')
+            ->and($worksheet->getCell('G6')->getValue())->toBe(250000)
+            ->and($worksheet->getCell('M6')->getValue())->toBe(250000.0);
+    } finally {
+        unlink($temporaryFile);
+    }
 });
 
 it('excludes the lunch break from payroll lateness even for older stored attendance minutes', function () {
@@ -870,7 +930,7 @@ it('prevents a user from downloading another payroll slip', function () {
         ->assertForbidden();
 });
 
-it('exports the saved payroll snapshot to Excel and a branded PDF slip', function () {
+it('exports payroll details to Excel and a branded PDF slip', function () {
     $hrd = User::factory()->create(['role' => 'hrd']);
     $employee = User::factory()->create([
         'name' => 'Zoe Zulu',
@@ -1024,7 +1084,7 @@ it('exports the saved payroll snapshot to Excel and a branded PDF slip', functio
             ->and($worksheet->getCell('B7')->getValue())->toBe('Zoe Zulu')
             ->and($worksheet->getCell('C7')->getValue())->toBe('001234567890')
             ->and($worksheet->getCell('C7')->getDataType())->toBe('s')
-            ->and($worksheet->getCell('D7')->getValue())->toBe('Tarif')
+            ->and($worksheet->getCell('D7')->getValue())->toBe(120000)
             ->and($worksheet->getCell('D7')->getStyle()->getNumberFormat()->getFormatCode())->toBe('"Rp" #,##0;[Red]-"Rp" #,##0;"Rp" -')
             ->and($worksheet->getCell('G7')->getValue())->toBe(1200000)
             ->and($worksheet->getCell('J7')->getValue())->toBe(30000.0)
