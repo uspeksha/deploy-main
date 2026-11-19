@@ -110,6 +110,7 @@ it('opens a private employee detail page with the saved personal and work inform
     $this->get(route('admin.employees.show', $employee))
         ->assertOk()
         ->assertSee('Detail Karyawan')
+        ->assertSee('class="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover', false)
         ->assertSee('Karyawan Detail')
         ->assertSee('1234567890123456')
         ->assertSee('081234567890')
