@@ -55,13 +55,13 @@
                     <tbody class="divide-y divide-gray-100 dark:divide-gray-700">
                         <tr>
                             <td class="py-2">
-                                @if (is_numeric($item->daily_rate_summary))
-                                    {{ $item->work_days }} hari kerja × {{ $money($item->daily_rate_summary) }}
+                                @if (is_numeric($item->currentDailyRate()))
+                                    {{ $item->work_days }} hari kerja × {{ $money($item->currentDailyRate()) }}
                                 @else
                                     Tarif berubah selama periode
                                 @endif
                             </td>
-                            <td class="py-2 text-right">{{ $money($item->gross_pay) }}</td>
+                            <td class="py-2 text-right">{{ $money($item->currentGrossPay()) }}</td>
                         </tr>
                         <tr><td colspan="2" class="py-2 font-semibold">Rincian keterlambatan</td></tr>
                         @forelse ($item->latenessDetails as $detail)
@@ -77,7 +77,7 @@
                         @endforelse
                         <tr><td class="py-2">Potongan keterlambatan</td><td class="py-2 text-right">{{ $money($item->late_deduction) }}</td></tr>
                         <tr><td class="py-2">Potongan lain</td><td class="py-2 text-right">{{ $money($item->other_deductions) }}</td></tr>
-                        <tr class="text-base font-bold text-emerald-800 dark:text-emerald-300"><td class="py-3">Gaji bersih diterima</td><td class="py-3 text-right">{{ $money($item->net_pay) }}</td></tr>
+                        <tr class="text-base font-bold text-emerald-800 dark:text-emerald-300"><td class="py-3">Gaji bersih diterima</td><td class="py-3 text-right">{{ $money($item->currentNetPay()) }}</td></tr>
                     </tbody>
                 </table>
             </div>

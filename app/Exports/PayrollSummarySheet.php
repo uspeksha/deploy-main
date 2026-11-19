@@ -25,24 +25,32 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
     public function collection()
     {
         $employeeRows = $this->period->items()
-            ->with('employee:id,bank_name,bank_account_number')
+            ->with([
+                'employee:id,bank_name,bank_account_number',
+                'employee.salaryRates',
+            ])
             ->get([
                 'user_id',
                 'employee_id',
                 'employee_name',
+                'employment_type',
                 'daily_rate',
+                'work_days',
                 'gross_pay',
                 'late_deduction',
                 'other_deductions',
                 'attendance_snapshot',
             ])
             ->map(function ($item): array {
+                $isPaid = $this->period->status === PayrollPeriod::STATUS_PAID;
+                $dailyRate = $isPaid ? $item->daily_rate_summary : $item->currentDailyRate();
+                $grossPay = $isPaid ? (int) $item->gross_pay : $item->currentGrossPay();
                 $overtimePay = collect($item->attendance_snapshot['daily_details'] ?? [])
                     ->sum(fn (array $day): float => (float) ($day['overtime_pay'] ?? 0));
                 $productionAllowance = 0;
                 $weeklyAllowance = 0;
                 $incompleteAttendanceDeduction = 0;
-                $totalAllowance = (float) $item->gross_pay
+                $totalAllowance = (float) $grossPay
                     + $productionAllowance
                     + $weeklyAllowance
                     + $overtimePay;
@@ -54,10 +62,10 @@ class PayrollSummarySheet extends DefaultValueBinder implements FromCollection, 
                         $item->employee_id,
                         $item->employee_name,
                         $item->employee?->bank_account_number,
-                        $item->daily_rate_summary,
+                        $dailyRate,
                         $productionAllowance,
                         $weeklyAllowance,
-                        $item->gross_pay,
+                        $grossPay,
                         $item->late_deduction,
                         $incompleteAttendanceDeduction,
                         $overtimePay,

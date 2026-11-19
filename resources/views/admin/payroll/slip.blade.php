@@ -62,13 +62,13 @@
         <thead><tr><th>Rincian</th><th class="amount">Jumlah</th></tr></thead>
         <tbody>
             <tr><td>
-                @if (is_numeric($item->daily_rate_summary))
-                    Hari kerja valid × {{ $money($item->daily_rate_summary) }}
+                @if (is_numeric($item->currentDailyRate()))
+                    Hari kerja valid × {{ $money($item->currentDailyRate()) }}
                 @else
                     Tarif berubah selama periode
                 @endif
             </td><td class="amount">{{ $item->work_days }} hari</td></tr>
-            <tr><td>Total gaji kotor</td><td class="amount">{{ $money($item->gross_pay) }}</td></tr>
+            <tr><td>Total gaji kotor</td><td class="amount">{{ $money($item->currentGrossPay()) }}</td></tr>
         </tbody>
     </table>
 
@@ -94,9 +94,9 @@
     </table>
 
     <table class="summary">
-        <tr><td>Total pendapatan</td><td class="amount">{{ $money($item->gross_pay) }}</td></tr>
+        <tr><td>Total pendapatan</td><td class="amount">{{ $money($item->currentGrossPay()) }}</td></tr>
         <tr><td>Total potongan</td><td class="amount">{{ $money($item->late_deduction + $item->other_deductions) }}</td></tr>
-        <tr class="net"><td>GAJI BERSIH DITERIMA</td><td class="amount">{{ $money($item->net_pay) }}</td></tr>
+        <tr class="net"><td>GAJI BERSIH DITERIMA</td><td class="amount">{{ $money($item->currentNetPay()) }}</td></tr>
     </table>
 
     <div class="status {{ in_array($period->status, ['draft', 'exported'], true) ? 'draft' : ($period->status === 'paid' ? 'paid' : '') }}">

@@ -66,6 +66,63 @@ class PayrollItem extends Model
         };
     }
 
+    public function currentDailyRate(): int|string
+    {
+        if ($this->employment_type !== 'freelance') {
+            return $this->daily_rate_summary;
+        }
+
+        $this->loadMissing('period:id,status');
+        if ($this->period?->status === PayrollPeriod::STATUS_PAID) {
+            return $this->daily_rate_summary;
+        }
+
+        $this->loadMissing('employee.salaryRates');
+
+        return $this->employee?->dailyRateAt() ?? $this->daily_rate_summary;
+    }
+
+    public function currentGrossPay(): int
+    {
+        if ($this->employment_type !== 'freelance') {
+            return (int) $this->gross_pay;
+        }
+
+        $this->loadMissing('period:id,status');
+        if ($this->period?->status === PayrollPeriod::STATUS_PAID) {
+            return (int) $this->gross_pay;
+        }
+
+        $this->loadMissing('employee.salaryRates');
+        if (! $this->employee) {
+            return (int) $this->gross_pay;
+        }
+
+        return $this->employee->dailyRateAt() * (int) $this->work_days;
+    }
+
+    public function currentNetPay(): int
+    {
+        if ($this->employment_type !== 'freelance') {
+            return (int) $this->net_pay;
+        }
+
+        $this->loadMissing('period:id,status');
+        if ($this->period?->status === PayrollPeriod::STATUS_PAID) {
+            return (int) $this->net_pay;
+        }
+
+        $this->loadMissing('employee.salaryRates');
+        if (! $this->employee) {
+            return (int) $this->net_pay;
+        }
+
+        return max(
+            0,
+            $this->currentGrossPay() - (int) $this->late_deduction - (int) $this->other_deductions,
+        );
+    }
+
     /**
      * @return BelongsTo<PayrollPeriod, $this>
      */

@@ -89,7 +89,11 @@ class PayrollController extends Controller
         ];
 
         if ($selectedPeriod) {
-            $itemQuery = $selectedPeriod->items()->with('latenessDetails');
+            $itemQuery = $selectedPeriod->items()->with([
+                'latenessDetails',
+                'employee.salaryRates',
+                'period:id,status',
+            ]);
             if ($request->filled('search')) {
                 $search = trim((string) $request->string('search'));
                 $itemQuery->where(function ($query) use ($search) {
@@ -104,12 +108,25 @@ class PayrollController extends Controller
                 ->withQueryString();
 
             $totals = $selectedPeriod->items()
-                ->selectRaw('COALESCE(SUM(gross_pay), 0) as gross_pay')
-                ->selectRaw('COALESCE(SUM(late_deduction), 0) as late_deduction')
-                ->selectRaw('COALESCE(SUM(other_deductions), 0) as other_deductions')
-                ->selectRaw('COALESCE(SUM(net_pay), 0) as net_pay')
-                ->first()
-                ->only(array_keys($totals));
+                ->with(['employee.salaryRates', 'period:id,status'])
+                ->get([
+                    'user_id',
+                    'employment_type',
+                    'daily_rate',
+                    'work_days',
+                    'gross_pay',
+                    'late_deduction',
+                    'other_deductions',
+                    'net_pay',
+                ])
+                ->reduce(function (array $totals, PayrollItem $item): array {
+                    $totals['gross_pay'] += $item->currentGrossPay();
+                    $totals['late_deduction'] += (int) $item->late_deduction;
+                    $totals['other_deductions'] += (int) $item->other_deductions;
+                    $totals['net_pay'] += $item->currentNetPay();
+
+                    return $totals;
+                }, $totals);
         }
 
         return view('admin.payroll.index', compact('periods', 'selectedPeriod', 'items', 'totals', 'canRecreatePeriod'));
