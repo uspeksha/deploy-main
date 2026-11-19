@@ -138,11 +138,6 @@
                     <x-text-input id="employee_daily_rate" name="daily_rate" type="number" min="1" max="100000000" x-bind:required="employmentType === 'freelance'" x-bind:disabled="employmentType !== 'freelance'" class="mt-1 w-full ui-control" :value="old('daily_rate', $dailyRate)" />
                     <x-input-error :messages="$errors->get('daily_rate')" class="mt-2" />
                 </div>
-                <div x-show="employmentType === 'freelance'" x-cloak>
-                    <x-input-label for="employee_effective_at" value="Tarif berlaku mulai" />
-                    <x-text-input id="employee_effective_at" name="effective_at" type="datetime-local" x-bind:required="employmentType === 'freelance'" x-bind:disabled="employmentType !== 'freelance'" class="mt-1 w-full ui-control" :value="old('effective_at', $nextEffectiveAt->format('Y-m-d\TH:i'))" />
-                    <x-input-error :messages="$errors->get('effective_at')" class="mt-2" />
-                </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="employee_address" value="Alamat" />
                     <textarea id="employee_address" name="address" rows="3" maxlength="1000" class="mt-1 w-full ui-control" required>{{ old('address', $user->address) }}</textarea>

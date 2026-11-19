@@ -48,6 +48,7 @@ Payroll is available to HRD accounts from the **Payroll Freelance** sidebar menu
 
 - Minggu 1 covers the 1st–15th; Minggu 2 covers the 16th through the actual last day of the selected month.
 - The daily rate is Rp120.000. A full 30 minutes of stored lateness per work date deducts Rp7.500; other deductions are not added automatically.
+- HRD enters the daily rate without setting an effective time; a changed rate takes effect immediately and rate history is retained.
 - The current attendance system stores lateness against its fixed 08:00 baseline. Payroll snapshots this stored value and labels the baseline; it does not recalculate or change attendance records.
 - Each period can be generated only once as a snapshot. Drafts move through **Draft → Menunggu Persetujuan → Disetujui → Dibayarkan**. “Dibayarkan” is a manual confirmation with a required reference, not a bank transfer.
 - Unpaid payroll displays, Excel exports, and slips use the employee’s latest effective daily rate and recalculate gross and take-home pay. Paid payroll retains its original snapshot.

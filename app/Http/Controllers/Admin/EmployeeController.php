@@ -9,7 +9,6 @@ use App\Models\Department;
 use App\Models\Position;
 use App\Models\PtkpStatus;
 use App\Models\User;
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -82,16 +81,9 @@ class EmployeeController extends Controller
         $this->ensureHrd();
         abort_unless($user->role === 'user', 404);
 
-        $latestRate = $user->salaryRates()->latest('effective_at')->first();
-        $nextEffectiveAt = now()->addMinute();
-        if ($latestRate && $nextEffectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
-            $nextEffectiveAt = $latestRate->effective_at->copy()->addMinute();
-        }
-
         return view('admin.employees.edit', [
             'user' => $user,
             'dailyRate' => $user->dailyRateAt(),
-            'nextEffectiveAt' => $nextEffectiveAt,
             'employeeListQuery' => $this->employeeListQuery($request),
             'branches' => Branch::query()->orderBy('name')->get(),
             'departments' => Department::query()->orderBy('name')->get(),
@@ -132,7 +124,6 @@ class EmployeeController extends Controller
             'bank_account_number' => ['required', 'string', 'max:40'],
             'bank_account_name' => ['required', 'string', 'max:255'],
             'daily_rate' => ['required_if:employment_type,freelance', 'nullable', 'integer', 'min:1', 'max:100000000'],
-            'effective_at' => ['required_if:employment_type,freelance', 'nullable', 'date_format:Y-m-d\TH:i'],
         ]);
 
         if ($validator->fails()) {
@@ -151,37 +142,18 @@ class EmployeeController extends Controller
 
         $validated = $validator->validated();
         $dailyRate = $validated['daily_rate'] ?? null;
-        $effectiveAt = isset($validated['effective_at'])
-            ? Carbon::createFromFormat('Y-m-d\TH:i', $validated['effective_at'])
-            : null;
-        unset($validated['daily_rate'], $validated['effective_at']);
+        unset($validated['daily_rate']);
 
-        $latestRate = $user->salaryRates()->latest('effective_at')->first();
         $saveDailyRate = $dailyRate !== null
             && ($user->employment_type !== 'freelance'
-                || ! $latestRate
-                || (int) $latestRate->daily_rate !== (int) $dailyRate);
-
-        if ($saveDailyRate && $latestRate && $effectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
-            return redirect()
-                ->route('admin.employees.edit', ['user' => $user] + $this->employeeListQuery($request))
-                ->withErrors(['effective_at' => 'Tanggal berlaku harus setelah perubahan tarif terakhir.'])
-                ->withInput($request->except([
-                    'nik',
-                    'phone',
-                    'address',
-                    'bank_name',
-                    'bank_account_number',
-                    'bank_account_name',
-                ]));
-        }
+                || $user->dailyRateAt() !== (int) $dailyRate);
 
         $user->update($validated);
 
         if ($saveDailyRate) {
             $user->salaryRates()->create([
                 'daily_rate' => $dailyRate,
-                'effective_at' => $effectiveAt,
+                'effective_at' => $user->nextSalaryRateEffectiveAt(),
                 'recorded_by' => auth()->id(),
             ]);
         }

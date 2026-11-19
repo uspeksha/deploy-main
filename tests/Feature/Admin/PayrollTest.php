@@ -191,10 +191,8 @@ it('uses each attendance date rate in payroll snapshots and leaves generated pay
         ->and($item->daily_rate_summary)->toBe('Tarif')
         ->and(array_column($item->attendance_snapshot['daily_details'], 'daily_rate'))->toBe([100000, 150000]);
 
-    $effectiveAt = now()->startOfMinute()->format('Y-m-d\TH:i');
     $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
         'daily_rate' => 175000,
-        'effective_at' => $effectiveAt,
     ])->assertSessionHas('success');
 
     $this->get(route('admin.payroll.index', ['period_id' => $period->id]))

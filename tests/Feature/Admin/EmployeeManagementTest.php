@@ -412,6 +412,8 @@ it('shows the employee selected profile photo in the HRD list', function () {
 });
 
 it('records freelance rate changes from the employee edit form', function () {
+    $this->travelTo(now()->setTime(10, 30));
+
     $hrd = User::factory()->create(['role' => 'hrd']);
     $employee = employeeManagementUser([
         'employment_type' => 'freelance',
@@ -423,28 +425,51 @@ it('records freelance rate changes from the employee edit form', function () {
         'recorded_by' => $hrd->id,
     ]);
 
-    $effectiveAt = now()->addDay()->format('Y-m-d\TH:i');
     $this->actingAs($hrd)
-        ->put(route('admin.employees.update', $employee), [
-            'name' => $employee->name,
-            'email' => $employee->email,
-            'id_karyawan' => $employee->id_karyawan,
-            'phone' => $employee->phone,
-            'address' => $employee->address,
-            'departemen' => 'Operasional',
-            'employment_type' => 'freelance',
-            'work_location' => 'office',
-            'nik' => $employee->nik,
-            'bank_name' => 'BCA',
-            'bank_account_number' => $employee->bank_account_number,
-            'bank_account_name' => $employee->bank_account_name,
-            'daily_rate' => 150000,
-            'effective_at' => $effectiveAt,
-        ])
+        ->get(route('admin.employees.edit', $employee))
+        ->assertOk()
+        ->assertDontSee('employee_effective_at')
+        ->assertDontSee('datetime-local');
+
+    $this->put(route('admin.employees.update', $employee), [
+        'name' => $employee->name,
+        'email' => $employee->email,
+        'id_karyawan' => $employee->id_karyawan,
+        'phone' => $employee->phone,
+        'address' => $employee->address,
+        'departemen' => 'Operasional',
+        'employment_type' => 'freelance',
+        'work_location' => 'office',
+        'nik' => $employee->nik,
+        'bank_name' => 'BCA',
+        'bank_account_number' => $employee->bank_account_number,
+        'bank_account_name' => $employee->bank_account_name,
+        'daily_rate' => 150000,
+    ])
         ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']));
 
-    expect($employee->salaryRates()->count())->toBe(2)
-        ->and($employee->dailyRateAt($effectiveAt))->toBe(150000);
+    $this->travelTo(now()->addSecond());
+    $this->put(route('admin.employees.update', $employee), [
+        'name' => $employee->name,
+        'email' => $employee->email,
+        'id_karyawan' => $employee->id_karyawan,
+        'phone' => $employee->phone,
+        'address' => $employee->address,
+        'departemen' => 'Operasional',
+        'employment_type' => 'freelance',
+        'work_location' => 'office',
+        'nik' => $employee->nik,
+        'bank_name' => 'BCA',
+        'bank_account_number' => $employee->bank_account_number,
+        'bank_account_name' => $employee->bank_account_name,
+        'daily_rate' => 160000,
+    ])
+        ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']));
+
+    expect($employee->salaryRates()->count())->toBe(3)
+        ->and($employee->dailyRateAt())->toBe(160000)
+        ->and($employee->salaryRates()->orderByDesc('id')->value('effective_at'))
+        ->toEqual(now());
 });
 
 it('restricts employee management to HRD and rejects unsupported bank names', function () {

@@ -129,6 +129,8 @@ it('keeps an account inactive if email fails and lets HRD resend credentials', f
 });
 
 it('records the starting freelance rate and adds salary changes without deleting history', function () {
+    $this->travelTo(now()->setTime(10, 30));
+
     Mail::fake();
     config(['mail.default' => 'smtp']);
     $hrd = User::factory()->create(['role' => 'hrd']);
@@ -146,29 +148,29 @@ it('records the starting freelance rate and adds salary changes without deleting
         ->and($employee->dailyRateAt())->toBe(135000);
 
     $firstRate = $employee->salaryRates()->firstOrFail();
-    $effectiveAt = $firstRate->effective_at->copy()->addDay()->format('Y-m-d\TH:i');
-
+    $this->travelTo(now()->addSecond());
     $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
         'daily_rate' => 150000,
-        'effective_at' => $effectiveAt,
     ])
         ->assertRedirect(route('admin.absensi.approval.hrd', ['section' => 'employees']))
         ->assertSessionHas('success');
 
     expect($employee->salaryRates()->count())->toBe(2)
         ->and($employee->dailyRateAt($firstRate->effective_at))->toBe(135000)
-        ->and($employee->dailyRateAt($effectiveAt))->toBe(150000);
+        ->and($employee->dailyRateAt())->toBe(150000);
 
+    $this->travelTo(now()->addSecond());
     $this->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
         'daily_rate' => 160000,
-        'effective_at' => $firstRate->effective_at->copy()->addHours(1)->format('Y-m-d\TH:i'),
-    ])->assertSessionHasErrors('effective_at');
+    ])->assertSessionHas('success');
+
+    expect($employee->salaryRates()->count())->toBe(3)
+        ->and($employee->dailyRateAt())->toBe(160000);
 
     $admin = User::factory()->create(['role' => 'admin']);
     $this->actingAs($admin)
         ->post(route('admin.absensi.approval.employees.salary-rates.store', $employee), [
             'daily_rate' => 160000,
-            'effective_at' => now()->addYear()->format('Y-m-d\TH:i'),
         ])
         ->assertForbidden();
 });

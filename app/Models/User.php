@@ -229,6 +229,17 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(EmployeeSalaryRate::class);
     }
 
+    public function nextSalaryRateEffectiveAt(): Carbon
+    {
+        $effectiveAt = now();
+
+        while ($this->salaryRates()->where('effective_at', $effectiveAt)->exists()) {
+            $effectiveAt->addSecond();
+        }
+
+        return $effectiveAt;
+    }
+
     public function profilePhotoDisplayUrl(): ?string
     {
         if (! $this->profile_photo_path) {
@@ -249,7 +260,10 @@ class User extends Authenticatable implements MustVerifyEmail
 
         $rate = $rates
             ->filter(fn (EmployeeSalaryRate $rate): bool => $rate->effective_at->lte($effectiveAt))
-            ->sortByDesc('effective_at')
+            ->sortBy([
+                ['effective_at', 'desc'],
+                ['id', 'desc'],
+            ])
             ->first();
 
         return (int) ($rate->daily_rate ?? EmployeeSalaryRate::LEGACY_DAILY_RATE);
