@@ -10,6 +10,7 @@ test('profile page is displayed', function () {
         ->get('/profile');
 
     $response->assertOk();
+    $response->assertSee('Kembali ke dashboard');
 });
 
 test('profile information can be updated', function () {

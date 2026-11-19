@@ -1,8 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            {{ __('Profile') }}
-        </h2>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+                {{ __('Profile') }}
+            </h2>
+            <a href="{{ route('dashboard') }}" class="ui-button-secondary">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Kembali ke dashboard
+            </a>
+        </div>
     </x-slot>
 
     <div class="ui-page">

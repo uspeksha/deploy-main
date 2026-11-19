@@ -1,8 +1,14 @@
 <x-app-layout>
     <x-slot name="header">
-        <div>
-            <h2 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white">Edit Data Karyawan</h2>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Perbarui informasi {{ $user->name }}.</p>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="text-2xl font-bold leading-tight text-gray-900 dark:text-white">Edit Data Karyawan</h2>
+                <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">Perbarui informasi {{ $user->name }}.</p>
+            </div>
+            <a href="{{ route('admin.absensi.approval.hrd', $employeeListQuery) }}" class="ui-button-secondary">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                Kembali ke Data Karyawan
+            </a>
         </div>
     </x-slot>
 
