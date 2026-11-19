@@ -110,7 +110,6 @@ it('opens a private employee detail page with the saved personal and work inform
     $this->get(route('admin.employees.show', $employee))
         ->assertOk()
         ->assertSee('Detail Karyawan')
-        ->assertSee('class="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover', false)
         ->assertSee('Karyawan Detail')
         ->assertSee('1234567890123456')
         ->assertSee('081234567890')
@@ -136,6 +135,11 @@ it('shows employee profile photos in the HRD employee list', function () {
         'profile_photo_path' => 'profile-photos/employee.jpg',
     ]);
     Storage::disk('public')->put($employee->profile_photo_path, 'test image');
+
+    $this->actingAs($hrd)
+        ->get(route('admin.employees.show', $employee))
+        ->assertOk()
+        ->assertSee('class="h-12 w-12 shrink-0 rounded-full border border-gray-200 object-cover', false);
 
     $this->actingAs($hrd)
         ->get(route('admin.absensi.approval.hrd', ['section' => 'employees']))
