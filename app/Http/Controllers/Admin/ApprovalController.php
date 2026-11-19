@@ -421,16 +421,8 @@ class ApprovalController extends Controller
 
         $validated = $request->validate([
             'daily_rate' => ['required', 'integer', 'min:1', 'max:100000000'],
-            'effective_at' => ['required', 'date_format:Y-m-d\TH:i'],
         ]);
-        $effectiveAt = Carbon::createFromFormat('Y-m-d\TH:i', $validated['effective_at']);
-        $latestRate = $user->salaryRates()->latest('effective_at')->first();
-
-        if ($latestRate && $effectiveAt->lessThanOrEqualTo($latestRate->effective_at)) {
-            return back()
-                ->withErrors(['effective_at' => 'Tanggal berlaku harus setelah perubahan gaji terakhir.'])
-                ->withInput($request->except(['daily_rate']));
-        }
+        $effectiveAt = $user->nextSalaryRateEffectiveAt();
 
         $user->salaryRates()->create([
             'daily_rate' => $validated['daily_rate'],
