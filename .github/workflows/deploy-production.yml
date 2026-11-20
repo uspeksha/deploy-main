@@ -2,6 +2,12 @@ name: Deploy Sistem Absensi Production
 
 on:
   workflow_dispatch:
+    inputs:
+      remove_failed_release_image:
+        description: Remove only the confirmed unused image from the previous failed deployment
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -22,6 +28,7 @@ jobs:
       PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
       RELEASE_IMAGE: deploy-main:release-${{ github.sha }}
       ROLLBACK_TAG: deploy-main:rollback-${{ github.run_id }}
+      FAILED_RELEASE_IMAGE: deploy-main:release-ccea5beffcfe33ae3ea270ac6ee63aff0d28a65b
 
     steps:
       - name: Validate deployment configuration
@@ -115,6 +122,51 @@ jobs:
           fi
 
           echo "Verified one healthy followme-app app container at 127.0.0.1:8081. No production changes made."
+          REMOTE
+
+      - name: Remove only the confirmed unused failed release image
+        if: inputs.remove_failed_release_image
+        run: |
+          ssh \
+            -i "$HOME/.ssh/production" \
+            -p "$PRODUCTION_SSH_PORT" \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes \
+            "$PRODUCTION_USER@$PRODUCTION_HOST" \
+            "FAILED_RELEASE_IMAGE=$FAILED_RELEASE_IMAGE bash -se" <<'REMOTE'
+          set -Eeuo pipefail
+
+          expected_image="deploy-main:release-ccea5beffcfe33ae3ea270ac6ee63aff0d28a65b"
+          if [ "$FAILED_RELEASE_IMAGE" != "$expected_image" ]; then
+            echo "Refusing to remove an image other than the confirmed failed release."
+            exit 1
+          fi
+          image_id="$(docker image inspect --format='{{.Id}}' "$FAILED_RELEASE_IMAGE")"
+          image_tags="$(docker image inspect --format='{{range .RepoTags}}{{println .}}{{end}}' "$FAILED_RELEASE_IMAGE")"
+          if [ "$image_tags" != "$FAILED_RELEASE_IMAGE" ]; then
+            echo "The failed release image has additional tags; refusing to remove it."
+            exit 1
+          fi
+
+          container_ids="$(docker ps -aq)"
+          while IFS= read -r container_id; do
+            [ -n "$container_id" ] || continue
+            container_image_id="$(docker inspect --format='{{.Image}}' "$container_id")"
+            if [ "$container_image_id" = "$image_id" ]; then
+              container_name="$(docker inspect --format='{{.Name}}' "$container_id" | sed 's#^/##')"
+              echo "Image is referenced by container $container_name; refusing to remove it."
+              exit 1
+            fi
+          done <<< "$container_ids"
+
+          echo "Removing only unused image reference $FAILED_RELEASE_IMAGE ($image_id)."
+          docker image rm "$FAILED_RELEASE_IMAGE"
+          if docker image inspect "$FAILED_RELEASE_IMAGE" >/dev/null 2>&1; then
+            echo "Failed release image reference still exists after removal."
+            exit 1
+          fi
+          df -h /var/lib/docker
           REMOTE
 
       - name: Build release image from the validated main source
