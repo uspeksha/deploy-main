@@ -21,7 +21,7 @@
             ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
             : ($user->is_active
                 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
-                : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200');
+                : 'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200');
         $workLocation = match ($user->work_location) {
             'office' => 'Kantor',
             'produksi' => 'Produksi',

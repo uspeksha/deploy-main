@@ -60,8 +60,10 @@ it('shows employee data in the HRD page data employees section', function () {
         ->assertSee($employee->name)
         ->assertSee($employee->email)
         ->assertSee('Aktif')
+        ->assertSee('bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800', false)
         ->assertSee($inactiveEmployee->name)
         ->assertSee('Nonaktif')
+        ->assertSee('bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800', false)
         ->assertSee('Hapus permanen')
         ->assertSee('Nonaktifkan dulu untuk menghapus')
         ->assertSee('Buat akun karyawan');
@@ -120,7 +122,18 @@ it('opens a private employee detail page with the saved personal and work inform
         ->assertSee('NPWP')
         ->assertSee('12.345.678.9-012.000')
         ->assertSee('Informasi pekerjaan')
+        ->assertSee('bg-emerald-100 text-emerald-800', false)
         ->assertSee(route('admin.employees.edit', $employee), false);
+
+    $inactiveEmployee = employeeManagementUser([
+        'name' => 'Karyawan Detail Nonaktif',
+        'is_active' => false,
+    ]);
+
+    $this->get(route('admin.employees.show', $inactiveEmployee))
+        ->assertOk()
+        ->assertSee('Nonaktif')
+        ->assertSee('bg-rose-100 text-rose-800', false);
 
     $this->actingAs(User::factory()->create(['role' => 'admin']))
         ->get(route('admin.employees.show', $employee))

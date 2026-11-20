@@ -315,7 +315,7 @@
                                     @elseif ($employee->is_active)
                                         <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200">Aktif</span>
                                     @else
-                                        <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700 dark:bg-gray-700 dark:text-gray-200">Nonaktif</span>
+                                        <span class="rounded-full bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800 dark:bg-rose-900/40 dark:text-rose-200">Nonaktif</span>
                                     @endif
                                 </td>
                                 <td class="px-5 py-4 text-right">
