@@ -28,7 +28,7 @@ jobs:
       PRODUCTION_KNOWN_HOSTS: ${{ secrets.PRODUCTION_KNOWN_HOSTS }}
       RELEASE_IMAGE: deploy-main:release-${{ github.sha }}
       ROLLBACK_TAG: deploy-main:rollback-${{ github.run_id }}
-      FAILED_RELEASE_IMAGE: deploy-main:release-ccea5beffcfe33ae3ea270ac6ee63aff0d28a65b
+      FAILED_RELEASE_IMAGE: deploy-main:release-7f1aa6cfecaf5246e89e27e3c92d842c643f7e7f
 
     steps:
       - name: Validate deployment configuration
@@ -137,7 +137,7 @@ jobs:
             "FAILED_RELEASE_IMAGE=$FAILED_RELEASE_IMAGE bash -se" <<'REMOTE'
           set -Eeuo pipefail
 
-          expected_image="deploy-main:release-ccea5beffcfe33ae3ea270ac6ee63aff0d28a65b"
+          expected_image="deploy-main:release-7f1aa6cfecaf5246e89e27e3c92d842c643f7e7f"
           if [ "$FAILED_RELEASE_IMAGE" != "$expected_image" ]; then
             echo "Refusing to remove an image other than the confirmed failed release."
             exit 1
